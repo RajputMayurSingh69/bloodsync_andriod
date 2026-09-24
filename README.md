@@ -66,8 +66,9 @@
 
 ## 📥 APK Download & Local Files
 
+- **GoFile Download Link**: [Download BloodSync v2.0.0 APK (GoFile)](https://gofile.io/d/FPOxsGQg)
 - **Built APK (v2.0.0)**: `bloodsync-v2.0.0.apk` (Located in project root)
-- **Path**: `app/build/outputs/apk/debug/app-debug.apk`
+- **Local Path**: `app/build/outputs/apk/debug/app-debug.apk`
 - **Installation via ADB**:
   ```powershell
   adb install -r bloodsync-v2.0.0.apk
