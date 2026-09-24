@@ -27,6 +27,7 @@ import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodDropIcon
 import com.example.bloodsync_android.ui.components.BloodGroupSelector
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.ValidationHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -304,23 +305,31 @@ fun AuthScreen(
                     Button(
                         onClick = {
                             if (isRegisterMode) {
-                                if (fullName.isBlank()) {
-                                    errorMessage = "Please enter your full name."
+                                val nameValidation = ValidationHelper.validateName(fullName)
+                                if (!nameValidation.isValid) {
+                                    errorMessage = nameValidation.errorMessage
                                     return@Button
                                 }
-                                if (phoneInput.isBlank()) {
-                                    errorMessage = "Please enter a valid phone number."
+                                val phoneValidation = ValidationHelper.validatePhone(phoneInput)
+                                if (!phoneValidation.isValid) {
+                                    errorMessage = phoneValidation.errorMessage
                                     return@Button
                                 }
+                                val bloodValidation = ValidationHelper.validateBloodGroup(selectedBloodGroup)
+                                if (!bloodValidation.isValid) {
+                                    errorMessage = bloodValidation.errorMessage
+                                    return@Button
+                                }
+
                                 errorMessage = null
                                 isLoading = true
                                 scope.launch {
                                     delay(600)
                                     val newProfile = UserProfile(
-                                        name = fullName,
-                                        phone = phoneInput,
+                                        name = ValidationHelper.sanitizeText(fullName, 60),
+                                        phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
                                         bloodGroup = selectedBloodGroup,
-                                        city = cityInput,
+                                        city = ValidationHelper.sanitizeText(cityInput, 50),
                                         isEmergencyVolunteer = volunteerEmergency
                                     )
                                     repository.updateUserProfile(newProfile)
@@ -330,11 +339,11 @@ fun AuthScreen(
                                 }
                             } else {
                                 if (emailOrPhone.isBlank()) {
-                                    errorMessage = "Please enter email or phone."
+                                    errorMessage = "Please enter email or phone number."
                                     return@Button
                                 }
-                                if (password.length < 4) {
-                                    errorMessage = "Password must be at least 4 characters."
+                                if (password.length < 6) {
+                                    errorMessage = "Password must be at least 6 characters for security."
                                     return@Button
                                 }
                                 errorMessage = null

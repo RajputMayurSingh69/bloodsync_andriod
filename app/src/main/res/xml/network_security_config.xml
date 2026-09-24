@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Block all cleartext (HTTP) traffic; allow only secure TLS/HTTPS -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust only official Android system CA certificates; disallow user/malicious certs -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Secure endpoints for Firebase, Google Cloud, and WhatsApp APIs -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">firebaseio.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">google.com</domain>
+        <domain includeSubdomains="true">api.whatsapp.com</domain>
+        <domain includeSubdomains="true">wa.me</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

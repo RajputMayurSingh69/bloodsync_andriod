@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Emergency Requests Security Rules
+    match /emergency_requests/{requestId} {
+      // Donors need to view incoming emergency requests
+      allow read: if true;
+
+      // Ensure creation has valid types, lengths, and valid blood group
+      allow create: if request.resource.data.hospitalName is string
+                    && request.resource.data.hospitalName.size() >= 3
+                    && request.resource.data.hospitalName.size() <= 100
+                    && request.resource.data.unitsRequired is int
+                    && request.resource.data.unitsRequired >= 1
+                    && request.resource.data.unitsRequired <= 10
+                    && request.resource.data.bloodGroupNeeded in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+      // Allow status updates (e.g. donors responding), but disallow deletion
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // Blood Banks Directory: Public can read; only authorized admins can write
+    match /blood_banks/{bankId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Registered Donors Directory
+    match /donors/{donorId} {
+      allow read: if true;
+      allow write: if request.resource.data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                   && request.resource.data.name is string
+                   && request.resource.data.name.size() >= 2;
+    }
+
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read, write: if true;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+  }
+}

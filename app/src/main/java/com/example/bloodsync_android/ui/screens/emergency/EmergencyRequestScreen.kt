@@ -25,6 +25,7 @@ import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodGroupSelector
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.ValidationHelper
 
 @Composable
 fun EmergencyRequestScreen(
@@ -39,11 +40,11 @@ fun EmergencyRequestScreen(
     var unitsRequired by remember { mutableIntStateOf(2) }
     var urgencyLevel by remember { mutableStateOf(UrgencyLevel.IMMEDIATE) }
 
-    var patientName by remember { mutableStateOf("Jane Doe (ICU Patient)") }
-    var hospitalName by remember { mutableStateOf("Metro General Hospital") }
-    var hospitalAddress by remember { mutableStateOf("Emergency Trauma Wing, 100 Emergency Dr") }
-    var contactPhone by remember { mutableStateOf("+1 (555) 911-0422") }
-    var additionalNotes by remember { mutableStateOf("Critical surgery in 45 mins. O- or O+ donors urgent.") }
+    var patientName by remember { mutableStateOf("") }
+    var hospitalName by remember { mutableStateOf("") }
+    var hospitalAddress by remember { mutableStateOf("") }
+    var contactPhone by remember { mutableStateOf("") }
+    var additionalNotes by remember { mutableStateOf("") }
 
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -266,7 +267,8 @@ fun EmergencyRequestScreen(
                     OutlinedTextField(
                         value = patientName,
                         onValueChange = { patientName = it },
-                        label = { Text("Patient Name / Ward") },
+                        label = { Text("Patient Name / Ward (Optional)") },
+                        placeholder = { Text("e.g. Rahul Sharma / ICU Bed 4", color = MedicalTextMuted) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -274,7 +276,8 @@ fun EmergencyRequestScreen(
                     OutlinedTextField(
                         value = hospitalName,
                         onValueChange = { hospitalName = it },
-                        label = { Text("Hospital Name") },
+                        label = { Text("Hospital Name *") },
+                        placeholder = { Text("e.g. AIIMS Trauma Center", color = MedicalTextMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
                         },
@@ -286,6 +289,7 @@ fun EmergencyRequestScreen(
                         value = hospitalAddress,
                         onValueChange = { hospitalAddress = it },
                         label = { Text("Hospital Address / Wing") },
+                        placeholder = { Text("e.g. Block B, Ring Road", color = MedicalTextMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.Place, contentDescription = null, tint = MedicalTextMuted)
                         },
@@ -296,7 +300,8 @@ fun EmergencyRequestScreen(
                     OutlinedTextField(
                         value = contactPhone,
                         onValueChange = { contactPhone = it },
-                        label = { Text("Emergency Contact Phone") },
+                        label = { Text("Emergency Contact Phone *") },
+                        placeholder = { Text("e.g. 9876543210", color = MedicalTextMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.Phone, contentDescription = null, tint = MedicalTextMuted)
                         },
@@ -309,6 +314,7 @@ fun EmergencyRequestScreen(
                         value = additionalNotes,
                         onValueChange = { additionalNotes = it },
                         label = { Text("Medical Reason / Notes") },
+                        placeholder = { Text("e.g. Scheduled emergency surgery, urgently needed", color = MedicalTextMuted) },
                         maxLines = 3,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -333,27 +339,40 @@ fun EmergencyRequestScreen(
             // Broadcast Trigger Button
             Button(
                 onClick = {
-                    if (hospitalName.isBlank()) {
-                        validationError = "Please specify hospital name."
+                    val hospitalValidation = ValidationHelper.validateHospitalName(hospitalName)
+                    if (!hospitalValidation.isValid) {
+                        validationError = hospitalValidation.errorMessage
                         return@Button
                     }
-                    if (contactPhone.isBlank()) {
-                        validationError = "Please provide an emergency contact phone."
+                    val phoneValidation = ValidationHelper.validatePhone(contactPhone)
+                    if (!phoneValidation.isValid) {
+                        validationError = phoneValidation.errorMessage
+                        return@Button
+                    }
+                    val unitsValidation = ValidationHelper.validateUnits(unitsRequired)
+                    if (!unitsValidation.isValid) {
+                        validationError = unitsValidation.errorMessage
                         return@Button
                     }
 
                     validationError = null
                     isSubmitting = true
 
+                    val cleanPatientName = if (patientName.isNotBlank()) ValidationHelper.sanitizeText(patientName, 60) else "Emergency Patient"
+                    val cleanHospitalName = ValidationHelper.sanitizeText(hospitalName, 100)
+                    val cleanAddress = ValidationHelper.sanitizeText(hospitalAddress, 150)
+                    val cleanPhone = contactPhone.filter { it.isDigit() || it == '+' }.take(15)
+                    val cleanNotes = ValidationHelper.sanitizeText(additionalNotes, 300)
+
                     val newRequest = repository.createEmergencyRequest(
-                        patientName = patientName,
+                        patientName = cleanPatientName,
                         bloodGroup = selectedGroup,
                         units = unitsRequired,
-                        hospitalName = hospitalName,
-                        hospitalAddress = hospitalAddress,
-                        contactPhone = contactPhone,
+                        hospitalName = cleanHospitalName,
+                        hospitalAddress = cleanAddress,
+                        contactPhone = cleanPhone,
                         urgencyLevel = urgencyLevel,
-                        notes = additionalNotes
+                        notes = cleanNotes
                     )
 
                     isSubmitting = false
