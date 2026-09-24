@@ -1,5 +1,7 @@
 package com.example.bloodsync_android
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +18,7 @@ import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.AppNavDestination
 import com.example.bloodsync_android.ui.components.BloodSyncBottomNav
 import com.example.bloodsync_android.ui.components.EmergencyFloatingButton
+import com.example.bloodsync_android.ui.components.ExitConfirmationDialog
 import com.example.bloodsync_android.ui.screens.appointment.AppointmentScreen
 import com.example.bloodsync_android.ui.screens.auth.AuthScreen
 import com.example.bloodsync_android.ui.screens.certificate.CertificateScreen
@@ -49,6 +52,48 @@ fun BloodSyncApp(
     val repository = repository ?: remember { BloodSyncRepository(context) }
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
     var currentNavDestination by remember { mutableStateOf(AppNavDestination.HOME) }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Intercept hardware/gesture Back button
+    // 1. In Splash screen: prevent accidental exit while loading
+    BackHandler(enabled = currentScreen is Screen.Splash) {
+        // No-op during splash initialization
+    }
+
+    // 2. Sub-screens (Emergency, Live Tracking, Certificate, Notifications, Settings): navigate back to Main
+    BackHandler(
+        enabled = currentScreen !is Screen.Splash && currentScreen !is Screen.Auth && currentScreen !is Screen.Main
+    ) {
+        currentScreen = Screen.Main
+    }
+
+    // 3. Inside Main screen: If on non-HOME tab (History, Health, Appointments, Profile), navigate back to HOME tab
+    BackHandler(
+        enabled = currentScreen is Screen.Main && currentNavDestination != AppNavDestination.HOME
+    ) {
+        currentNavDestination = AppNavDestination.HOME
+    }
+
+    // 4. Root screens: On HOME tab of Main screen, or on Auth screen -> Prompt Exit Confirmation
+    BackHandler(
+        enabled = (currentScreen is Screen.Main && currentNavDestination == AppNavDestination.HOME) || (currentScreen is Screen.Auth)
+    ) {
+        showExitDialog = true
+    }
+
+    // Render Exit Confirmation Dialog when user presses back at the root screen
+    if (showExitDialog) {
+        val activity = context as? Activity
+        ExitConfirmationDialog(
+            onConfirmExit = {
+                showExitDialog = false
+                activity?.finishAffinity()
+            },
+            onDismiss = {
+                showExitDialog = false
+            }
+        )
+    }
 
     AnimatedContent(
         targetState = currentScreen,
