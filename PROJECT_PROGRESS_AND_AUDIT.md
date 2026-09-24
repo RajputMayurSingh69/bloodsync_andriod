@@ -70,7 +70,7 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
 |---|---|
 | `c:\Users\ADMIN\AndroidStudioProjects\bloodsync_android\bloodsync-v2.0.0.apk` | Workspace Root APK |
 | `C:\Users\ADMIN\Desktop\bloodsync-v2.0.0.apk` | Desktop Mirror APK |
-| `https://gofile.io/d/vgBbepZa` | Cloud Direct Download Link (GoFile v2.0.0 Clean UI Build) |
+| `https://gofile.io/d/RZzdjYI6` | Cloud Direct Download Link (GoFile v2.0.0 Clean 3D Drop Icon Build) |
 | `firestore.rules` | Production Firebase Security Rules |
 | `app/proguard-rules.pro` | Obfuscation and Security Rules |
 | `app/src/main/res/xml/network_security_config.xml` | TLS / Cleartext Network Rules |

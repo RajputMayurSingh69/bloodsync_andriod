@@ -39,10 +39,10 @@
    - Clean, minimalist UI without bracket clutter.
    - Seamless status bar contrast and 3-button navigation insets adaptation.
 
-6. **✨ Official 3D BloodSync Launcher Icon**:
-   - 3D ruby-red blood drop with an embedded medical cross and heartbeat lifeline pulse.
+6. **✨ Official 3D Pure Blood Drop Launcher Icon**:
+   - Glossy, hyper-realistic 3D ruby-red blood droplet on a clean pure white background with subtle ambient drop shadow.
+   - Textless, ultra-clean design (no title or bottom text clutter).
    - Safe circular margin padding for perfect rendering on Samsung OneUI, Google Pixel, and Xiaomi launchers.
-   - Embossed modern "BLOODSYNC" brand typography right underneath the drop.
 
 7. **🧹 Clean Real-Database Architecture**:
    - Removed all hardcoded mock/demo data.
@@ -86,7 +86,7 @@
 
 ## 📥 APK Download & Local Files
 
-- **Latest GoFile Cloud Download**: [Download BloodSync v2.0.0 APK (GoFile Clean UI Build)](https://gofile.io/d/vgBbepZa)
+- **Latest GoFile Cloud Download**: [Download BloodSync v2.0.0 APK (GoFile)](https://gofile.io/d/RZzdjYI6)
 - **Built APK (v2.0.0)**: `bloodsync-v2.0.0.apk` (Located in project root)
 - **Local Mirror Locations**:
   - `C:\Users\ADMIN\Desktop\bloodsync-v2.0.0.apk`
