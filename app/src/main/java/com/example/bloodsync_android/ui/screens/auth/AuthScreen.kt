@@ -36,15 +36,15 @@ fun AuthScreen(
     onLoginSuccess: () -> Unit
 ) {
     var isRegisterMode by remember { mutableStateOf(false) }
-    var emailOrPhone by remember { mutableStateOf("alex.rivera@bloodsync.org") }
-    var password by remember { mutableStateOf("BloodSync2026!") }
+    var emailOrPhone by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     // Register fields
     var fullName by remember { mutableStateOf("") }
     var selectedBloodGroup by remember { mutableStateOf("O+") }
     var phoneInput by remember { mutableStateOf("") }
-    var cityInput by remember { mutableStateOf("Central Metro") }
+    var cityInput by remember { mutableStateOf("") }
     var volunteerEmergency by remember { mutableStateOf(true) }
 
     // State

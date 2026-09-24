@@ -21,10 +21,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.bloodsync_android.data.model.EligibilityStatus
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.*
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.ShareHelper
 
 @Composable
 fun HomeScreen(
@@ -38,6 +40,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {}
 ) {
     val appColors = BloodSyncTheme.colors
+    val context = LocalContext.current
     val profile by repository.userProfile
     val healthRecord by repository.healthRecord
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
@@ -45,21 +48,10 @@ fun HomeScreen(
     val recentDonations = repository.donationHistory
     val upcomingAppointments = repository.appointments.filter { it.status.name == "UPCOMING" }
     val activeEmergencies = repository.emergencyRequests.filter { it.status.name != "CANCELLED" }
+    val donors = repository.donors
 
     var selectedSearchGroup by remember { mutableStateOf<String?>("All") }
     var donorSearchQuery by remember { mutableStateOf("") }
-
-    // Mock nearby donors for donor search feature
-    val mockDonors = remember {
-        listOf(
-            Triple("David Vance", "O+", "1.2 km • 4 Donations"),
-            Triple("Sarah Connor", "A+", "2.1 km • 6 Donations"),
-            Triple("Michael Chang", "B+", "3.0 km • 2 Donations"),
-            Triple("Priya Sharma", "AB+", "3.8 km • 5 Donations"),
-            Triple("Lucas Bennett", "O-", "4.2 km • 8 Donations"),
-            Triple("Hannah Becker", "A-", "5.1 km • 3 Donations")
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -147,6 +139,22 @@ fun HomeScreen(
                                     color = MedicalTextSecondary
                                 )
                             }
+                            IconButton(
+                                onClick = {
+                                    ShareHelper.shareEmergencySos(context, latestEmg)
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFF25D366), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Share SOS to WhatsApp",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
@@ -544,69 +552,137 @@ fun HomeScreen(
                 }
             }
 
-            // Donors list
-            val filteredDonors = mockDonors.filter {
-                val matchesGroup = selectedSearchGroup == "All" || it.second == selectedSearchGroup
-                val matchesQuery = donorSearchQuery.isBlank() || it.first.contains(donorSearchQuery, ignoreCase = true)
+            // Donors list from repository
+            val filteredDonors = donors.filter {
+                val matchesGroup = selectedSearchGroup == "All" || it.bloodGroup == selectedSearchGroup
+                val matchesQuery = donorSearchQuery.isBlank() || it.name.contains(donorSearchQuery, ignoreCase = true) || it.city.contains(donorSearchQuery, ignoreCase = true)
                 matchesGroup && matchesQuery
             }
 
-            items(filteredDonors) { donor ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(14.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            if (filteredDonors.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .background(BloodRedLight, CircleShape),
-                                contentAlignment = Alignment.Center
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PeopleOutline,
+                                contentDescription = null,
+                                tint = appColors.textMuted,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (selectedSearchGroup == "All") "No registered donors yet" else "No registered donors yet for $selectedSearchGroup",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "Invite voluntary blood donors in your community via WhatsApp.",
+                                fontSize = 12.sp,
+                                color = appColors.textSecondary
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { ShareHelper.shareAppInvite(context) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text(
-                                    text = donor.second,
-                                    color = BloodRedPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = donor.first,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = MedicalTextPrimary
-                                )
-                                Text(
-                                    text = donor.third,
-                                    fontSize = 12.sp,
-                                    color = MedicalTextSecondary
-                                )
+                                Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Invite Donors via WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-
-                        OutlinedButton(
-                            onClick = onNavigateToEmergency,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
+                    }
+                }
+            } else {
+                items(filteredDonors) { donor ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(14.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "Request",
-                                fontSize = 12.sp,
-                                color = BloodRedPrimary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .background(BloodRedLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = donor.bloodGroup,
+                                        color = BloodRedPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = if (donor.name.isNotBlank()) donor.name else "Volunteer Donor",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = appColors.textPrimary
+                                    )
+                                    Text(
+                                        text = "${if (donor.city.isNotBlank()) donor.city else "Nearby"} • ${donor.totalDonations} Donations",
+                                        fontSize = 12.sp,
+                                        color = appColors.textSecondary
+                                    )
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                if (donor.phone.isNotBlank()) {
+                                    IconButton(
+                                        onClick = {
+                                            val msg = "Hello ${donor.name}, I am reaching out from BloodSync App regarding voluntary blood donation (${donor.bloodGroup})."
+                                            ShareHelper.openWhatsApp(context, donor.phone, msg)
+                                        },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(Color(0xFF25D366), CircleShape)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Chat,
+                                            contentDescription = "WhatsApp Donor",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = onNavigateToEmergency,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
+                                ) {
+                                    Text(
+                                        text = "Request",
+                                        fontSize = 12.sp,
+                                        color = BloodRedPrimary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

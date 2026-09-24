@@ -48,12 +48,14 @@ fun SettingsScreen(
     var showResetSuccess by remember { mutableStateOf(false) }
 
     val appColors = BloodSyncTheme.colors
+    val isFirebaseConnected by repository.firebaseService.isFirebaseConnected
+    val firebaseStatus by repository.firebaseService.connectionStatus
 
     Scaffold(
         topBar = {
             BloodSyncTopBar(
                 title = "Settings",
-                subtitle = "Appearance & System Insets",
+                subtitle = "Preferences & Cloud Sync",
                 showBackButton = true,
                 onBackClick = onBackClick
             )
@@ -70,7 +72,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             // ==========================================
-            // 1. Theme & Appearance (Light, Dark, Phone Jesa)
+            // 1. Theme & Appearance (Light & Dark Only)
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -81,7 +83,7 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 14.dp)
                     ) {
                         Box(
                             modifier = Modifier
@@ -99,7 +101,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "App Theme & Appearance",
+                                text = "App Theme",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
@@ -114,24 +116,14 @@ fun SettingsScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         ThemeOptionTile(
-                            title = "Phone Jaisa (System Default)",
-                            subtitle = "Automatically follows your phone's dark/light setting",
-                            icon = Icons.Default.PhoneAndroid,
-                            isSelected = currentTheme == ThemeMode.SYSTEM,
-                            onClick = { repository.setThemeMode(ThemeMode.SYSTEM) }
-                        )
-
-                        ThemeOptionTile(
-                            title = "Light Mode",
-                            subtitle = "Clean medical white with crimson accents",
+                            title = "Light",
                             icon = Icons.Default.WbSunny,
                             isSelected = currentTheme == ThemeMode.LIGHT,
                             onClick = { repository.setThemeMode(ThemeMode.LIGHT) }
                         )
 
                         ThemeOptionTile(
-                            title = "Dark Mode",
-                            subtitle = "Sleek slate-dark theme comfortable for night use",
+                            title = "Dark",
                             icon = Icons.Default.Nightlight,
                             isSelected = currentTheme == ThemeMode.DARK,
                             onClick = { repository.setThemeMode(ThemeMode.DARK) }
@@ -141,7 +133,74 @@ fun SettingsScreen(
             }
 
             // ==========================================
-            // 2. Navigation Bar & Status Bar Auto-Adjustment
+            // 2. Firebase Cloud Database Connection Status
+            // ==========================================
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = BorderStroke(1.dp, appColors.border)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    if (isFirebaseConnected) StatusEligibleGreen.copy(alpha = 0.15f)
+                                    else StatusInfoBlue.copy(alpha = 0.15f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudSync,
+                                contentDescription = null,
+                                tint = if (isFirebaseConnected) StatusEligibleGreen else StatusInfoBlue,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Firebase Cloud Database",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "Real-time server sync & live alerts",
+                                fontSize = 12.sp,
+                                color = appColors.textSecondary
+                            )
+                        }
+                    }
+
+                    SystemFeatureStatusRow(
+                        title = "Cloud Connection",
+                        description = "Direct connection to Firebase Firestore & Realtime Database for emergency broadcasting, donor matching, and blood bank stock sync.",
+                        statusText = if (isFirebaseConnected) "Active" else "Ready",
+                        statusColor = if (isFirebaseConnected) StatusEligibleGreen else StatusInfoBlue
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = appColors.divider)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Status: $firebaseStatus",
+                        fontSize = 12.sp,
+                        color = appColors.textSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // ==========================================
+            // 3. Navigation Bar & Status Bar Auto-Adjustment
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -170,7 +229,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "System Bars & Insets Auto-Adjustment",
+                                text = "System Bars & Hardware Adaptation",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
@@ -183,7 +242,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Feature 1: Navigation Buttons Inset
                     SystemFeatureStatusRow(
                         title = "3-Button Navigation Auto-Adjustment",
                         description = "Automatically calculates your phone's 3-button navigation bar (Back, Home, Recents) height so bottom tabs and buttons are never covered or cut off.",
@@ -195,18 +253,17 @@ fun SettingsScreen(
                     HorizontalDivider(color = appColors.divider)
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Feature 2: Smart Status Bar
                     SystemFeatureStatusRow(
                         title = "Smart Adaptive Status Bar",
-                        description = "Status bar icons (clock, battery %, Wi-Fi) automatically contrast with the app background — dark icons on light mode, light icons on dark mode — so they never wash out or turn invisible.",
-                        statusText = "Optimized",
+                        description = "Maintains optimal contrast against dark or light modes so clock, battery, and signal icons remain clearly legible.",
+                        statusText = "Active",
                         statusColor = StatusEligibleGreen
                     )
                 }
             }
 
             // ==========================================
-            // 3. Notification Preferences
+            // 4. Clinical Safety: 3-Month Interval Enforcement
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -222,84 +279,11 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(StatusWarningAmber.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = null,
-                                tint = StatusWarningAmber,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Notifications & Alerts",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = appColors.textPrimary
-                            )
-                            Text(
-                                text = "Emergency broadcasts & donation timers",
-                                fontSize = 12.sp,
-                                color = appColors.textSecondary
-                            )
-                        }
-                    }
-
-                    SettingToggleRow(
-                        title = "24/7 Emergency Blood SOS",
-                        subtitle = "High-priority alerts for critical patients needing your blood type",
-                        isChecked = emergencyAlertsEnabled,
-                        onCheckedChange = {
-                            emergencyAlertsEnabled = it
-                            repository.updateUserProfile(profile.copy(isAvailableDonor = it))
-                        }
-                    )
-
-                    HorizontalDivider(color = appColors.divider, modifier = Modifier.padding(vertical = 8.dp))
-
-                    SettingToggleRow(
-                        title = "3-Month Eligibility Alerts",
-                        subtitle = "Notifies you as soon as 90 days have passed and you can donate again",
-                        isChecked = eligibilityAlertsEnabled,
-                        onCheckedChange = { eligibilityAlertsEnabled = it }
-                    )
-
-                    HorizontalDivider(color = appColors.divider, modifier = Modifier.padding(vertical = 8.dp))
-
-                    SettingToggleRow(
-                        title = "Appointment Schedule Reminders",
-                        subtitle = "Reminders 24 hours prior to scheduled blood bank slots",
-                        isChecked = appointmentAlertsEnabled,
-                        onCheckedChange = { appointmentAlertsEnabled = it }
-                    )
-                }
-            }
-
-            // ==========================================
-            // 4. Medical Rules & 3-Month Donation Gap
-            // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
                                 .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.HealthAndSafety,
+                                imageVector = Icons.Default.MedicalServices,
                                 contentDescription = null,
                                 tint = BloodRedPrimary,
                                 modifier = Modifier.size(20.dp)
@@ -308,70 +292,30 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Medical Safety: 3-Month Rule",
+                                text = "Clinical Donation Interval",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "WHO & Red Cross mandatory safety interval",
+                                text = "WHO 90-Day (3 Month) safety standard",
                                 fontSize = 12.sp,
                                 color = appColors.textSecondary
                             )
                         }
                     }
 
-                    Text(
-                        text = "To safeguard donor well-being and allow ferritin (iron) stores and red blood cells to fully replenish, whole blood donations are strictly limited to once every 3 months (90 days).",
-                        fontSize = 13.sp,
-                        color = appColors.textSecondary,
-                        lineHeight = 18.sp
+                    SystemFeatureStatusRow(
+                        title = "WHO 3-Month Interval Lock",
+                        description = "Enforces safe recovery window between whole blood donations to safeguard donor hemoglobin and ferritin levels.",
+                        statusText = if (daysLeft > 0) "$daysLeft Days Left" else "Eligible",
+                        statusColor = if (daysLeft > 0) StatusWarningAmber else StatusEligibleGreen
                     )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Surface(
-                        color = appColors.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Your Next Eligible Date:",
-                                    fontSize = 12.sp,
-                                    color = appColors.textSecondary
-                                )
-                                Text(
-                                    text = healthRecord.getNextEligibleDateFormatted(),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BloodRedPrimary
-                                )
-                            }
-                            Surface(
-                                color = if (daysLeft <= 0) StatusEligibleGreenLight else StatusWarningAmberLight,
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    text = if (daysLeft <= 0) "Eligible Now" else "$daysLeft Days Left",
-                                    color = if (daysLeft <= 0) StatusEligibleGreen else StatusWarningAmber,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
             // ==========================================
-            // 5. Data Management & Reset
+            // 5. Data Management (Clear Local Cache)
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -381,14 +325,14 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Data & App Management",
+                        text = "Data Management",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = appColors.textPrimary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Reset app data back to clean demonstration defaults",
+                        text = "Manage local device storage and cached records",
                         fontSize = 12.sp,
                         color = appColors.textSecondary
                     )
@@ -402,14 +346,14 @@ fun SettingsScreen(
                         border = BorderStroke(1.dp, StatusUrgentRed)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Refresh,
+                            imageVector = Icons.Default.DeleteOutline,
                             contentDescription = null,
                             tint = StatusUrgentRed,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Reset Demo Data & Clear Cache",
+                            text = "Clear Local Cache & Reset",
                             color = StatusUrgentRed,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -449,12 +393,12 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "BloodSync Android • Version 1.3.0",
+                    text = "BloodSync Android • Version 2.0.0",
                     fontSize = 11.sp,
                     color = appColors.textMuted
                 )
                 Text(
-                    text = "Voluntary Blood Donor Network • Real-time Sync",
+                    text = "Voluntary Blood Donor Network • Real-time Cloud Sync",
                     fontSize = 11.sp,
                     color = appColors.textMuted
                 )
@@ -470,14 +414,14 @@ fun SettingsScreen(
             onDismissRequest = { showResetDialog = false },
             title = {
                 Text(
-                    text = "Reset Demo Data?",
+                    text = "Clear Local Cache?",
                     fontWeight = FontWeight.Bold,
                     color = appColors.textPrimary
                 )
             },
             text = {
                 Text(
-                    text = "This will reset all local appointments, donation history, and preferences back to fresh demonstration records.",
+                    text = "This will clear all local cached records on this device and refresh from Firebase server.",
                     color = appColors.textSecondary,
                     fontSize = 14.sp
                 )
@@ -485,13 +429,13 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        repository.resetDemoData()
+                        repository.clearLocalCache()
                         showResetDialog = false
                         showResetSuccess = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
                 ) {
-                    Text("Confirm Reset", color = Color.White)
+                    Text("Confirm Clear", color = Color.White)
                 }
             },
             dismissButton = {
@@ -509,14 +453,14 @@ fun SettingsScreen(
             onDismissRequest = { showResetSuccess = false },
             title = {
                 Text(
-                    text = "Demo Data Reset",
+                    text = "Cache Cleared",
                     fontWeight = FontWeight.Bold,
                     color = appColors.textPrimary
                 )
             },
             text = {
                 Text(
-                    text = "All sample appointments, 3-month medical timers, and settings have been restored to default state.",
+                    text = "Local device cache has been cleared and synchronized with Firebase Cloud.",
                     color = appColors.textSecondary,
                     fontSize = 14.sp
                 )
@@ -582,7 +526,7 @@ fun SettingsScreen(
 @Composable
 private fun ThemeOptionTile(
     title: String,
-    subtitle: String,
+    subtitle: String = "",
     icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -637,15 +581,17 @@ private fun ThemeOptionTile(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) BloodRedPrimary else appColors.textPrimary
                 )
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = appColors.textSecondary
-                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.sp,
+                        color = appColors.textSecondary
+                    )
+                }
             }
 
             RadioButton(
@@ -674,76 +620,35 @@ private fun SystemFeatureStatusRow(
         verticalAlignment = Alignment.Top
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = appColors.textPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    color = statusColor.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = statusText,
-                        color = statusColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = description,
-                fontSize = 11.sp,
-                color = appColors.textSecondary,
-                lineHeight = 16.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingToggleRow(
-    title: String,
-    subtitle: String,
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    val appColors = BloodSyncTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = appColors.textPrimary
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = subtitle,
+                text = description,
                 fontSize = 11.sp,
-                color = appColors.textSecondary
+                color = appColors.textSecondary,
+                lineHeight = 15.sp
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Switch(
-            checked = isChecked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = BloodRedPrimary,
-                checkedTrackColor = BloodRedPrimary.copy(alpha = 0.3f),
-                uncheckedThumbColor = appColors.textMuted,
-                uncheckedTrackColor = appColors.surfaceVariant
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = statusColor.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
+        ) {
+            Text(
+                text = statusText,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = statusColor,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
             )
-        )
+        }
     }
 }

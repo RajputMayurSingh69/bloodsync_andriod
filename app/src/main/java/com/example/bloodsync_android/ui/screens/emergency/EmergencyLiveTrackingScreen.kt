@@ -32,6 +32,7 @@ import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.components.StatusBadge
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.ShareHelper
 
 @Composable
 fun EmergencyLiveTrackingScreen(
@@ -221,6 +222,34 @@ fun EmergencyLiveTrackingScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                // Share SOS on WhatsApp & Communication Apps
+                item {
+                    Button(
+                        onClick = {
+                            ShareHelper.shareEmergencySos(context, request)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share SOS",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Share SOS via WhatsApp & Apps",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 15.sp
+                        )
                     }
                 }
 

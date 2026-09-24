@@ -1,62 +1,76 @@
-# 🩸 BloodSync Android — Blood Donor Finder App
+# 🩸 BloodSync Android — Official Release v2.0.0
 
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
 [![Language](https://img.shields.io/badge/Language-Kotlin%20100%25-orange.svg)](https://kotlinlang.org/)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20(Material%203)-blue.svg)](https://developer.android.com/jetpack/compose)
-[![Version](https://img.shields.io/badge/Version-v1.3.0-crimson.svg)](https://gofile.io/d/KIxoRdR6)
+[![Backend](https://img.shields.io/badge/Cloud-Firebase%20Firestore%20%26%20Realtime%20DB-yellow.svg)](https://firebase.google.com/)
+[![Version](https://img.shields.io/badge/Version-v2.0.0%20Official-crimson.svg)](https://github.com/RajputMayurSingh69/bloodsync_andriod)
 
-**BloodSync** is a production-grade, healthcare-oriented Android mobile application built with 100% Kotlin and Jetpack Compose (Material 3). It connects voluntary blood donors with individuals and hospitals in urgent need in real-time, while strictly enforcing global medical donation interval guidelines (such as the WHO 3-month whole blood recovery rule).
+**BloodSync** is a production-grade, humanitarian blood donation & emergency broadcast Android mobile application built with 100% Kotlin and Jetpack Compose (Material 3). It connects voluntary blood donors with hospitals and families in critical need in real-time, features direct WhatsApp communication, connects directly to Firebase Cloud databases, and enforces global medical safety standards (including the WHO 3-month whole blood recovery rule).
 
 ---
 
-## 📱 App Highlights & Core Features
+## 🚀 What's New in Version 2.0.0
+
+1. **🔥 Firebase Cloud Server Database**:
+   - Integrated with Firebase Firestore & Realtime Database for real-time synchronization.
+   - Live server listeners for emergency blood requests, verified donor directory, and blood bank stock updates.
+   - Built-in support for your `google-services.json` project configuration with graceful local offline fallback.
+
+2. **💬 Direct WhatsApp & Multi-Platform Messaging**:
+   - **One-Tap WhatsApp Donor Chat**: Message matching blood donors directly on WhatsApp with pre-filled blood group inquiry.
+   - **SOS Broadcast to WhatsApp**: Instant sharing of emergency blood requirements (blood group, units, hospital, patient, and contact) directly to WhatsApp chats, groups, and WhatsApp Status.
+
+3. **🎨 Clean Light & Dark Theme System**:
+   - Simplified display options: **Light** and **Dark** only (System Default removed).
+   - Clean, minimalist UI without bracket clutter.
+   - Seamless status bar contrast and 3-button navigation insets adaptation.
+
+4. **✨ Official BloodSync Launcher Icon**:
+   - 3D ruby-red blood drop with an embedded medical cross and heartbeat lifeline pulse.
+   - Embossed modern "BLOODSYNC" brand typography right underneath the drop.
+   - Full adaptive icon vector support (`ic_launcher.xml`) and high-resolution mipmap densities (`hdpi`, `mdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`).
+
+5. **🧹 Clean Real-Database Architecture**:
+   - Removed all hardcoded mock/demo data (fake Alex Rivera profile, fake appointments, fake certificates).
+   - Starts clean and allows users to input their real data or sync from Firebase server.
+   - Added single-tap local cache clear & data refresh option in Settings.
+
+---
+
+## 📱 Core Features
 
 ### 1. 🩸 Splash Screen with Physics Blood Drop
 - Pure white background splash screen.
 - Smooth physics-based teardrop gravity fall, squash-and-stretch impact bounce, crimson fluid pulse, and expanding landing ripple.
-- Auto-navigates smoothly after ~2.2 seconds.
 
-### 2. 🚨 24/7 Emergency Blood Request System
-- **Urgent Broadcast Button**: Prominent pulsating radar Floating Action Button accessible from all main screens.
-- **Immediate Broadcast Form**: Blood group selector (A+, A-, B+, B-, AB+, AB-, O+, O-), required unit counter, hospital name & trauma ward, emergency phone, and urgency rating.
-- **Live Tracking Dashboard**: Real-time mock radar tracking nearby matching donors, ETA countdown, and one-tap direct donor dialing.
+### 2. 🚨 24/7 Emergency Blood SOS System
+- **Urgent Broadcast Button**: Pulsating radar Floating Action Button accessible from all main screens.
+- **Immediate Broadcast**: Blood group selector (A+, A-, B+, B-, AB+, AB-, O+, O-), required unit counter, hospital name, contact phone, and urgency rating.
+- **Live SOS Tracking & WhatsApp Sharing**: Real-time radar status and instant WhatsApp group broadcast.
 
-### 3. 🛡️ Enforced 3-Month (90-Day) Donation Gap Safety Rule
-- **Medical Standard**: In accordance with WHO and Red Cross guidelines, donors must wait a minimum of 90 days between whole blood donations to protect iron stores (ferritin) and hemoglobin.
-- **Triple-Lock Enforcement**:
-  - **Health Tracker**: Interactive recovery countdown ring and real-time days-remaining indicator.
-  - **Appointment Booking**: Dynamic date chips and native Android `DatePickerDialog` lock out dates before the 90-day window.
-  - **Reschedule & Logging Flow**: Validates interval before confirming appointments or saving historical donation logs.
+### 3. 🛡️ Enforced 3-Month (90-Day) Donation Interval Safety Rule
+- **Medical Standard**: Strictly enforces the WHO 90-day interval between whole blood donations to safeguard donor hemoglobin and ferritin.
+- **Lock Enforcement**: Locks scheduling dates before the 90-day recovery window.
 
-### 4. 📅 In-App Blood Bank Scheduling
-- Select from certified regional blood banks.
-- Real-time dynamic date selection with calendar picker.
-- Flexible time slot chips (`09:00 AM - 11:00 AM`, `11:00 AM - 01:00 PM`, `02:00 PM - 04:00 PM`, etc.).
-- Complete rescheduling dialog and appointment cancellation with reactive state updates.
+### 4. 📅 Blood Bank Appointment Booking
+- Select certified regional blood banks.
+- Real-time date picker and flexible time slot chips.
+- In-app reschedule and cancellation management with Cloud Firestore sync.
 
-### 5. 🎖️ Appreciation Certificates & Lifetime History
-- Official recognition certificate with gold borders, embossed seal, and unique verification ID.
-- Canvas bitmap rendering for direct image download and Android system share sheet integration.
-- Lifetime donation metrics: Total liters donated, lives saved, and detailed donation receipts.
-
-### 6. ⚙️ Settings & System Adaptation Engine
-- **Theme Selection**:
-  - **Phone Jaisa (System Default)**: Mirrors device dark/light setting.
-  - **Light Mode**: Clean medical white with crimson accents.
-  - **Dark Mode**: Sleek slate-dark theme designed for low-light comfort.
-- **3-Button Navigation Auto-Adjustment**: Dynamically measures system navigation bars (`WindowInsets.navigationBars`), ensuring bottom tabs and action buttons never get blocked on phones with 3-button navigation.
-- **Smart Adaptive Status Bar**: Transparent system bars with auto-contrasting dark/light icons so clock, battery %, and Wi-Fi are always crystal clear and never washed out.
-- **Notification Preferences & Demo Data Reset**: Push notification switches and single-tap demo data restore.
+### 5. 🎖️ Appreciation Certificates & History
+- Official recognition certificates with gold borders, embossed seal, and unique verification ID.
+- Canvas bitmap rendering for direct image download and Android system share sheet.
 
 ---
 
-## 📥 Download & Installation
+## 📥 APK Download & Local Files
 
-- **Direct Download Link**: [Download BloodSync APK (v1.3.0)](https://gofile.io/d/KIxoRdR6)
-- **Local APK Path**: `BloodSync.apk` (Project root) and `C:\Users\ADMIN\Desktop\BloodSync.apk`
+- **Built APK (v2.0.0)**: `bloodsync-v2.0.0.apk` (Located in project root)
+- **Path**: `app/build/outputs/apk/debug/app-debug.apk`
 - **Installation via ADB**:
   ```powershell
-  adb install -r BloodSync.apk
+  adb install -r bloodsync-v2.0.0.apk
   ```
 
 ---
@@ -65,7 +79,7 @@
 
 - **Language**: Kotlin (100%)
 - **Framework**: Jetpack Compose (Material 3)
-- **Architecture**: Clean Architecture / Repository Pattern with Reactive Compose State
-- **Storage**: Android `SharedPreferences` with JSON Serialization
-- **System Insets**: WindowInsets Edge-to-Edge with `WindowCompat.getInsetsController`
+- **Cloud Backend**: Firebase BoM (Firestore, Realtime Database, Auth)
+- **Architecture**: Clean Architecture / Repository Pattern with Reactive State
+- **Storage**: Android `SharedPreferences` + Firebase Firestore Cloud Sync
 - **Target SDK**: 37 (Android 15 Ready) | **Min SDK**: 24 (Android 7.0+)

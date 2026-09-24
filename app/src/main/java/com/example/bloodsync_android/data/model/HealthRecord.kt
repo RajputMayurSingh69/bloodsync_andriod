@@ -16,7 +16,7 @@ data class HealthRecord(
     val age: Int = 26,
     val gender: String = "Male", // "Male", "Female", "Other"
     val weightKg: Double = 68.0,
-    val lastDonationDateString: String = "2026-08-10", // YYYY-MM-DD or MMM dd, yyyy
+    val lastDonationDateString: String = "", // YYYY-MM-DD or MMM dd, yyyy
     val hemoglobinGPerDl: Double = 14.2,
     val systolicBp: Int = 120,
     val diastolicBp: Int = 80,
