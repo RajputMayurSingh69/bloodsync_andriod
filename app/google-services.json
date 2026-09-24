@@ -1,13 +1,51 @@
 {
   "project_info": {
-    "project_number": "100000000000",
-    "project_id": "bloodsync-app",
-    "storage_bucket": "bloodsync-app.appspot.com"
+    "project_number": "1044746314963",
+    "project_id": "bloodsync-3b5cf",
+    "storage_bucket": "bloodsync-3b5cf.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:100000000000:android:abcdef0123456789",
+        "mobilesdk_app_id": "1:1044746314963:android:be7389eb64da0d64476026",
+        "android_client_info": {
+          "package_name": "Com.bloodsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1044746314963:android:be7389eb64da0d64476026",
+        "android_client_info": {
+          "package_name": "com.bloodsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1044746314963:android:be7389eb64da0d64476026",
         "android_client_info": {
           "package_name": "com.example.bloodsync_android"
         }
@@ -15,7 +53,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyForBloodSyncAppBuild000"
+          "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
         }
       ],
       "services": {
