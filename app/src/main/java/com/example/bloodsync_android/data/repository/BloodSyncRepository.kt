@@ -91,10 +91,35 @@ class BloodSyncRepository(private val context: Context) {
 
         // Load persisted local data
         loadFromPrefs()
+        seedCommunityDataIfEmpty()
         updateUnreadCount()
 
         // Setup real-time Firebase listeners to sync with server
         setupFirebaseSync()
+    }
+
+    private fun seedCommunityDataIfEmpty() {
+        if (_bloodBanks.isEmpty()) {
+            _bloodBanks.addAll(
+                listOf(
+                    BloodBank("bb_1", "Red Cross Central Blood Bank", "Connaught Place, Central Wing", 2.4, "24/7 Open", "+919876543210", "Available (All Groups)"),
+                    BloodBank("bb_2", "Apex City Trauma & Blood Center", "Ring Road, Medical Enclave", 4.1, "8:00 AM - 10:00 PM", "+919811122233", "Critical Need (O-, B-)"),
+                    BloodBank("bb_3", "National LifeLine Blood Bank", "Sector 14, Health Boulevard", 6.8, "24/7 Open", "+919999988888", "Available (A+, B+, O+)")
+                )
+            )
+        }
+        if (_donors.isEmpty()) {
+            _donors.addAll(
+                listOf(
+                    UserProfile(id = "dn_1", name = "Rahul Sharma", phone = "+919876543210", bloodGroup = "O+", city = "Delhi NCR", totalDonations = 4, livesSaved = 12, isAvailableDonor = true),
+                    UserProfile(id = "dn_2", name = "Priya Patel", phone = "+919812345678", bloodGroup = "B+", city = "Mumbai", totalDonations = 2, livesSaved = 6, isAvailableDonor = true),
+                    UserProfile(id = "dn_3", name = "Amit Verma", phone = "+919898765432", bloodGroup = "A+", city = "Bangalore", totalDonations = 5, livesSaved = 15, isAvailableDonor = true),
+                    UserProfile(id = "dn_4", name = "Sneha Reddy", phone = "+919765432109", bloodGroup = "O-", city = "Hyderabad", totalDonations = 3, livesSaved = 9, isAvailableDonor = true),
+                    UserProfile(id = "dn_5", name = "Vikram Singh", phone = "+919988776655", bloodGroup = "AB+", city = "Jaipur", totalDonations = 1, livesSaved = 3, isAvailableDonor = true),
+                    UserProfile(id = "dn_6", name = "Ananya Iyer", phone = "+919123456780", bloodGroup = "A-", city = "Chennai", totalDonations = 2, livesSaved = 6, isAvailableDonor = true)
+                )
+            )
+        }
     }
 
     private fun setupFirebaseSync() {
@@ -132,10 +157,12 @@ class BloodSyncRepository(private val context: Context) {
         _emergencyRequests.clear()
         _notifications.clear()
         _donors.clear()
+        _bloodBanks.clear()
         _userProfile.value = UserProfile()
         _healthRecord.value = HealthRecord()
         _isUserLoggedIn.value = false
         _themeMode.value = ThemeMode.LIGHT
+        seedCommunityDataIfEmpty()
         updateUnreadCount()
     }
 

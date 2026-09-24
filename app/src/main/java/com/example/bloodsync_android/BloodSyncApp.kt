@@ -97,6 +97,7 @@ fun BloodSyncApp(
 
     AnimatedContent(
         targetState = currentScreen,
+        modifier = Modifier.fillMaxSize(),
         transitionSpec = { fadeIn() togetherWith fadeOut() },
         label = "AppScreenTransition"
     ) { screen ->
@@ -121,6 +122,7 @@ fun BloodSyncApp(
 
             is Screen.Main -> {
                 Scaffold(
+                    modifier = Modifier.fillMaxSize(),
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     containerColor = BloodSyncTheme.colors.background,
                     bottomBar = {
@@ -128,14 +130,6 @@ fun BloodSyncApp(
                             currentDestination = currentNavDestination,
                             onNavigate = { destination ->
                                 currentNavDestination = destination
-                            }
-                        )
-                    },
-                    floatingActionButton = {
-                        // Prominent 24/7 Emergency SOS Button accessible from all main tabs
-                        EmergencyFloatingButton(
-                            onClick = {
-                                currentScreen = Screen.EmergencyRequest
                             }
                         )
                     }
