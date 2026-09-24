@@ -10,29 +10,42 @@
 
 ---
 
-## 🚀 What's New in Version 2.0.0
+## 🚀 What's New in Version 2.0.0 & Latest Hardened Release
 
-1. **🔥 Firebase Cloud Server Database**:
+1. **🛡️ Comprehensive Security Hardening & Hacker-Proofing**:
+   - **ADB Backup Disabled**: `android:allowBackup="false"` prevents unauthorized physical extraction of private donor and patient data.
+   - **Network Security Config**: Custom `network_security_config.xml` strictly enforces HTTPS/TLS, blocks cleartext HTTP, and rejects untrusted user certificates (preventing Man-in-the-Middle attacks).
+   - **ProGuard / R8 Obfuscation**: Production `proguard-rules.pro` config configured to protect data models, obfuscate business logic, and strip sensitive debug logs in release builds.
+   - **Defensive Input Validation & Sanitization**: New `ValidationHelper.kt` verifies 10-13 digit phone numbers, restricts units (1-10), validates blood groups, and strips control characters/injections.
+   - **Cloud Firestore Security Rules**: Production-grade `firestore.rules` preventing unauthorized emergency deletion and malicious payload injection.
+
+2. **🔙 Smart Back Button Exit Confirmation**:
+   - Intercepts Android physical/gesture back presses with a hierarchical navigation stack.
+   - Sub-screens (Settings, Notifications, Emergency, Certificates) navigate back to Home.
+   - Bottom navigation secondary tabs (Profile, History, Appointments, Health) return to the primary Home tab.
+   - Pressing Back at the root (Home or Auth) triggers a customized BloodSync confirmation dialog asking **"Yes, Exit"** or **"No, Stay"**.
+
+3. **🔥 Firebase Cloud Server Database**:
    - Integrated with Firebase Firestore & Realtime Database for real-time synchronization.
    - Live server listeners for emergency blood requests, verified donor directory, and blood bank stock updates.
-   - Built-in support for your `google-services.json` project configuration with graceful local offline fallback.
+   - Built-in support for your `google-services.json` project configuration (`bloodsync-3b5cf`) with graceful local offline fallback.
 
-2. **💬 Direct WhatsApp & Multi-Platform Messaging**:
+4. **💬 Direct WhatsApp & Multi-Platform Messaging**:
    - **One-Tap WhatsApp Donor Chat**: Message matching blood donors directly on WhatsApp with pre-filled blood group inquiry.
    - **SOS Broadcast to WhatsApp**: Instant sharing of emergency blood requirements (blood group, units, hospital, patient, and contact) directly to WhatsApp chats, groups, and WhatsApp Status.
 
-3. **🎨 Clean Light & Dark Theme System**:
+5. **🎨 Clean Light & Dark Theme System**:
    - Simplified display options: **Light** and **Dark** only (System Default removed).
    - Clean, minimalist UI without bracket clutter.
    - Seamless status bar contrast and 3-button navigation insets adaptation.
 
-4. **✨ Official BloodSync Launcher Icon**:
+6. **✨ Official 3D BloodSync Launcher Icon**:
    - 3D ruby-red blood drop with an embedded medical cross and heartbeat lifeline pulse.
+   - Safe circular margin padding for perfect rendering on Samsung OneUI, Google Pixel, and Xiaomi launchers.
    - Embossed modern "BLOODSYNC" brand typography right underneath the drop.
-   - Full adaptive icon vector support (`ic_launcher.xml`) and high-resolution mipmap densities (`hdpi`, `mdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`).
 
-5. **🧹 Clean Real-Database Architecture**:
-   - Removed all hardcoded mock/demo data (fake Alex Rivera profile, fake appointments, fake certificates).
+7. **🧹 Clean Real-Database Architecture**:
+   - Removed all hardcoded mock/demo data.
    - Starts clean and allows users to input their real data or sync from Firebase server.
    - Added single-tap local cache clear & data refresh option in Settings.
 
@@ -66,9 +79,11 @@
 
 ## 📥 APK Download & Local Files
 
-- **GoFile Download Link**: [Download BloodSync v2.0.0 APK (GoFile)](https://gofile.io/d/zbd49Vz5)
+- **Latest GoFile Cloud Download**: [Download BloodSync v2.0.0 APK (GoFile)](https://gofile.io/d/mY4Iljry)
 - **Built APK (v2.0.0)**: `bloodsync-v2.0.0.apk` (Located in project root)
-- **Local Path**: `app/build/outputs/apk/debug/app-debug.apk`
+- **Local Mirror Locations**:
+  - `C:\Users\ADMIN\Desktop\bloodsync-v2.0.0.apk`
+  - `C:\Users\ADMIN\Downloads\bloodsync-v2.0.0.apk`
 - **Installation via ADB**:
   ```powershell
   adb install -r bloodsync-v2.0.0.apk
@@ -83,4 +98,5 @@
 - **Cloud Backend**: Firebase BoM (Firestore, Realtime Database, Auth)
 - **Architecture**: Clean Architecture / Repository Pattern with Reactive State
 - **Storage**: Android `SharedPreferences` + Firebase Firestore Cloud Sync
+- **Security**: Network Security Config (TLS only) + ProGuard / R8 Obfuscation + Input Sanitization
 - **Target SDK**: 37 (Android 15 Ready) | **Min SDK**: 24 (Android 7.0+)
