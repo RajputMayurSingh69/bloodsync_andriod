@@ -42,6 +42,7 @@ fun EmergencyLiveTrackingScreen(
     onNotificationClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val appColors = BloodSyncTheme.colors
     val emergencyRequests = repository.emergencyRequests
     val unreadNotifs by repository.unreadNotificationCount
 
@@ -123,7 +124,7 @@ fun EmergencyLiveTrackingScreen(
                             text = "Responding Donors (${request.responders.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Text(
                             text = "Real-time updates",
@@ -138,14 +139,14 @@ fun EmergencyLiveTrackingScreen(
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                            colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
                         ) {
                             Text(
                                 text = "Awaiting first responses... broadcast sent to nearby donors.",
                                 modifier = Modifier.padding(16.dp),
                                 fontSize = 13.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                         }
                     }
@@ -165,8 +166,8 @@ fun EmergencyLiveTrackingScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(26.dp),
-                        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -176,39 +177,39 @@ fun EmergencyLiveTrackingScreen(
                                 text = "Emergency Details",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
-                            HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
+                            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Patient", fontSize = 12.sp, color = MedicalTextSecondary)
-                                Text(request.patientName, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Patient", fontSize = 12.sp, color = appColors.textSecondary)
+                                Text(request.patientName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = appColors.textPrimary)
                             }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Hospital", fontSize = 12.sp, color = MedicalTextSecondary)
-                                Text(request.hospitalName, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text("Hospital", fontSize = 12.sp, color = appColors.textSecondary)
+                                Text(request.hospitalName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = appColors.textPrimary)
                             }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Location", fontSize = 12.sp, color = MedicalTextSecondary)
-                                Text(request.hospitalAddress, fontSize = 12.sp, color = MedicalTextSecondary)
+                                Text("Location", fontSize = 12.sp, color = appColors.textSecondary)
+                                Text(request.hospitalAddress, fontSize = 12.sp, color = appColors.textSecondary)
                             }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Emergency Contact", fontSize = 12.sp, color = MedicalTextSecondary)
+                                Text("Emergency Contact", fontSize = 12.sp, color = appColors.textSecondary)
                                 Text(request.contactPhone, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = BloodRedPrimary)
                             }
 
@@ -217,8 +218,8 @@ fun EmergencyLiveTrackingScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("Clinical Note", fontSize = 12.sp, color = MedicalTextSecondary)
-                                    Text(request.additionalNotes, fontSize = 12.sp, color = MedicalTextPrimary)
+                                    Text("Clinical Note", fontSize = 12.sp, color = appColors.textSecondary)
+                                    Text(request.additionalNotes, fontSize = 12.sp, color = appColors.textPrimary)
                                 }
                             }
                         }
@@ -290,8 +291,8 @@ fun EmergencyLiveTrackingScreen(
                         }
                     } else {
                         Surface(
-                            color = StatusEligibleGreenLight,
-                            shape = RoundedCornerShape(10.dp),
+                            color = appColors.greenLight,
+                            shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -337,11 +338,12 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
         label = "radarAlpha"
     )
 
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedContainer),
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -374,13 +376,13 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
                             text = request.bloodGroupNeeded,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
-                            color = MedicalWhite
+                            color = Color.White
                         )
                         Text(
                             text = "NEEDED",
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MedicalWhite
+                            color = Color.White
                         )
                     }
                 }
@@ -399,7 +401,7 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
                     text = "LIVE BROADCAST ACTIVE",
                     fontWeight = FontWeight.Black,
                     fontSize = 13.sp,
-                    color = BloodRedDark,
+                    color = BloodRedPrimary,
                     letterSpacing = 1.sp
                 )
             }
@@ -407,7 +409,7 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
             Text(
                 text = "${request.unitsRequired} unit(s) of ${request.bloodGroupNeeded} blood requested at ${request.hospitalName}",
                 fontSize = 13.sp,
-                color = MedicalTextSecondary,
+                color = appColors.textSecondary,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -419,11 +421,12 @@ fun ResponderCard(
     responder: EmergencyResponder,
     onCallClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
     ) {
         Row(
             modifier = Modifier
@@ -436,7 +439,7 @@ fun ResponderCard(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .background(StatusEligibleGreenLight, CircleShape),
+                        .background(appColors.greenLight, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -453,13 +456,13 @@ fun ResponderCard(
                             text = responder.name,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         StatusBadge(
                             text = responder.bloodGroup,
                             textColor = BloodRedPrimary,
-                            backgroundColor = BloodRedLight
+                            backgroundColor = appColors.redLight
                         )
                     }
                     Text(
@@ -473,7 +476,7 @@ fun ResponderCard(
 
             IconButton(
                 onClick = onCallClick,
-                colors = IconButtonDefaults.iconButtonColors(containerColor = BloodRedLight)
+                colors = IconButtonDefaults.iconButtonColors(containerColor = appColors.redLight)
             ) {
                 Icon(
                     imageVector = Icons.Default.Phone,
@@ -493,11 +496,12 @@ fun LiveStatCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
     ) {
         Column(
             modifier = Modifier
@@ -515,7 +519,7 @@ fun LiveStatCard(
             Text(
                 text = label,
                 fontSize = 10.sp,
-                color = MedicalTextSecondary
+                color = appColors.textSecondary
             )
         }
     }

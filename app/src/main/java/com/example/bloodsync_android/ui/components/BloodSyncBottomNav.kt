@@ -41,6 +41,7 @@ fun BloodSyncBottomNav(
     onNavigate: (AppNavDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -58,8 +59,8 @@ fun BloodSyncBottomNav(
                     spotColor = Color(0x20000000)
                 ),
             shape = RoundedCornerShape(36.dp),
-            color = MedicalWhite,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+            color = appColors.cardBackground,
+            border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
         ) {
             Row(
                 modifier = Modifier
@@ -76,7 +77,7 @@ fun BloodSyncBottomNav(
                         label = "tabScale"
                     )
                     val iconTint by animateColorAsState(
-                        targetValue = if (isSelected) BloodRedPrimary else MedicalTextMuted,
+                        targetValue = if (isSelected) BloodRedPrimary else appColors.textMuted,
                         label = "iconTint"
                     )
 
@@ -91,7 +92,7 @@ fun BloodSyncBottomNav(
                                 onClick = { onNavigate(destination) }
                             )
                             .background(
-                                color = if (isSelected) BloodRedLight else Color.Transparent,
+                                color = if (isSelected) appColors.redLight else Color.Transparent,
                                 shape = RoundedCornerShape(50.dp)
                             )
                             .padding(horizontal = 14.dp, vertical = 6.dp)
@@ -107,7 +108,7 @@ fun BloodSyncBottomNav(
                             text = destination.title,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) BloodRedPrimary else MedicalTextSecondary
+                            color = if (isSelected) BloodRedPrimary else appColors.textSecondary
                         )
                     }
                 }

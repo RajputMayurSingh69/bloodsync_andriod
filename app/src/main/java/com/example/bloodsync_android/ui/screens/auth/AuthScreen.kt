@@ -36,6 +36,7 @@ fun AuthScreen(
     repository: BloodSyncRepository,
     onLoginSuccess: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     var isRegisterMode by remember { mutableStateOf(false) }
     var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -53,9 +54,21 @@ fun AuthScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = appColors.textPrimary,
+        unfocusedTextColor = appColors.textPrimary,
+        focusedContainerColor = appColors.inputBackground,
+        unfocusedContainerColor = appColors.inputBackground,
+        focusedBorderColor = BloodRedPrimary,
+        unfocusedBorderColor = appColors.border,
+        focusedLabelColor = BloodRedPrimary,
+        unfocusedLabelColor = appColors.textMuted,
+        cursorColor = BloodRedPrimary
+    )
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -85,7 +98,7 @@ fun AuthScreen(
             Text(
                 text = "Fast, reliable real-time blood donor network",
                 fontSize = 13.sp,
-                color = MedicalTextSecondary,
+                color = appColors.textSecondary,
                 modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
             )
 
@@ -95,8 +108,8 @@ fun AuthScreen(
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(50.dp),
-                color = MedicalSurfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                color = appColors.surfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(
@@ -105,7 +118,7 @@ fun AuthScreen(
                             .fillMaxHeight()
                             .padding(3.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(if (!isRegisterMode) MedicalWhite else Color.Transparent)
+                            .background(if (!isRegisterMode) appColors.cardBackground else Color.Transparent)
                             .clickable {
                                 isRegisterMode = false
                                 errorMessage = null
@@ -115,7 +128,7 @@ fun AuthScreen(
                         Text(
                             text = "Sign In",
                             fontWeight = if (!isRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isRegisterMode) BloodRedPrimary else MedicalTextSecondary,
+                            color = if (!isRegisterMode) BloodRedPrimary else appColors.textSecondary,
                             fontSize = 14.sp
                         )
                     }
@@ -126,7 +139,7 @@ fun AuthScreen(
                             .fillMaxHeight()
                             .padding(3.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(if (isRegisterMode) MedicalWhite else Color.Transparent)
+                            .background(if (isRegisterMode) appColors.cardBackground else Color.Transparent)
                             .clickable {
                                 isRegisterMode = true
                                 errorMessage = null
@@ -136,7 +149,7 @@ fun AuthScreen(
                         Text(
                             text = "Register Donor",
                             fontWeight = if (isRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isRegisterMode) BloodRedPrimary else MedicalTextSecondary,
+                            color = if (isRegisterMode) BloodRedPrimary else appColors.textSecondary,
                             fontSize = 14.sp
                         )
                     }
@@ -149,8 +162,8 @@ fun AuthScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -164,14 +177,12 @@ fun AuthScreen(
                             onValueChange = { fullName = it },
                             label = { Text("Full Name") },
                             leadingIcon = {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = MedicalTextMuted)
+                                Icon(Icons.Default.Person, contentDescription = null, tint = BloodRedPrimary)
                             },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BloodRedPrimary,
-                                focusedLabelColor = BloodRedPrimary
-                            )
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -189,15 +200,13 @@ fun AuthScreen(
                             label = { Text("Mobile Phone Number") },
                             placeholder = { Text("+1 (555) 000-0000") },
                             leadingIcon = {
-                                Icon(Icons.Default.Phone, contentDescription = null, tint = MedicalTextMuted)
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = BloodRedPrimary)
                             },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BloodRedPrimary,
-                                focusedLabelColor = BloodRedPrimary
-                            )
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -207,14 +216,12 @@ fun AuthScreen(
                             onValueChange = { cityInput = it },
                             label = { Text("City / Region") },
                             leadingIcon = {
-                                Icon(Icons.Default.Place, contentDescription = null, tint = MedicalTextMuted)
+                                Icon(Icons.Default.Place, contentDescription = null, tint = BloodRedPrimary)
                             },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BloodRedPrimary,
-                                focusedLabelColor = BloodRedPrimary
-                            )
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -232,7 +239,7 @@ fun AuthScreen(
                             Text(
                                 text = "Volunteer for 24/7 emergency blood requests nearby",
                                 fontSize = 12.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                         }
                     } else {
@@ -242,14 +249,12 @@ fun AuthScreen(
                             onValueChange = { emailOrPhone = it },
                             label = { Text("Email or Phone") },
                             leadingIcon = {
-                                Icon(Icons.Default.Email, contentDescription = null, tint = MedicalTextMuted)
+                                Icon(Icons.Default.Email, contentDescription = null, tint = BloodRedPrimary)
                             },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BloodRedPrimary,
-                                focusedLabelColor = BloodRedPrimary
-                            )
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp)
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -259,14 +264,14 @@ fun AuthScreen(
                             onValueChange = { password = it },
                             label = { Text("Password") },
                             leadingIcon = {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = MedicalTextMuted)
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
                             },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
                                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                         contentDescription = null,
-                                        tint = MedicalTextMuted
+                                        tint = appColors.textMuted
                                     )
                                 }
                             },
@@ -274,17 +279,15 @@ fun AuthScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BloodRedPrimary,
-                                focusedLabelColor = BloodRedPrimary
-                            )
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp)
                         )
                     }
 
                     // Error Message
                     AnimatedVisibility(visible = errorMessage != null) {
                         Surface(
-                            color = StatusUrgentRedLight,
+                            color = appColors.redLight,
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -365,7 +368,7 @@ fun AuthScreen(
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                color = MedicalWhite,
+                                color = Color.White,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -374,7 +377,7 @@ fun AuthScreen(
                                 text = if (isRegisterMode) "Create Donor Account" else "Sign In to BloodSync",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = MedicalWhite
+                                color = Color.White
                             )
                         }
                     }
@@ -425,14 +428,14 @@ fun AuthScreen(
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = null,
-                    tint = MedicalTextMuted,
+                    tint = appColors.textMuted,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "HIPAA-grade medical privacy & encrypted donor data",
                     fontSize = 11.sp,
-                    color = MedicalTextMuted
+                    color = appColors.textMuted
                 )
             }
         }

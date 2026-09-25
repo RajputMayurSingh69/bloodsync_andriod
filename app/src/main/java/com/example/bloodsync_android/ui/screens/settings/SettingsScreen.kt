@@ -48,14 +48,12 @@ fun SettingsScreen(
     var showResetSuccess by remember { mutableStateOf(false) }
 
     val appColors = BloodSyncTheme.colors
-    val isFirebaseConnected by repository.firebaseService.isFirebaseConnected
-    val firebaseStatus by repository.firebaseService.connectionStatus
 
     Scaffold(
         topBar = {
             BloodSyncTopBar(
                 title = "Settings",
-                subtitle = "Preferences & Cloud Sync",
+                subtitle = "Preferences & App Options",
                 showBackButton = true,
                 onBackClick = onBackClick
             )
@@ -133,7 +131,7 @@ fun SettingsScreen(
             }
 
             // ==========================================
-            // 2. Firebase Cloud Database Connection Status
+            // 2. Notification Preferences
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -149,116 +147,96 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(
-                                    if (isFirebaseConnected) StatusEligibleGreen.copy(alpha = 0.15f)
-                                    else StatusWarningAmber.copy(alpha = 0.15f),
-                                    CircleShape
-                                ),
+                                .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CloudSync,
+                                imageVector = Icons.Default.Notifications,
                                 contentDescription = null,
-                                tint = if (isFirebaseConnected) StatusEligibleGreen else StatusWarningAmber,
+                                tint = BloodRedPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Firebase Cloud Database",
+                                text = "Notification Preferences",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "Real-time server sync & live alerts",
+                                text = "Emergency alerts & appointment updates",
                                 fontSize = 12.sp,
                                 color = appColors.textSecondary
                             )
                         }
                     }
 
-                    SystemFeatureStatusRow(
-                        title = "Cloud Connection",
-                        description = "Direct connection to Firebase Firestore & Realtime Database for emergency broadcasting, donor matching, and blood bank stock sync.",
-                        statusText = if (isFirebaseConnected) "Active" else "Ready",
-                        statusColor = if (isFirebaseConnected) StatusEligibleGreen else StatusWarningAmber
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider(color = appColors.divider)
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Status: $firebaseStatus",
-                        fontSize = 12.sp,
-                        color = appColors.textSecondary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // ==========================================
-            // 3. Navigation Bar & Status Bar Auto-Adjustment
-            // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(StatusWarningAmber.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AspectRatio,
-                                contentDescription = null,
-                                tint = StatusWarningAmber,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
-                                text = "System Bars & Hardware Adaptation",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = "Emergency SOS Broadcasts",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "Adapts seamlessly to your device hardware",
-                                fontSize = 12.sp,
-                                color = appColors.textSecondary
+                                text = "Real-time alerts when nearby patients need your blood group",
+                                fontSize = 11.sp,
+                                color = appColors.textSecondary,
+                                lineHeight = 15.sp
                             )
                         }
+                        Switch(
+                            checked = emergencyAlertsEnabled,
+                            onCheckedChange = {
+                                emergencyAlertsEnabled = it
+                                repository.updateUserProfile(profile.copy(isAvailableDonor = it))
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = StatusEligibleGreen
+                            )
+                        )
                     }
-
-                    SystemFeatureStatusRow(
-                        title = "3-Button Navigation Auto-Adjustment",
-                        description = "Automatically calculates your phone's 3-button navigation bar (Back, Home, Recents) height so bottom tabs and buttons are never covered or cut off.",
-                        statusText = "Active",
-                        statusColor = StatusEligibleGreen
-                    )
 
                     Spacer(modifier = Modifier.height(10.dp))
                     HorizontalDivider(color = appColors.divider)
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    SystemFeatureStatusRow(
-                        title = "Smart Adaptive Status Bar",
-                        description = "Maintains optimal contrast against dark or light modes so clock, battery, and signal icons remain clearly legible.",
-                        statusText = "Active",
-                        statusColor = StatusEligibleGreen
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "Donation Reminders & Milestones",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "Appointment slot reminders and lifesaver certificate updates",
+                                fontSize = 11.sp,
+                                color = appColors.textSecondary,
+                                lineHeight = 15.sp
+                            )
+                        }
+                        Switch(
+                            checked = appointmentAlertsEnabled,
+                            onCheckedChange = { appointmentAlertsEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = StatusEligibleGreen
+                            )
+                        )
+                    }
                 }
             }
 
@@ -395,7 +373,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "BloodSync Android • Version 2.0.0",
+                    text = "BloodSync Android • Version 2.2.0 (Official)",
                     fontSize = 11.sp,
                     color = appColors.textMuted
                 )

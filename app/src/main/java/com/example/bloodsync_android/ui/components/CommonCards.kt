@@ -56,11 +56,12 @@ fun StatMetricCard(
     tintColor: Color = BloodRedPrimary,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -76,7 +77,7 @@ fun StatMetricCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MedicalTextSecondary
+                    color = appColors.textSecondary
                 )
                 if (icon != null) {
                     Box(
@@ -103,7 +104,7 @@ fun StatMetricCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp
                 ),
-                color = MedicalTextPrimary
+                color = appColors.textPrimary
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -111,7 +112,7 @@ fun StatMetricCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                color = MedicalTextMuted
+                color = appColors.textMuted
             )
         }
     }
@@ -123,13 +124,14 @@ fun BloodGroupSelector(
     onGroupSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     val groups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
     Column(modifier = modifier) {
         Text(
             text = "Blood Group Needed",
             style = MaterialTheme.typography.titleMedium,
-            color = MedicalTextPrimary
+            color = appColors.textPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -171,6 +173,7 @@ fun BloodGroupChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = modifier
             .height(48.dp)
@@ -178,15 +181,15 @@ fun BloodGroupChip(
             .clickable(onClick = onClick)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) BloodRedPrimary else MedicalBorder,
+                color = if (isSelected) BloodRedPrimary else appColors.border,
                 shape = RoundedCornerShape(50.dp)
             ),
-        color = if (isSelected) BloodRedLight else MedicalWhite
+        color = if (isSelected) appColors.redLight else appColors.cardBackground
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = group,
-                color = if (isSelected) BloodRedPrimary else MedicalTextPrimary,
+                color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 15.sp
             )
@@ -203,6 +206,7 @@ fun EmptyStateView(
     onActionClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -213,13 +217,13 @@ fun EmptyStateView(
         Box(
             modifier = Modifier
                 .size(72.dp)
-                .background(MedicalSurfaceVariant, CircleShape),
+                .background(appColors.surfaceVariant, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MedicalTextMuted,
+                tint = appColors.textMuted,
                 modifier = Modifier.size(36.dp)
             )
         }
@@ -229,7 +233,7 @@ fun EmptyStateView(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = MedicalTextPrimary,
+            color = appColors.textPrimary,
             textAlign = TextAlign.Center
         )
 
@@ -238,7 +242,7 @@ fun EmptyStateView(
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MedicalTextSecondary,
+            color = appColors.textSecondary,
             textAlign = TextAlign.Center
         )
 
@@ -249,7 +253,7 @@ fun EmptyStateView(
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                 shape = RoundedCornerShape(50.dp)
             ) {
-                Text(text = actionText, color = MedicalWhite, fontWeight = FontWeight.Bold)
+                Text(text = actionText, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }

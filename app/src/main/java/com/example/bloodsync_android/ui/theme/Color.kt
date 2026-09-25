@@ -71,7 +71,10 @@ data class BloodSyncColors(
     val topBarBackground: Color,
     val bottomNavBackground: Color,
     val inputBackground: Color,
-    val badgeBackground: Color
+    val badgeBackground: Color,
+    val greenLight: Color,
+    val yellowLight: Color,
+    val redLight: Color
 )
 
 val LightBloodSyncColors = BloodSyncColors(
@@ -79,11 +82,11 @@ val LightBloodSyncColors = BloodSyncColors(
     primary = BloodRedPrimary,
     primaryLight = BloodRedLight,
     primaryDark = BloodRedDark,
-    background = Color(0xFFFFFFFF),
+    background = Color(0xFFF9FAFB),
     surface = Color(0xFFFFFFFF),
     cardBackground = Color(0xFFFFFFFF),
     surfaceVariant = Color(0xFFF8F9FA),
-    border = Color(0xFFE0E0E0),
+    border = Color(0xFFE5E7EB),
     divider = Color(0xFFEEEEEE),
     textPrimary = Color(0xFF1E1E1E),
     textSecondary = Color(0xFF424242),
@@ -91,27 +94,33 @@ val LightBloodSyncColors = BloodSyncColors(
     topBarBackground = Color(0xFFFFFFFF),
     bottomNavBackground = Color(0xFFFFFFFF),
     inputBackground = Color(0xFFFFFFFF),
-    badgeBackground = Color(0xFFF8F9FA)
+    badgeBackground = Color(0xFFF8F9FA),
+    greenLight = StatusEligibleGreenLight,
+    yellowLight = StatusWarningAmberLight,
+    redLight = BloodRedLight
 )
 
 val DarkBloodSyncColors = BloodSyncColors(
     isDark = true,
-    primary = Color(0xFFE53935),
+    primary = Color(0xFFEF4444),
     primaryLight = Color(0xFF3B1215),
     primaryDark = Color(0xFFB71C1C),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    cardBackground = Color(0xFF1E1E1E),
-    surfaceVariant = Color(0xFF2A2A2A),
-    border = Color(0xFF333333),
-    divider = Color(0xFF2A2A2A),
-    textPrimary = Color(0xFFFFFFFF),
-    textSecondary = Color(0xFFCCCCCC),
-    textMuted = Color(0xFF888888),
-    topBarBackground = Color(0xFF1E1E1E),
-    bottomNavBackground = Color(0xFF1E1E1E),
-    inputBackground = Color(0xFF2A2A2A),
-    badgeBackground = Color(0xFF2A2A2A)
+    background = Color(0xFF0F172A),
+    surface = Color(0xFF1E293B),
+    cardBackground = Color(0xFF1E293B),
+    surfaceVariant = Color(0xFF334155),
+    border = Color(0xFF334155),
+    divider = Color(0xFF334155),
+    textPrimary = Color(0xFFF8FAFC),
+    textSecondary = Color(0xFFCBD5E1),
+    textMuted = Color(0xFF94A3B8),
+    topBarBackground = Color(0xFF1E293B),
+    bottomNavBackground = Color(0xFF1E293B),
+    inputBackground = Color(0xFF0F172A),
+    badgeBackground = Color(0xFF334155),
+    greenLight = Color(0xFF14301E),
+    yellowLight = Color(0xFF33290D),
+    redLight = Color(0xFF3B1215)
 )
 
 val LocalBloodSyncColors = staticCompositionLocalOf { LightBloodSyncColors }

@@ -77,6 +77,7 @@ fun HealthTrackerScreen(
     }
 
     val eligibilityResult = remember(currentRecord) { currentRecord.calculateEligibility() }
+    val appColors = BloodSyncTheme.colors
 
     Scaffold(
         topBar = {
@@ -99,7 +100,7 @@ fun HealthTrackerScreen(
             )
         },
         contentWindowInsets = WindowInsets.statusBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -122,8 +123,8 @@ fun HealthTrackerScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
@@ -136,10 +137,10 @@ fun HealthTrackerScreen(
                                 text = "Current Donor Vitals",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
                             Surface(
-                                color = BloodRedLight,
+                                color = appColors.redLight,
                                 shape = RoundedCornerShape(50.dp),
                                 modifier = Modifier.clickable { showEditSheet = true }
                             ) {
@@ -219,8 +220,8 @@ fun HealthTrackerScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
@@ -231,12 +232,12 @@ fun HealthTrackerScreen(
                             text = "Health Deferral Checklist",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Text(
                             text = "Red Cross & WHO donation pre-screening checklist",
                             fontSize = 11.sp,
-                            color = MedicalTextSecondary
+                            color = appColors.textSecondary
                         )
 
                         ChecklistRow(
@@ -285,7 +286,7 @@ fun HealthTrackerScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = StatusEligibleGreenLight),
+                    colors = CardDefaults.cardColors(containerColor = appColors.greenLight),
                     border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
@@ -345,14 +346,15 @@ fun EligibilityStatusBanner(
     lastDonationDate: String,
     onBookAppointment: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
             containerColor = when (result.status) {
-                EligibilityStatus.ELIGIBLE -> StatusEligibleGreenLight
-                EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmberLight
-                EligibilityStatus.NOT_ELIGIBLE -> StatusUrgentRedLight
+                EligibilityStatus.ELIGIBLE -> appColors.greenLight
+                EligibilityStatus.ELIGIBLE_FUTURE -> appColors.yellowLight
+                EligibilityStatus.NOT_ELIGIBLE -> appColors.redLight
             }
         ),
         border = androidx.compose.foundation.BorderStroke(
@@ -391,7 +393,7 @@ fun EligibilityStatusBanner(
                         EligibilityStatus.NOT_ELIGIBLE -> Icons.Default.Close
                     },
                     contentDescription = null,
-                    tint = MedicalWhite,
+                    tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -423,7 +425,7 @@ fun EligibilityStatusBanner(
                     EligibilityStatus.NOT_ELIGIBLE -> "One or more health vitals or checklist items require attention before donating."
                 },
                 fontSize = 13.sp,
-                color = MedicalTextPrimary,
+                color = appColors.textPrimary,
                 modifier = Modifier.padding(horizontal = 8.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -439,12 +441,12 @@ fun EligibilityStatusBanner(
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = StatusWarningAmber,
-                    trackColor = StatusWarningAmberLight,
+                    trackColor = appColors.yellowLight,
                 )
                 Text(
                     text = "${90 - result.daysRemaining} of 90 recovery days elapsed",
                     fontSize = 11.sp,
-                    color = MedicalTextSecondary,
+                    color = appColors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -454,7 +456,7 @@ fun EligibilityStatusBanner(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MedicalWhite, RoundedCornerShape(8.dp))
+                        .background(appColors.cardBackground, RoundedCornerShape(8.dp))
                         .padding(10.dp)
                 ) {
                     Text(
@@ -474,7 +476,7 @@ fun EligibilityStatusBanner(
                                     .background(StatusUrgentRed, CircleShape)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = reason, fontSize = 11.sp, color = MedicalTextPrimary)
+                            Text(text = reason, fontSize = 11.sp, color = appColors.textPrimary)
                         }
                     }
                 }
@@ -492,7 +494,7 @@ fun EligibilityStatusBanner(
                 ) {
                     Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Schedule Donation Appointment", fontWeight = FontWeight.Bold)
+                    Text("Schedule Donation Appointment", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -507,18 +509,19 @@ fun VitalItem(
     isNormal: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
-        color = MedicalSurfaceVariant,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MedicalBorder)
+        color = appColors.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, appColors.border)
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 11.sp, color = MedicalTextSecondary)
-            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MedicalTextPrimary)
+            Text(title, fontSize = 11.sp, color = appColors.textSecondary)
+            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = appColors.textPrimary)
             Text(
                 text = status,
                 fontSize = 10.sp,
@@ -535,6 +538,7 @@ fun ChecklistRow(
     isChecked: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -552,7 +556,7 @@ fun ChecklistRow(
         Text(
             text = label,
             fontSize = 13.sp,
-            color = if (isChecked) StatusUrgentRed else MedicalTextPrimary,
+            color = if (isChecked) StatusUrgentRed else appColors.textPrimary,
             fontWeight = if (isChecked) FontWeight.SemiBold else FontWeight.Normal,
             lineHeight = 17.sp
         )
@@ -561,9 +565,10 @@ fun ChecklistRow(
 
 @Composable
 fun HealthTipItem(title: String, description: String) {
+    val appColors = BloodSyncTheme.colors
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Text(text = title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = StatusEligibleGreen)
-        Text(text = description, fontSize = 11.sp, color = MedicalTextSecondary, lineHeight = 16.sp)
+        Text(text = description, fontSize = 11.sp, color = appColors.textSecondary, lineHeight = 16.sp)
     }
 }
 
@@ -573,6 +578,7 @@ fun EditVitalsDialog(
     onDismiss: () -> Unit,
     onSave: (HealthRecord) -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     var ageText by remember { mutableStateOf("${record.age}") }
     var weightText by remember { mutableStateOf("${record.weightKg}") }
     var hbText by remember { mutableStateOf("${record.hemoglobinGPerDl}") }
@@ -581,10 +587,22 @@ fun EditVitalsDialog(
     var lastDonationText by remember { mutableStateOf(record.lastDonationDateString) }
     var selectedGender by remember { mutableStateOf(record.gender) }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = appColors.textPrimary,
+        unfocusedTextColor = appColors.textPrimary,
+        focusedContainerColor = appColors.inputBackground,
+        unfocusedContainerColor = appColors.inputBackground,
+        focusedBorderColor = BloodRedPrimary,
+        unfocusedBorderColor = appColors.border,
+        focusedLabelColor = BloodRedPrimary,
+        unfocusedLabelColor = appColors.textMuted,
+        cursorColor = BloodRedPrimary
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Update Donor Vitals", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Update Donor Vitals", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = appColors.textPrimary)
         },
         text = {
             Column(
@@ -599,12 +617,14 @@ fun EditVitalsDialog(
                         value = ageText,
                         onValueChange = { ageText = it },
                         label = { Text("Age (18-65)") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = weightText,
                         onValueChange = { weightText = it },
                         label = { Text("Weight (kg)") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -617,12 +637,14 @@ fun EditVitalsDialog(
                         value = hbText,
                         onValueChange = { hbText = it },
                         label = { Text("Hemoglobin (g/dL)") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = selectedGender,
                         onValueChange = { selectedGender = it },
                         label = { Text("Gender (M/F)") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -635,12 +657,14 @@ fun EditVitalsDialog(
                         value = systolicText,
                         onValueChange = { systolicText = it },
                         label = { Text("Systolic BP") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = diastolicText,
                         onValueChange = { diastolicText = it },
                         label = { Text("Diastolic BP") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -649,6 +673,7 @@ fun EditVitalsDialog(
                     value = lastDonationText,
                     onValueChange = { lastDonationText = it },
                     label = { Text("Last Donation (YYYY-MM-DD)") },
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -670,15 +695,15 @@ fun EditVitalsDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                 shape = RoundedCornerShape(50.dp)
             ) {
-                Text("Recalculate Eligibility", fontWeight = FontWeight.Bold)
+                Text("Recalculate Eligibility", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = MedicalTextSecondary)
+                Text("Cancel", color = appColors.textSecondary)
             }
         },
         shape = RoundedCornerShape(26.dp),
-        containerColor = MedicalWhite
+        containerColor = appColors.cardBackground
     )
 }

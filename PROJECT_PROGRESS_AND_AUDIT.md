@@ -1,9 +1,9 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** September 24, 2026  
-**Version:** v2.2.0 (Modern Pill UI & Dedicated Donors Directory)  
+**Date:** September 25, 2026  
+**Version:** v2.2.0 (Modern Pill UI, Universal Dark Mode & Dedicated Donors Directory)  
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/HEZjZQ3w](https://gofile.io/d/HEZjZQ3w)  
+**Cloud Download Link:** [gofile.io/d/OIf8NFMn](https://gofile.io/d/OIf8NFMn)  
 
 ---
 
@@ -99,13 +99,25 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
   - `NotificationCenterScreen`: Pill category filters, push alert simulator, and unread priority cards.
   - `ProfileScreen` & `SettingsScreen`: Pill logout button, theme selectors, and system status indicators.
 
+### 10. Universal Dark Mode & High-Contrast Profile Overhaul (v2.2.0-hotfix)
+- **Universal Slate Dark Theme Engine**:
+  - Eliminated all residual hardcoded white cards, borders, and chips across all screens (`AppointmentScreen`, `CertificateScreen`, `NotificationCenterScreen`, `AuthScreen`, `SplashScreen`, `HomeScreen`, `HealthTrackerScreen`, `EmergencyLiveTrackingScreen`, `DonationHistoryScreen`).
+  - Implemented cohesive dark tokens: Background (`0xFF0F172A`), Cards/Surfaces (`0xFF1E293B`), Inputs (`0xFF1E293B`), Dividers/Borders (`0xFF334155`), and High-Contrast Text (`0xFFF8FAFC`).
+- **Profile Edit Input Field Fix**:
+  - Bound explicit `focusedTextColor`, `unfocusedTextColor`, `focusedContainerColor`, and `cursorColor` to ensure 100% crystal-clear visibility while editing profile information in both light and dark modes.
+- **Settings Screen Simplification**:
+  - Removed technical clutter ("Firebase Cloud Database" infrastructure metrics and "System Bar & Hardware Adaptation" cards) for a clean, patient/donor-friendly settings experience.
+- **Physical USB Deployment & Cloud Release**:
+  - Streamed installation directly to connected hardware (`z979tgx8nfjjizor`).
+  - Uploaded fresh build to GoFile: [`https://gofile.io/d/OIf8NFMn`](https://gofile.io/d/OIf8NFMn).
+
 ---
 
 ## 📂 File Deliverables & Locations
 
 | File / Location | Description |
 |---|---|
-| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/HEZjZQ3w) | **Latest Ultra-Clean Pill UI APK [Direct Cloud Download: gofile.io/d/HEZjZQ3w]** |
+| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/OIf8NFMn) | **Latest Dark Mode & Pill UI APK [Direct Cloud Download: gofile.io/d/OIf8NFMn]** |
 | `bloodsync-v2.1.0-eye-catching-ui.apk` | v2.1.0 Eye-Catching Simple UI Build |
 | `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Release Build |
 | `firestore.rules` | Hardened Firebase Security Rules |

@@ -98,12 +98,12 @@ fun EmergencyFloatingButton(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "24/7 Emergency SOS",
-                        tint = MedicalWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
                         text = "SOS",
-                        color = MedicalWhite,
+                        color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.5.sp
@@ -119,14 +119,15 @@ fun EmergencyBannerCard(
     onTriggerEmergency: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onTriggerEmergency),
-        color = BloodRedLight,
-        shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedContainer)
+        color = appColors.redLight,
+        shadowElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
@@ -148,7 +149,7 @@ fun EmergencyBannerCard(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = MedicalWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -158,28 +159,29 @@ fun EmergencyBannerCard(
                         text = "24/7 Emergency Request",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = BloodRedDark
+                        color = appColors.textPrimary
                     )
                     Text(
                         text = "Broadcast urgent blood need instantly",
                         fontSize = 12.sp,
-                        color = BloodRedDark
+                        color = appColors.textSecondary
                     )
                 }
             }
 
             Surface(
                 color = BloodRedPrimary,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(50.dp)
             ) {
                 Text(
                     text = "Request",
-                    color = MedicalWhite,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                 )
             }
         }
     }
 }
+

@@ -74,6 +74,7 @@ fun AppointmentScreen(
     onNotificationClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val appColors = BloodSyncTheme.colors
     val appointments = repository.appointments
     val bloodBanks = repository.bloodBanks
     val healthRecord by repository.healthRecord
@@ -135,7 +136,7 @@ fun AppointmentScreen(
             )
         },
         contentWindowInsets = WindowInsets.statusBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -149,8 +150,8 @@ fun AppointmentScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .height(48.dp),
                 shape = RoundedCornerShape(50.dp),
-                color = MedicalSurfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                color = appColors.surfaceVariant,
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Box(
@@ -159,14 +160,14 @@ fun AppointmentScreen(
                             .fillMaxHeight()
                             .padding(4.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(if (!isBookingTab) MedicalWhite else Color.Transparent)
+                            .background(if (!isBookingTab) appColors.cardBackground else Color.Transparent)
                             .clickable { isBookingTab = false },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "My Appointments (${upcomingAppointments.size})",
                             fontWeight = if (!isBookingTab) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isBookingTab) BloodRedPrimary else MedicalTextSecondary,
+                            color = if (!isBookingTab) BloodRedPrimary else appColors.textSecondary,
                             fontSize = 13.sp
                         )
                     }
@@ -177,14 +178,14 @@ fun AppointmentScreen(
                             .fillMaxHeight()
                             .padding(4.dp)
                             .clip(RoundedCornerShape(50.dp))
-                            .background(if (isBookingTab) MedicalWhite else Color.Transparent)
+                            .background(if (isBookingTab) appColors.cardBackground else Color.Transparent)
                             .clickable { isBookingTab = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "+ Book New Slot",
                             fontWeight = if (isBookingTab) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isBookingTab) BloodRedPrimary else MedicalTextSecondary,
+                            color = if (isBookingTab) BloodRedPrimary else appColors.textSecondary,
                             fontSize = 13.sp
                         )
                     }
@@ -204,7 +205,7 @@ fun AppointmentScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isUnder3MonthCooldown) StatusWarningAmberLight else StatusEligibleGreenLight
+                                containerColor = if (isUnder3MonthCooldown) appColors.yellowLight else appColors.greenLight
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -229,7 +230,7 @@ fun AppointmentScreen(
                                     Icon(
                                         imageVector = if (isUnder3MonthCooldown) Icons.Default.HourglassEmpty else Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = MedicalWhite,
+                                        tint = Color.White,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -239,7 +240,7 @@ fun AppointmentScreen(
                                         text = "3-Month Blood Donation Rule",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = MedicalTextPrimary
+                                        color = appColors.textPrimary
                                     )
                                     Text(
                                         text = if (isUnder3MonthCooldown)
@@ -247,7 +248,7 @@ fun AppointmentScreen(
                                         else
                                             "You have satisfied the 3-month interval rule and are fully eligible to donate whole blood.",
                                         fontSize = 12.sp,
-                                        color = MedicalTextSecondary,
+                                        color = appColors.textSecondary,
                                         lineHeight = 16.sp
                                     )
                                 }
@@ -261,7 +262,7 @@ fun AppointmentScreen(
                             text = "1. Choose Blood Bank / Hospital",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                     }
 
@@ -274,11 +275,11 @@ fun AppointmentScreen(
                                 .clickable { selectedBloodBank = bank },
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) BloodRedLight else MedicalWhite
+                                containerColor = if (isSelected) appColors.redLight else appColors.cardBackground
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 if (isSelected) 2.dp else 1.dp,
-                                if (isSelected) BloodRedPrimary else MedicalBorder
+                                if (isSelected) BloodRedPrimary else appColors.border
                             )
                         ) {
                             Row(
@@ -296,7 +297,7 @@ fun AppointmentScreen(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .background(
-                                                if (isSelected) BloodRedPrimary else MedicalSurfaceVariant,
+                                                if (isSelected) BloodRedPrimary else appColors.surfaceVariant,
                                                 CircleShape
                                             ),
                                         contentAlignment = Alignment.Center
@@ -304,7 +305,7 @@ fun AppointmentScreen(
                                         Icon(
                                             imageVector = Icons.Default.LocalHospital,
                                             contentDescription = null,
-                                            tint = if (isSelected) MedicalWhite else BloodRedPrimary,
+                                            tint = if (isSelected) Color.White else BloodRedPrimary,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -314,12 +315,12 @@ fun AppointmentScreen(
                                             text = bank.name,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
-                                            color = MedicalTextPrimary
+                                            color = appColors.textPrimary
                                         )
                                         Text(
                                             text = "${bank.address} • ${bank.distanceKm} km away",
                                             fontSize = 12.sp,
-                                            color = MedicalTextSecondary
+                                            color = appColors.textSecondary
                                         )
                                         Text(
                                             text = "Hours: ${bank.openHours} • ${bank.bloodStockStatus}",
@@ -349,7 +350,7 @@ fun AppointmentScreen(
                                 text = "2. Select Appointment Date",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
 
                             // Pick custom date from calendar button (with 3-month minDate)
@@ -389,7 +390,7 @@ fun AppointmentScreen(
 
                         // Display active selected date - Pill Shaped
                         Surface(
-                            color = if (isDateAllowedBy3MonthRule) BloodRedLight else StatusUrgentRedLight,
+                            color = if (isDateAllowedBy3MonthRule) appColors.redLight else appColors.redLight,
                             shape = RoundedCornerShape(50.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
@@ -413,7 +414,7 @@ fun AppointmentScreen(
                                 Text(
                                     text = "Chosen Date: ",
                                     fontSize = 12.sp,
-                                    color = MedicalTextSecondary
+                                    color = appColors.textSecondary
                                 )
                                 Text(
                                     text = selectedDate,
@@ -427,7 +428,7 @@ fun AppointmentScreen(
                         // If selected date violates 3-month rule, show warning banner + quick fix
                         if (!isDateAllowedBy3MonthRule) {
                             Surface(
-                                color = StatusUrgentRedLight,
+                                color = appColors.redLight,
                                 shape = RoundedCornerShape(20.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -474,10 +475,10 @@ fun AppointmentScreen(
                                         .clickable { selectedDate = dateOption.fullFormattedDate }
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRedLight else MedicalBorder),
+                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRed else appColors.border),
                                             shape = RoundedCornerShape(20.dp)
                                         ),
-                                    color = if (isSelected) BloodRedLight else (if (!isOptionAllowed) StatusUrgentRedLight else MedicalWhite)
+                                    color = if (isSelected) appColors.redLight else (if (!isOptionAllowed) appColors.redLight else appColors.cardBackground)
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -487,13 +488,13 @@ fun AppointmentScreen(
                                             text = dateOption.dayLabel,
                                             fontSize = 11.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRed else MedicalTextSecondary)
+                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRed else appColors.textSecondary)
                                         )
                                         Text(
                                             text = dateOption.subLabel,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRed else MedicalTextPrimary)
+                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRed else appColors.textPrimary)
                                         )
                                     }
                                 }
@@ -507,14 +508,14 @@ fun AppointmentScreen(
                             text = "3. Select Preferred Time Slot",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
                         val morningSlots = listOf("09:00 AM", "10:30 AM", "11:45 AM")
                         val afternoonSlots = listOf("01:30 PM", "03:00 PM", "04:30 PM")
 
-                        Text("Morning Slots", fontSize = 12.sp, color = MedicalTextMuted)
+                        Text("Morning Slots", fontSize = 12.sp, color = appColors.textMuted)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -532,7 +533,7 @@ fun AppointmentScreen(
                         }
 
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Afternoon Slots", fontSize = 12.sp, color = MedicalTextMuted)
+                        Text("Afternoon Slots", fontSize = 12.sp, color = appColors.textMuted)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -556,7 +557,7 @@ fun AppointmentScreen(
                             text = "4. Donation Type",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -579,16 +580,16 @@ fun AppointmentScreen(
                                         .clickable { selectedDonationType = type }
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) BloodRedPrimary else MedicalBorder,
+                                            color = if (isSelected) BloodRedPrimary else appColors.border,
                                             shape = RoundedCornerShape(50.dp)
                                         ),
-                                    color = if (isSelected) BloodRedLight else MedicalWhite
+                                    color = if (isSelected) appColors.redLight else appColors.cardBackground
                                 ) {
                                     Text(
                                         text = type,
                                         fontSize = 11.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) BloodRedPrimary else MedicalTextPrimary,
+                                        color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
@@ -623,7 +624,7 @@ fun AppointmentScreen(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDateAllowedBy3MonthRule) BloodRedPrimary else MedicalTextMuted
+                                containerColor = if (isDateAllowedBy3MonthRule) BloodRedPrimary else appColors.textMuted
                             ),
                             shape = RoundedCornerShape(50.dp),
                             enabled = selectedBloodBank != null && isDateAllowedBy3MonthRule
@@ -650,7 +651,7 @@ fun AppointmentScreen(
                             text = "Upcoming Scheduled Appointments",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                     }
 
@@ -682,7 +683,7 @@ fun AppointmentScreen(
                                 text = "Past & Cancelled Appointments",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
                         }
 
@@ -719,7 +720,8 @@ fun AppointmentScreen(
                     Text(
                         text = "Booking Confirmed!",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = appColors.textPrimary
                     )
                 }
             },
@@ -731,11 +733,11 @@ fun AppointmentScreen(
                     Text(
                         text = "Your donation slot has been reserved. A push notification reminder has been scheduled.",
                         fontSize = 13.sp,
-                        color = MedicalTextSecondary
+                        color = appColors.textSecondary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Surface(
-                        color = MedicalSurfaceVariant,
+                        color = appColors.surfaceVariant,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -745,9 +747,9 @@ fun AppointmentScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = BloodRedPrimary
                             )
-                            Text(text = "Facility: ${apt.bloodBankName}", fontSize = 12.sp)
-                            Text(text = "Date & Time: ${apt.date} at ${apt.timeSlot}", fontSize = 12.sp)
-                            Text(text = "Type: ${apt.donationType}", fontSize = 12.sp)
+                            Text(text = "Facility: ${apt.bloodBankName}", fontSize = 12.sp, color = appColors.textPrimary)
+                            Text(text = "Date & Time: ${apt.date} at ${apt.timeSlot}", fontSize = 12.sp, color = appColors.textPrimary)
+                            Text(text = "Type: ${apt.donationType}", fontSize = 12.sp, color = appColors.textPrimary)
                         }
                     }
                 }
@@ -760,11 +762,11 @@ fun AppointmentScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
                 ) {
-                    Text("View My Appointments")
+                    Text("View My Appointments", color = Color.White)
                 }
             },
-            shape = RoundedCornerShape(14.dp),
-            containerColor = MedicalWhite
+            shape = RoundedCornerShape(24.dp),
+            containerColor = appColors.cardBackground
         )
     }
 
@@ -791,16 +793,17 @@ fun TimeSlotChip(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = modifier
             .clip(RoundedCornerShape(50.dp))
             .clickable(onClick = onSelect)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) BloodRedPrimary else MedicalBorder,
+                color = if (isSelected) BloodRedPrimary else appColors.border,
                 shape = RoundedCornerShape(50.dp)
             ),
-        color = if (isSelected) BloodRedLight else MedicalWhite
+        color = if (isSelected) appColors.redLight else appColors.cardBackground
     ) {
         Box(
             modifier = Modifier.padding(vertical = 10.dp),
@@ -810,7 +813,7 @@ fun TimeSlotChip(
                 text = slot,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) BloodRedPrimary else MedicalTextPrimary
+                color = if (isSelected) BloodRedPrimary else appColors.textPrimary
             )
         }
     }
@@ -823,11 +826,12 @@ fun AppointmentItemCard(
     onRescheduleClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -844,7 +848,7 @@ fun AppointmentItemCard(
                         modifier = Modifier
                             .size(38.dp)
                             .background(
-                                if (isUpcoming) BloodRedLight else MedicalSurfaceVariant,
+                                if (isUpcoming) appColors.redLight else appColors.surfaceVariant,
                                 CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -852,7 +856,7 @@ fun AppointmentItemCard(
                         Icon(
                             imageVector = Icons.Default.CalendarToday,
                             contentDescription = null,
-                            tint = if (isUpcoming) BloodRedPrimary else MedicalTextMuted,
+                            tint = if (isUpcoming) BloodRedPrimary else appColors.textMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -862,12 +866,12 @@ fun AppointmentItemCard(
                             text = appointment.bloodBankName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Text(
                             text = "Ref: ${appointment.referenceCode}",
                             fontSize = 11.sp,
-                            color = MedicalTextMuted
+                            color = appColors.textMuted
                         )
                     }
                 }
@@ -880,15 +884,15 @@ fun AppointmentItemCard(
                         AppointmentStatus.CANCELLED -> StatusUrgentRed
                     },
                     backgroundColor = when (appointment.status) {
-                        AppointmentStatus.UPCOMING -> StatusWarningAmberLight
-                        AppointmentStatus.COMPLETED -> StatusEligibleGreenLight
-                        AppointmentStatus.CANCELLED -> StatusUrgentRedLight
+                        AppointmentStatus.UPCOMING -> appColors.yellowLight
+                        AppointmentStatus.COMPLETED -> appColors.greenLight
+                        AppointmentStatus.CANCELLED -> appColors.redLight
                     }
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
+            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -896,21 +900,21 @@ fun AppointmentItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Date & Time", fontSize = 11.sp, color = MedicalTextSecondary)
+                    Text("Date & Time", fontSize = 11.sp, color = appColors.textSecondary)
                     Text(
                         "${appointment.date} • ${appointment.timeSlot}",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MedicalTextPrimary
+                        color = appColors.textPrimary
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Donation Type", fontSize = 11.sp, color = MedicalTextSecondary)
+                    Text("Donation Type", fontSize = 11.sp, color = appColors.textSecondary)
                     Text(
                         appointment.donationType,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MedicalTextPrimary
+                        color = appColors.textPrimary
                     )
                 }
             }
@@ -951,6 +955,7 @@ fun RescheduleDialog(
     onConfirmReschedule: (newDate: String, newSlot: String) -> Unit
 ) {
     val context = LocalContext.current
+    val appColors = BloodSyncTheme.colors
     val nextEligibleDateMillis = remember(healthRecord) { healthRecord.getNextEligibleDateMillis() }
     val nextEligibleDateStr = remember(healthRecord) { healthRecord.getNextEligibleDateFormatted() }
 
@@ -976,11 +981,11 @@ fun RescheduleDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Reschedule Appointment", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Reschedule Appointment", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = appColors.textPrimary)
                 Text(
                     text = appointment.bloodBankName,
                     fontSize = 12.sp,
-                    color = MedicalTextSecondary
+                    color = appColors.textSecondary
                 )
             }
         },
@@ -993,7 +998,7 @@ fun RescheduleDialog(
             ) {
                 // Current appointment badge
                 Surface(
-                    color = MedicalSurfaceVariant,
+                    color = appColors.surfaceVariant,
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1001,13 +1006,13 @@ fun RescheduleDialog(
                         Text(
                             text = "Currently Booked For:",
                             fontSize = 10.sp,
-                            color = MedicalTextSecondary
+                            color = appColors.textSecondary
                         )
                         Text(
                             text = "${appointment.date} at ${appointment.timeSlot}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                     }
                 }
@@ -1022,7 +1027,7 @@ fun RescheduleDialog(
                         text = "Choose New Date:",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MedicalTextPrimary
+                        color = appColors.textPrimary
                     )
 
                     TextButton(
@@ -1055,7 +1060,7 @@ fun RescheduleDialog(
 
                 // Selected New Date indicator - Pill
                 Surface(
-                    color = if (isNewDateValid) BloodRedLight else StatusUrgentRedLight,
+                    color = if (isNewDateValid) appColors.redLight else appColors.redLight,
                     shape = RoundedCornerShape(50.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1100,10 +1105,10 @@ fun RescheduleDialog(
                                 .clickable { selectedNewDate = option.fullFormattedDate }
                                 .border(
                                     width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRedLight else MedicalBorder),
+                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRed else appColors.border),
                                     shape = RoundedCornerShape(20.dp)
                                 ),
-                            color = if (isSelected) BloodRedLight else (if (!isAllowed) StatusUrgentRedLight else MedicalWhite)
+                            color = if (isSelected) appColors.redLight else (if (!isAllowed) appColors.redLight else appColors.cardBackground)
                         ) {
                             Column(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1112,13 +1117,13 @@ fun RescheduleDialog(
                                 Text(
                                     text = option.dayLabel,
                                     fontSize = 10.sp,
-                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRed else MedicalTextSecondary)
+                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRed else appColors.textSecondary)
                                 )
                                 Text(
                                     text = option.subLabel,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRed else MedicalTextPrimary)
+                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRed else appColors.textPrimary)
                                 )
                             }
                         }
@@ -1130,10 +1135,10 @@ fun RescheduleDialog(
                     text = "Choose New Time Slot:",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MedicalTextPrimary
+                    color = appColors.textPrimary
                 )
 
-                Text("Morning", fontSize = 11.sp, color = MedicalTextMuted)
+                Text("Morning", fontSize = 11.sp, color = appColors.textMuted)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1148,7 +1153,7 @@ fun RescheduleDialog(
                     }
                 }
 
-                Text("Afternoon", fontSize = 11.sp, color = MedicalTextMuted)
+                Text("Afternoon", fontSize = 11.sp, color = appColors.textMuted)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1171,15 +1176,15 @@ fun RescheduleDialog(
                 shape = RoundedCornerShape(50.dp),
                 enabled = isNewDateValid
             ) {
-                Text(if (isNewDateValid) "Confirm Reschedule" else "Date Ineligible")
+                Text(if (isNewDateValid) "Confirm Reschedule" else "Date Ineligible", color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = MedicalTextSecondary)
+                Text("Cancel", color = appColors.textSecondary)
             }
         },
         shape = RoundedCornerShape(26.dp),
-        containerColor = MedicalWhite
+        containerColor = appColors.cardBackground
     )
 }

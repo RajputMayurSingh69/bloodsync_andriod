@@ -40,6 +40,8 @@ fun DonationHistoryScreen(
     var selectedDonationForDetails by remember { mutableStateOf<DonationRecord?>(null) }
     var showLogDonationDialog by remember { mutableStateOf(false) }
 
+    val appColors = BloodSyncTheme.colors
+
     Scaffold(
         topBar = {
             BloodSyncTopBar(
@@ -61,7 +63,7 @@ fun DonationHistoryScreen(
             )
         },
         contentWindowInsets = WindowInsets.statusBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -75,8 +77,8 @@ fun DonationHistoryScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
@@ -90,7 +92,7 @@ fun DonationHistoryScreen(
                                     text = "Donor Lifetime Impact",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
-                                    color = MedicalTextPrimary
+                                    color = appColors.textPrimary
                                 )
                                 Text(
                                     text = "Blood Group: ${profile.bloodGroup}",
@@ -108,12 +110,12 @@ fun DonationHistoryScreen(
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Log Donation", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("Log Donation", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = MedicalBorder, thickness = 0.5.dp)
+                        HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Row(
@@ -128,7 +130,7 @@ fun DonationHistoryScreen(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .height(36.dp)
-                                    .background(MedicalBorder)
+                                    .background(appColors.divider)
                             )
                             DonationMetricStat(
                                 value = "${profile.totalDonations * 450} ml",
@@ -138,7 +140,7 @@ fun DonationHistoryScreen(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .height(36.dp)
-                                    .background(MedicalBorder)
+                                    .background(appColors.divider)
                             )
                             DonationMetricStat(
                                 value = "${profile.livesSaved}",
@@ -154,7 +156,7 @@ fun DonationHistoryScreen(
                     text = "Complete Records",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MedicalTextPrimary
+                    color = appColors.textPrimary
                 )
             }
 
@@ -211,13 +213,14 @@ fun DonationHistoryCard(
     onClick: () -> Unit,
     onCertificateClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -230,7 +233,7 @@ fun DonationHistoryCard(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
-                            .background(BloodRedLight, CircleShape),
+                            .background(appColors.redLight, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -246,12 +249,12 @@ fun DonationHistoryCard(
                             text = record.hospitalName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Text(
                             text = "${record.date} • ${record.unitsDonated} Unit (450ml)",
                             fontSize = 12.sp,
-                            color = MedicalTextSecondary
+                            color = appColors.textSecondary
                         )
                     }
                 }
@@ -268,15 +271,15 @@ fun DonationHistoryCard(
                         DonationStatus.IN_REVIEW -> StatusWarningAmber
                     },
                     backgroundColor = when (record.status) {
-                        DonationStatus.VERIFIED -> StatusEligibleGreenLight
-                        DonationStatus.COMPLETED -> StatusEligibleGreenLight
-                        DonationStatus.IN_REVIEW -> StatusWarningAmberLight
+                        DonationStatus.VERIFIED -> appColors.greenLight
+                        DonationStatus.COMPLETED -> appColors.greenLight
+                        DonationStatus.IN_REVIEW -> appColors.yellowLight
                     }
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
+            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -288,14 +291,14 @@ fun DonationHistoryCard(
                     Icon(
                         imageVector = Icons.Default.Place,
                         contentDescription = null,
-                        tint = MedicalTextMuted,
+                        tint = appColors.textMuted,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = record.location,
                         fontSize = 11.sp,
-                        color = MedicalTextSecondary
+                        color = appColors.textSecondary
                     )
                 }
 
@@ -330,6 +333,7 @@ fun DonationDetailDialog(
     onDismiss: () -> Unit,
     onViewCertificate: (String) -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -342,7 +346,7 @@ fun DonationDetailDialog(
                 Text(
                     text = "Ref: ${record.id}",
                     fontSize = 11.sp,
-                    color = MedicalTextMuted
+                    color = appColors.textMuted
                 )
             }
         },
@@ -373,17 +377,17 @@ fun DonationDetailDialog(
                 ) {
                     Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Certificate", fontWeight = FontWeight.Bold)
+                    Text("Certificate", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = MedicalTextSecondary)
+                Text("Close", color = appColors.textSecondary)
             }
         },
         shape = RoundedCornerShape(26.dp),
-        containerColor = MedicalWhite
+        containerColor = appColors.cardBackground
     )
 }
 
@@ -392,6 +396,7 @@ fun LogDonationDialog(
     repository: BloodSyncRepository,
     onDismiss: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     var hospitalName by remember { mutableStateOf("Central City Blood Bank") }
     var location by remember { mutableStateOf("Donor Station 3") }
     var selectedUnits by remember { mutableIntStateOf(1) }
@@ -399,13 +404,26 @@ fun LogDonationDialog(
     var doctorName by remember { mutableStateOf("Dr. Sarah Vance, MD") }
     var notes by remember { mutableStateOf("Routine voluntary donation. No adverse effects.") }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = appColors.textPrimary,
+        unfocusedTextColor = appColors.textPrimary,
+        focusedContainerColor = appColors.inputBackground,
+        unfocusedContainerColor = appColors.inputBackground,
+        focusedBorderColor = BloodRedPrimary,
+        unfocusedBorderColor = appColors.border,
+        focusedLabelColor = BloodRedPrimary,
+        unfocusedLabelColor = appColors.textMuted,
+        cursorColor = BloodRedPrimary
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
                 text = "Log Blood Donation",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = appColors.textPrimary
             )
         },
         text = {
@@ -418,6 +436,7 @@ fun LogDonationDialog(
                     onValueChange = { hospitalName = it },
                     label = { Text("Hospital / Blood Center") },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -426,6 +445,7 @@ fun LogDonationDialog(
                     onValueChange = { location = it },
                     label = { Text("Ward / Station Location") },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -438,6 +458,7 @@ fun LogDonationDialog(
                         onValueChange = { hemoglobinText = it },
                         label = { Text("Hemoglobin (g/dL)") },
                         singleLine = true,
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
@@ -445,6 +466,7 @@ fun LogDonationDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Units") },
+                        colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -454,6 +476,7 @@ fun LogDonationDialog(
                     onValueChange = { doctorName = it },
                     label = { Text("Staff / Doctor Name") },
                     singleLine = true,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -462,6 +485,7 @@ fun LogDonationDialog(
                     onValueChange = { notes = it },
                     label = { Text("Clinical Notes") },
                     maxLines = 2,
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -485,21 +509,22 @@ fun LogDonationDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                 shape = RoundedCornerShape(50.dp)
             ) {
-                Text("Log & Generate Certificate", fontWeight = FontWeight.Bold)
+                Text("Log & Generate Certificate", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = MedicalTextSecondary)
+                Text("Cancel", color = appColors.textSecondary)
             }
         },
         shape = RoundedCornerShape(26.dp),
-        containerColor = MedicalWhite
+        containerColor = appColors.cardBackground
     )
 }
 
 @Composable
 fun DetailRow(label: String, value: String) {
+    val appColors = BloodSyncTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -508,14 +533,14 @@ fun DetailRow(label: String, value: String) {
         Text(
             text = label,
             fontSize = 12.sp,
-            color = MedicalTextSecondary,
+            color = appColors.textSecondary,
             modifier = Modifier.weight(0.45f)
         )
         Text(
             text = value,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
-            color = MedicalTextPrimary,
+            color = appColors.textPrimary,
             modifier = Modifier.weight(0.55f)
         )
     }
@@ -526,17 +551,18 @@ fun DonationMetricStat(
     value: String,
     label: String
 ) {
+    val appColors = BloodSyncTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
-            color = MedicalTextPrimary
+            color = appColors.textPrimary
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = MedicalTextSecondary
+            color = appColors.textSecondary
         )
     }
 }

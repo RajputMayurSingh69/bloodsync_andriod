@@ -40,6 +40,7 @@ fun NotificationCenterScreen(
     onNavigateToTarget: (targetScreen: String, targetId: String?) -> Unit
 ) {
     val context = LocalContext.current
+    val appColors = BloodSyncTheme.colors
     val notifications = repository.notifications
     val unreadCount by repository.unreadNotificationCount
 
@@ -86,7 +87,7 @@ fun NotificationCenterScreen(
             )
         },
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -96,7 +97,7 @@ fun NotificationCenterScreen(
             // Notification Permission Banner for Android 13+
             AnimatedVisibility(visible = showPermissionBanner) {
                 Surface(
-                    color = BloodRedLight,
+                    color = appColors.redLight,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -122,12 +123,12 @@ fun NotificationCenterScreen(
                                     text = "Enable Real-time Push Alerts",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
-                                    color = BloodRedDark
+                                    color = BloodRedPrimary
                                 )
                                 Text(
                                     text = "Get alerted when emergency blood is needed nearby",
                                     fontSize = 11.sp,
-                                    color = MedicalTextSecondary
+                                    color = appColors.textSecondary
                                 )
                             }
                         }
@@ -144,7 +145,7 @@ fun NotificationCenterScreen(
                             shape = RoundedCornerShape(50.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Text("Allow", fontSize = 12.sp, color = MedicalWhite, fontWeight = FontWeight.Bold)
+                            Text("Allow", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -164,7 +165,7 @@ fun NotificationCenterScreen(
                         label = { Text("All (${notifications.size})") },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BloodRedPrimary,
-                            selectedLabelColor = MedicalWhite
+                            selectedLabelColor = Color.White
                         )
                     )
                 }
@@ -186,7 +187,7 @@ fun NotificationCenterScreen(
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BloodRedPrimary,
-                            selectedLabelColor = MedicalWhite
+                            selectedLabelColor = Color.White
                         )
                     )
                 }
@@ -197,7 +198,7 @@ fun NotificationCenterScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .fillMaxWidth(),
-                color = MedicalSurfaceVariant,
+                color = appColors.surfaceVariant,
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
@@ -211,7 +212,7 @@ fun NotificationCenterScreen(
                         text = "Simulate Real-Time Notification:",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MedicalTextSecondary
+                        color = appColors.textSecondary
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         FilledTonalButton(
@@ -280,17 +281,18 @@ fun NotificationItemCard(
     notification: AppNotification,
     onItemClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) BloodRedLight else MedicalWhite
+            containerColor = if (!notification.isRead) appColors.redLight else appColors.cardBackground
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (!notification.isRead) BloodRedContainer else MedicalBorder
+            if (!notification.isRead) BloodRedPrimary.copy(alpha = 0.5f) else appColors.border
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (!notification.isRead) 2.dp else 0.5.dp)
     ) {
@@ -306,11 +308,11 @@ fun NotificationItemCard(
                     .size(40.dp)
                     .background(
                         when (notification.type) {
-                            NotificationType.EMERGENCY -> StatusUrgentRedLight
-                            NotificationType.APPOINTMENT -> StatusWarningAmberLight
-                            NotificationType.ELIGIBILITY -> StatusEligibleGreenLight
-                            NotificationType.CERTIFICATE -> AlertYellowLight
-                            NotificationType.SYSTEM -> MedicalSurfaceVariant
+                            NotificationType.EMERGENCY -> appColors.redLight
+                            NotificationType.APPOINTMENT -> appColors.yellowLight
+                            NotificationType.ELIGIBILITY -> appColors.greenLight
+                            NotificationType.CERTIFICATE -> appColors.yellowLight
+                            NotificationType.SYSTEM -> appColors.surfaceVariant
                         },
                         CircleShape
                     ),
@@ -330,7 +332,7 @@ fun NotificationItemCard(
                         NotificationType.APPOINTMENT -> StatusWarningAmber
                         NotificationType.ELIGIBILITY -> StatusEligibleGreen
                         NotificationType.CERTIFICATE -> CertificateGold
-                        NotificationType.SYSTEM -> MedicalTextSecondary
+                        NotificationType.SYSTEM -> appColors.textSecondary
                     },
                     modifier = Modifier.size(20.dp)
                 )
@@ -348,7 +350,7 @@ fun NotificationItemCard(
                         text = notification.title,
                         fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.SemiBold,
                         fontSize = 14.sp,
-                        color = MedicalTextPrimary,
+                        color = appColors.textPrimary,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -366,7 +368,7 @@ fun NotificationItemCard(
                 Text(
                     text = notification.message,
                     fontSize = 13.sp,
-                    color = MedicalTextSecondary,
+                    color = appColors.textSecondary,
                     lineHeight = 18.sp
                 )
 
@@ -380,7 +382,7 @@ fun NotificationItemCard(
                     Text(
                         text = notification.timestamp,
                         fontSize = 11.sp,
-                        color = MedicalTextMuted
+                        color = appColors.textMuted
                     )
 
                     if (!notification.targetScreen.isNullOrEmpty()) {

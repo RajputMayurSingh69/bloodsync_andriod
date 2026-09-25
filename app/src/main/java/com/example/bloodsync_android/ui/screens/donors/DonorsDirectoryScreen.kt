@@ -50,6 +50,7 @@ fun DonorsDirectoryScreen(
 
     var selectedGroup by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
+    val appColors = BloodSyncTheme.colors
 
     val filteredDonors = remember(donors, selectedGroup, searchQuery) {
         donors.filter { donor ->
@@ -75,7 +76,7 @@ fun DonorsDirectoryScreen(
             )
         },
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -88,8 +89,8 @@ fun DonorsDirectoryScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(50.dp),
-                color = MedicalWhite,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                color = appColors.cardBackground,
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                 shadowElevation = 1.dp
             ) {
                 Row(
@@ -101,16 +102,18 @@ fun DonorsDirectoryScreen(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = MedicalTextMuted,
+                        tint = appColors.textMuted,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by city or donor name...", fontSize = 13.sp, color = MedicalTextMuted) },
+                        placeholder = { Text("Search by city or donor name...", fontSize = 13.sp, color = appColors.textMuted) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary,
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent,
                             cursorColor = BloodRedPrimary
@@ -122,7 +125,7 @@ fun DonorsDirectoryScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear",
-                                tint = MedicalTextMuted,
+                                tint = appColors.textMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -153,10 +156,10 @@ fun DonorsDirectoryScreen(
                             .clickable { selectedGroup = group }
                             .border(
                                 width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) BloodRedPrimary else MedicalBorder,
+                                color = if (isSelected) BloodRedPrimary else appColors.border,
                                 shape = RoundedCornerShape(50.dp)
                             ),
-                        color = if (isSelected) BloodRedPrimary else MedicalWhite,
+                        color = if (isSelected) BloodRedPrimary else appColors.cardBackground,
                         shadowElevation = if (isSelected) 2.dp else 0.dp
                     ) {
                         Box(
@@ -167,7 +170,7 @@ fun DonorsDirectoryScreen(
                                 text = group,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = if (isSelected) MedicalWhite else MedicalTextPrimary
+                                color = if (isSelected) Color.White else appColors.textPrimary
                             )
                         }
                     }
@@ -186,12 +189,12 @@ fun DonorsDirectoryScreen(
                     text = "${filteredDonors.size} Donors Found",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MedicalTextSecondary
+                    color = appColors.textSecondary
                 )
                 StatusBadge(
                     text = if (selectedGroup == "All") "All Groups" else "$selectedGroup Group",
                     textColor = BloodRedPrimary,
-                    backgroundColor = BloodRedLight
+                    backgroundColor = appColors.redLight
                 )
             }
 
@@ -205,9 +208,9 @@ fun DonorsDirectoryScreen(
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MedicalWhite,
+                        color = appColors.cardBackground,
                         shape = RoundedCornerShape(26.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
                     ) {
                         Column(
                             modifier = Modifier.padding(28.dp),
@@ -216,7 +219,7 @@ fun DonorsDirectoryScreen(
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
-                                    .background(BloodRedLight, CircleShape),
+                                    .background(appColors.redLight, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 BloodDropIcon(size = 32.dp, tint = BloodRedPrimary)
@@ -225,14 +228,14 @@ fun DonorsDirectoryScreen(
                             Text(
                                 text = "No active donors found for $selectedGroup",
                                 fontWeight = FontWeight.Bold,
-                                color = MedicalTextPrimary,
+                                color = appColors.textPrimary,
                                 fontSize = 15.sp
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Need blood urgently? Broadcast an emergency SOS to notify matching volunteers nearby immediately.",
                                 fontSize = 12.sp,
-                                color = MedicalTextSecondary,
+                                color = appColors.textSecondary,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 lineHeight = 17.sp
                             )
@@ -245,7 +248,7 @@ fun DonorsDirectoryScreen(
                             ) {
                                 Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Broadcast Emergency SOS", color = MedicalWhite, fontWeight = FontWeight.Bold)
+                                Text("Broadcast Emergency SOS", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -281,6 +284,7 @@ private fun DonorPillCard(
     onWhatsAppClick: () -> Unit,
     onRequestClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     val infiniteTransition = rememberInfiniteTransition(label = "beacon")
     val beaconAlpha by infiniteTransition.animateFloat(
         initialValue = 0.35f,
@@ -295,8 +299,8 @@ private fun DonorPillCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = MedicalWhite,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        color = appColors.cardBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         shadowElevation = 1.5.dp
     ) {
         Row(
@@ -319,7 +323,7 @@ private fun DonorPillCard(
                 ) {
                     Text(
                         text = donor.bloodGroup,
-                        color = MedicalWhite,
+                        color = Color.White,
                         fontWeight = FontWeight.Black,
                         fontSize = 17.sp
                     )
@@ -333,7 +337,7 @@ private fun DonorPillCard(
                             text = if (donor.name.isNotBlank()) donor.name else "Volunteer Donor",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
@@ -367,7 +371,7 @@ private fun DonorPillCard(
                         Text(
                             text = "${donor.totalDonations} Previous Donations",
                             fontSize = 11.sp,
-                            color = MedicalTextSecondary,
+                            color = appColors.textSecondary,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -388,7 +392,7 @@ private fun DonorPillCard(
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = "Contact Donor",
-                        tint = MedicalWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -403,7 +407,7 @@ private fun DonorPillCard(
                     Text(
                         text = "Request",
                         fontSize = 12.sp,
-                        color = MedicalWhite,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                 }

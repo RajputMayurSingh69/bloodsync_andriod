@@ -53,6 +53,19 @@ fun EmergencyRequestScreen(
 
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+    val appColors = BloodSyncTheme.colors
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = appColors.textPrimary,
+        unfocusedTextColor = appColors.textPrimary,
+        focusedContainerColor = appColors.inputBackground,
+        unfocusedContainerColor = appColors.inputBackground,
+        focusedBorderColor = BloodRedPrimary,
+        unfocusedBorderColor = appColors.border,
+        focusedLabelColor = BloodRedPrimary,
+        unfocusedLabelColor = appColors.textMuted,
+        cursorColor = BloodRedPrimary
+    )
 
     Scaffold(
         topBar = {
@@ -66,7 +79,7 @@ fun EmergencyRequestScreen(
             )
         },
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = MedicalWhite
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -89,7 +102,7 @@ fun EmergencyRequestScreen(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = MedicalWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -98,12 +111,12 @@ fun EmergencyRequestScreen(
                             text = "🚨 LIVE EMERGENCY BROADCAST",
                             fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
-                            color = MedicalWhite
+                            color = Color.White
                         )
                         Text(
                             text = "This form alerts all verified donors within 10km immediately.",
                             fontSize = 12.sp,
-                            color = MedicalWhite.copy(alpha = 0.9f)
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
                 }
@@ -113,8 +126,8 @@ fun EmergencyRequestScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     BloodGroupSelector(
@@ -123,7 +136,7 @@ fun EmergencyRequestScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
+                    HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
@@ -136,12 +149,12 @@ fun EmergencyRequestScreen(
                                 text = "Units Required",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
                             Text(
                                 text = "Whole blood bags needed",
                                 fontSize = 11.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                         }
 
@@ -153,7 +166,7 @@ fun EmergencyRequestScreen(
                                 onClick = { if (unitsRequired > 1) unitsRequired-- },
                                 enabled = unitsRequired > 1,
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = BloodRedLight,
+                                    containerColor = appColors.redLight,
                                     contentColor = BloodRedPrimary
                                 )
                             ) {
@@ -172,7 +185,7 @@ fun EmergencyRequestScreen(
                                 onClick = { if (unitsRequired < 10) unitsRequired++ },
                                 enabled = unitsRequired < 10,
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = BloodRedLight,
+                                    containerColor = appColors.redLight,
                                     contentColor = BloodRedPrimary
                                 )
                             ) {
@@ -187,15 +200,15 @@ fun EmergencyRequestScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Urgency Level",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = MedicalTextPrimary
+                        color = appColors.textPrimary
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -218,10 +231,10 @@ fun EmergencyRequestScreen(
                                     .clickable { urgencyLevel = level }
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) activeColor else MedicalBorder,
+                                        color = if (isSelected) activeColor else appColors.border,
                                         shape = RoundedCornerShape(50.dp)
                                     ),
-                                color = if (isSelected) activeColor else MedicalWhite
+                                color = if (isSelected) activeColor else appColors.cardBackground
                             ) {
                                 Column(
                                     modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
@@ -235,7 +248,7 @@ fun EmergencyRequestScreen(
                                         },
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) MedicalWhite else MedicalTextPrimary
+                                        color = if (isSelected) Color.White else appColors.textPrimary
                                     )
                                     Text(
                                         text = when (level) {
@@ -244,7 +257,7 @@ fun EmergencyRequestScreen(
                                             UrgencyLevel.WITHIN_24_HOURS -> "< 24 hrs"
                                         },
                                         fontSize = 10.sp,
-                                        color = if (isSelected) MedicalWhite.copy(alpha = 0.9f) else MedicalTextSecondary
+                                        color = if (isSelected) Color.White.copy(alpha = 0.9f) else appColors.textSecondary
                                     )
                                 }
                             }
@@ -257,8 +270,8 @@ fun EmergencyRequestScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -268,18 +281,19 @@ fun EmergencyRequestScreen(
                         text = "Hospital & Contact Details",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = MedicalTextPrimary
+                        color = appColors.textPrimary
                     )
 
                     OutlinedTextField(
                         value = hospitalName,
                         onValueChange = { hospitalName = it },
                         label = { Text("Hospital Name *") },
-                        placeholder = { Text("e.g. City General Hospital", color = MedicalTextMuted) },
+                        placeholder = { Text("e.g. City General Hospital", color = appColors.textMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
                         },
                         singleLine = true,
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -287,12 +301,13 @@ fun EmergencyRequestScreen(
                         value = contactPhone,
                         onValueChange = { contactPhone = it },
                         label = { Text("Emergency Contact Phone *") },
-                        placeholder = { Text("e.g. 9876543210", color = MedicalTextMuted) },
+                        placeholder = { Text("e.g. 9876543210", color = appColors.textMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.Phone, contentDescription = null, tint = StatusEligibleGreen)
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -300,8 +315,9 @@ fun EmergencyRequestScreen(
                         value = hospitalAddress,
                         onValueChange = { hospitalAddress = it },
                         label = { Text("Hospital Address / Ward (Optional)") },
-                        placeholder = { Text("e.g. Ward 4, Ring Road", color = MedicalTextMuted) },
+                        placeholder = { Text("e.g. Ward 4, Ring Road", color = appColors.textMuted) },
                         singleLine = true,
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -309,8 +325,9 @@ fun EmergencyRequestScreen(
                         value = patientName,
                         onValueChange = { patientName = it },
                         label = { Text("Patient Name (Optional)") },
-                        placeholder = { Text("e.g. Amit Kumar", color = MedicalTextMuted) },
+                        placeholder = { Text("e.g. Amit Kumar", color = appColors.textMuted) },
                         singleLine = true,
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -319,7 +336,7 @@ fun EmergencyRequestScreen(
             // Validation Error Alert (Red)
             if (validationError != null) {
                 Surface(
-                    color = BloodRedLight,
+                    color = appColors.redLight,
                     shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
                     modifier = Modifier.fillMaxWidth()
@@ -384,15 +401,15 @@ fun EmergencyRequestScreen(
                 enabled = !isSubmitting
             ) {
                 if (isSubmitting) {
-                    CircularProgressIndicator(color = MedicalWhite, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp), tint = MedicalWhite)
+                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "🚨 BROADCAST EMERGENCY SOS NOW",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Black,
-                        color = MedicalWhite
+                        color = Color.White
                     )
                 }
             }

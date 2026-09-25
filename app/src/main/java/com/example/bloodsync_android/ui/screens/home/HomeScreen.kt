@@ -126,7 +126,7 @@ fun HomeScreen(
                         subtitle = "Instant SOS Broadcast",
                         icon = Icons.Default.Warning,
                         accentColor = BloodRedPrimary,
-                        bgColor = BloodRedLight,
+                        bgColor = appColors.redLight,
                         onClick = onNavigateToEmergency,
                         modifier = Modifier.weight(1f)
                     )
@@ -136,7 +136,7 @@ fun HomeScreen(
                         subtitle = "${donors.size} Donors Active",
                         icon = Icons.Default.PersonSearch,
                         accentColor = StatusEligibleGreen,
-                        bgColor = StatusEligibleGreenLight,
+                        bgColor = appColors.greenLight,
                         onClick = onNavigateToDonors,
                         modifier = Modifier.weight(1f)
                     )
@@ -153,7 +153,7 @@ fun HomeScreen(
                         subtitle = "${bloodBanks.size} Verified Centers",
                         icon = Icons.Default.LocalHospital,
                         accentColor = BloodRedPrimary,
-                        bgColor = BloodRedLight,
+                        bgColor = appColors.redLight,
                         onClick = onNavigateToAppointments,
                         modifier = Modifier.weight(1f)
                     )
@@ -163,7 +163,7 @@ fun HomeScreen(
                         subtitle = if (eligibilityResult.daysRemaining > 0) "${eligibilityResult.daysRemaining}d Cooldown" else "Ready to Donate",
                         icon = Icons.Default.CalendarToday,
                         accentColor = StatusWarningAmber,
-                        bgColor = StatusWarningAmberLight,
+                        bgColor = appColors.yellowLight,
                         onClick = onNavigateToAppointments,
                         modifier = Modifier.weight(1f)
                     )
@@ -194,7 +194,7 @@ fun HomeScreen(
                     icon = Icons.Default.People,
                     actionText = "Browse Donors →",
                     accentColor = StatusEligibleGreen,
-                    bgColor = StatusEligibleGreenLight,
+                    bgColor = appColors.greenLight,
                     onActionClick = onNavigateToDonors
                 )
             }
@@ -210,7 +210,7 @@ fun HomeScreen(
                     icon = Icons.Default.LocalHospital,
                     actionText = "View Centers →",
                     accentColor = BloodRedPrimary,
-                    bgColor = BloodRedLight,
+                    bgColor = appColors.redLight,
                     onActionClick = onNavigateToAppointments
                 )
             }
@@ -282,7 +282,7 @@ private fun EmergencySosPillCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "24/7 ACTIVE RADAR",
-                                color = MedicalWhite,
+                                color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 10.sp,
                                 letterSpacing = 0.5.sp
@@ -292,7 +292,7 @@ private fun EmergencySosPillCard(
 
                     Text(
                         text = "10km Radius",
-                        color = MedicalWhite.copy(alpha = 0.9f),
+                        color = Color.White.copy(alpha = 0.9f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -302,14 +302,14 @@ private fun EmergencySosPillCard(
 
                 Text(
                     text = "Need Blood Urgently?",
-                    color = MedicalWhite,
+                    color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black
                 )
 
                 Text(
                     text = "Broadcast an instant emergency SOS to all matching voluntary donors nearby.",
-                    color = MedicalWhite.copy(alpha = 0.92f),
+                    color = Color.White.copy(alpha = 0.92f),
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
                     modifier = Modifier.padding(top = 2.dp)
@@ -320,7 +320,7 @@ private fun EmergencySosPillCard(
                 // Full Pill Tactile White Button
                 Button(
                     onClick = onRequestBloodClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = MedicalWhite),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(50.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -355,13 +355,14 @@ private fun ActiveEmergencyPillCard(
     onViewDetails: () -> Unit,
     onShareWhatsApp: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onViewDetails),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = BloodRedLight),
+        colors = CardDefaults.cardColors(containerColor = appColors.redLight),
         border = androidx.compose.foundation.BorderStroke(2.dp, BloodRedPrimary)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -387,7 +388,7 @@ private fun ActiveEmergencyPillCard(
 
                 StatusBadge(
                     text = emergency.bloodGroupNeeded,
-                    textColor = MedicalWhite,
+                    textColor = Color.White,
                     backgroundColor = BloodRedPrimary
                 )
             }
@@ -398,14 +399,14 @@ private fun ActiveEmergencyPillCard(
                 text = "${emergency.unitsRequired} Unit(s) Needed at ${emergency.hospitalName}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 17.sp,
-                color = MedicalTextPrimary
+                color = appColors.textPrimary
             )
 
             if (emergency.hospitalAddress.isNotBlank()) {
                 Text(
                     text = emergency.hospitalAddress,
                     fontSize = 12.sp,
-                    color = MedicalTextSecondary
+                    color = appColors.textSecondary
                 )
             }
 
@@ -423,7 +424,7 @@ private fun ActiveEmergencyPillCard(
                         .weight(1f)
                         .height(46.dp)
                 ) {
-                    Text("View & Track", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MedicalWhite)
+                    Text("View & Track", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                 }
 
                 Button(
@@ -435,11 +436,11 @@ private fun ActiveEmergencyPillCard(
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = MedicalWhite,
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("WhatsApp", color = MedicalWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -459,13 +460,14 @@ private fun PillActionTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
-            .border(1.dp, MedicalBorder, RoundedCornerShape(24.dp)),
+            .border(1.dp, appColors.border, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        color = MedicalWhite,
+        color = appColors.cardBackground,
         shadowElevation = 1.dp
     ) {
         Column(
@@ -491,12 +493,12 @@ private fun PillActionTile(
                 text = title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = MedicalTextPrimary
+                color = appColors.textPrimary
             )
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
-                color = MedicalTextSecondary,
+                color = appColors.textSecondary,
                 maxLines = 1
             )
         }
@@ -514,6 +516,7 @@ private fun WhoSafetyGaugePillCard(
     onHealthClick: () -> Unit,
     onDonationsClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     val isEligible = eligibilityStatus == EligibilityStatus.ELIGIBLE
     val progressFraction = if (isEligible) 1.0f else ((90 - daysRemaining).coerceAtLeast(0) / 90f)
 
@@ -529,8 +532,8 @@ private fun WhoSafetyGaugePillCard(
             .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onHealthClick),
         shape = RoundedCornerShape(28.dp),
-        color = MedicalWhite,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        color = appColors.cardBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         shadowElevation = 1.dp
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -544,6 +547,7 @@ private fun WhoSafetyGaugePillCard(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(64.dp)
                 ) {
+                    val trackColor = appColors.border
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val strokeWidth = 6.dp.toPx()
                         val arcSize = size.minDimension - strokeWidth
@@ -551,7 +555,7 @@ private fun WhoSafetyGaugePillCard(
 
                         // Background track
                         drawArc(
-                            color = MedicalBorder,
+                            color = trackColor,
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -601,7 +605,7 @@ private fun WhoSafetyGaugePillCard(
                         ) {
                             Text(
                                 text = profile.bloodGroup.ifBlank { "O+" },
-                                color = MedicalWhite,
+                                color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -611,7 +615,7 @@ private fun WhoSafetyGaugePillCard(
                             text = if (isEligible) "Ready to Donate" else "$daysRemaining Days to Recovery",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MedicalTextPrimary
+                            color = appColors.textPrimary
                         )
                     }
 
@@ -625,13 +629,13 @@ private fun WhoSafetyGaugePillCard(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
-                    tint = MedicalTextMuted,
+                    tint = appColors.textMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
+            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(12.dp))
 
             // 3 Clean Counters (Pill clickable)
@@ -650,10 +654,10 @@ private fun WhoSafetyGaugePillCard(
                         fontWeight = FontWeight.Black,
                         color = BloodRedPrimary
                     )
-                    Text("Donations", fontSize = 11.sp, color = MedicalTextSecondary)
+                    Text("Donations", fontSize = 11.sp, color = appColors.textSecondary)
                 }
 
-                Box(modifier = Modifier.height(24.dp).width(1.dp).background(MedicalDivider))
+                Box(modifier = Modifier.height(24.dp).width(1.dp).background(appColors.divider))
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -665,10 +669,10 @@ private fun WhoSafetyGaugePillCard(
                         fontWeight = FontWeight.Black,
                         color = StatusEligibleGreen
                     )
-                    Text("Lives Saved", fontSize = 11.sp, color = MedicalTextSecondary)
+                    Text("Lives Saved", fontSize = 11.sp, color = appColors.textSecondary)
                 }
 
-                Box(modifier = Modifier.height(24.dp).width(1.dp).background(MedicalDivider))
+                Box(modifier = Modifier.height(24.dp).width(1.dp).background(appColors.divider))
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -680,7 +684,7 @@ private fun WhoSafetyGaugePillCard(
                         fontWeight = FontWeight.Black,
                         color = StatusWarningAmber
                     )
-                    Text("WHO Interval", fontSize = 11.sp, color = MedicalTextSecondary)
+                    Text("WHO Interval", fontSize = 11.sp, color = appColors.textSecondary)
                 }
             }
         }
@@ -701,14 +705,15 @@ private fun DirectoryPillBanner(
     bgColor: Color,
     onActionClick: () -> Unit
 ) {
+    val appColors = BloodSyncTheme.colors
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(26.dp))
             .clickable(onClick = onActionClick),
         shape = RoundedCornerShape(26.dp),
-        color = MedicalWhite,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+        color = appColors.cardBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
         shadowElevation = 1.dp
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -755,13 +760,13 @@ private fun DirectoryPillBanner(
                 text = title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = MedicalTextPrimary
+                color = appColors.textPrimary
             )
 
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = MedicalTextSecondary,
+                color = appColors.textSecondary,
                 lineHeight = 16.sp,
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -778,7 +783,7 @@ private fun DirectoryPillBanner(
             ) {
                 Text(
                     text = actionText,
-                    color = MedicalWhite,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )

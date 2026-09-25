@@ -1,5 +1,6 @@
 package com.example.bloodsync_android.ui.screens.profile
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -17,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.bloodsync_android.data.model.UserProfile
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.components.StatusBadge
@@ -34,33 +38,60 @@ fun ProfileScreen(
     onNotificationClick: () -> Unit,
     onNavigateToSettings: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val appColors = BloodSyncTheme.colors
     val profile by repository.userProfile
     val unreadNotifs by repository.unreadNotificationCount
 
     var isEditing by remember { mutableStateOf(false) }
-    var nameInput by remember { mutableStateOf(profile.name) }
-    var phoneInput by remember { mutableStateOf(profile.phone) }
-    var addressInput by remember { mutableStateOf(profile.address) }
-    var cityInput by remember { mutableStateOf(profile.city) }
+    var nameInput by remember(profile.name) { mutableStateOf(profile.name) }
+    var phoneInput by remember(profile.phone) { mutableStateOf(profile.phone) }
+    var addressInput by remember(profile.address) { mutableStateOf(profile.address) }
+    var cityInput by remember(profile.city) { mutableStateOf(profile.city) }
 
     Scaffold(
         topBar = {
             BloodSyncTopBar(
                 title = "Donor Profile",
-                subtitle = "Manage Account & Preferences",
+                subtitle = if (isEditing) "Editing Your Information" else "Manage Account & Preferences",
                 showBackButton = true,
-                onBackClick = onBackClick,
+                onBackClick = {
+                    if (isEditing) {
+                        isEditing = false
+                        nameInput = profile.name
+                        phoneInput = profile.phone
+                        cityInput = profile.city
+                        addressInput = profile.address
+                    } else {
+                        onBackClick()
+                    }
+                },
                 unreadCount = unreadNotifs,
                 onNotificationClick = onNotificationClick,
                 onSettingsClick = onNavigateToSettings,
                 actions = {
-                    IconButton(onClick = { isEditing = !isEditing }) {
-                        Icon(
-                            imageVector = if (isEditing) Icons.Default.Check else Icons.Default.Edit,
-                            contentDescription = "Edit Profile",
-                            tint = BloodRedPrimary
-                        )
+                    if (!isEditing) {
+                        IconButton(onClick = { isEditing = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = BloodRedPrimary
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            isEditing = false
+                            nameInput = profile.name
+                            phoneInput = profile.phone
+                            cityInput = profile.city
+                            addressInput = profile.address
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cancel Edit",
+                                tint = appColors.textMuted
+                            )
+                        }
                     }
                 }
             )
@@ -73,184 +104,402 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Profile Card Header
+            // ==============================================================
+            // 1. HERO IDENTITY CARD (Blood Group, Name, Verified, Metrics)
+            // ==============================================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Blood Group Avatar
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
-                            .background(BloodRedLight, CircleShape)
-                            .border(2.dp, BloodRedPrimary, CircleShape),
+                            .size(76.dp)
+                            .background(BloodRedPrimary, CircleShape)
+                            .border(3.dp, appColors.border, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = profile.bloodGroup,
-                            fontSize = 26.sp,
+                            text = profile.bloodGroup.ifBlank { "O+" },
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
-                            color = BloodRedPrimary
+                            color = Color.White
                         )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
-                        text = profile.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MedicalTextPrimary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = profile.name.ifBlank { "Voluntary Donor" },
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = appColors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Verified Donor",
+                            tint = StatusEligibleGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
 
                     Text(
-                        text = "${profile.city} • Verified Voluntary Donor",
-                        fontSize = 12.sp,
-                        color = MedicalTextSecondary
+                        text = "${profile.city.ifBlank { "Registered City" }} • Active Lifesaver",
+                        fontSize = 13.sp,
+                        color = appColors.textSecondary,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     StatusBadge(
-                        text = "🏆 Silver Lifesaver (${profile.totalDonations} Donations)",
+                        text = "🏆 Silver Lifesaver • ${profile.totalDonations} Donations",
                         textColor = CertificateGoldDark,
-                        backgroundColor = AlertYellowLight
-                    )
-                }
-            }
-
-            // Editable or Display Information
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Personal Details",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = MedicalTextPrimary
+                        backgroundColor = appColors.yellowLight
                     )
 
-                    if (isEditing) {
-                        OutlinedTextField(
-                            value = nameInput,
-                            onValueChange = { nameInput = it },
-                            label = { Text("Full Name") },
-                            shape = RoundedCornerShape(50.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = phoneInput,
-                            onValueChange = { phoneInput = it },
-                            label = { Text("Phone Number") },
-                            shape = RoundedCornerShape(50.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = cityInput,
-                            onValueChange = { cityInput = it },
-                            label = { Text("City") },
-                            shape = RoundedCornerShape(50.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = addressInput,
-                            onValueChange = { addressInput = it },
-                            label = { Text("Address") },
-                            shape = RoundedCornerShape(50.dp),
-                            modifier = Modifier.fillMaxWidth()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = appColors.divider)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 3 Metric Impact Badges
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ProfileImpactStat(
+                            value = "${profile.totalDonations}",
+                            label = "Donations",
+                            accentColor = BloodRedPrimary,
+                            textColor = appColors.textPrimary,
+                            subColor = appColors.textSecondary
                         )
 
-                        Button(
-                            onClick = {
-                                val updated = profile.copy(
-                                    name = nameInput,
-                                    phone = phoneInput,
-                                    city = cityInput,
-                                    address = addressInput
-                                )
-                                repository.updateUserProfile(updated)
-                                isEditing = false
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                            shape = RoundedCornerShape(50.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                        ) {
-                            Text("Save Changes", fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        ProfileInfoRow("Blood Group", profile.bloodGroup)
-                        ProfileInfoRow("Email", profile.email)
-                        ProfileInfoRow("Phone", profile.phone)
-                        ProfileInfoRow("City", profile.city)
-                        ProfileInfoRow("Address", profile.address)
+                        Box(modifier = Modifier.height(28.dp).width(1.dp).background(appColors.divider))
+
+                        ProfileImpactStat(
+                            value = "${profile.totalDonations * 450}ml",
+                            label = "Donated",
+                            accentColor = StatusEligibleGreen,
+                            textColor = appColors.textPrimary,
+                            subColor = appColors.textSecondary
+                        )
+
+                        Box(modifier = Modifier.height(28.dp).width(1.dp).background(appColors.divider))
+
+                        ProfileImpactStat(
+                            value = "${profile.livesSaved}",
+                            label = "Lives Saved",
+                            accentColor = StatusWarningAmber,
+                            textColor = appColors.textPrimary,
+                            subColor = appColors.textSecondary
+                        )
                     }
                 }
             }
 
-            // Preferences & Availability
+            // ==============================================================
+            // 2. PERSONAL DETAILS CARD (With High-Contrast Editable Form)
+            // ==============================================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isEditing) "Edit Information" else "Personal & Contact Details",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = appColors.textPrimary
+                        )
+
+                        if (!isEditing) {
+                            Surface(
+                                color = appColors.redLight,
+                                shape = RoundedCornerShape(50.dp),
+                                modifier = Modifier.clickable { isEditing = true }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = BloodRedPrimary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Edit",
+                                        color = BloodRedPrimary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (isEditing) {
+                        // High Contrast Outlined Text Fields (Guaranteed Text Visibility in Dark & Light)
+                        val textFieldColors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary,
+                            focusedContainerColor = appColors.inputBackground,
+                            unfocusedContainerColor = appColors.inputBackground,
+                            focusedBorderColor = BloodRedPrimary,
+                            unfocusedBorderColor = appColors.border,
+                            focusedLabelColor = BloodRedPrimary,
+                            unfocusedLabelColor = appColors.textMuted,
+                            cursorColor = BloodRedPrimary
+                        )
+
+                        OutlinedTextField(
+                            value = nameInput,
+                            onValueChange = { nameInput = it },
+                            label = { Text("Full Name") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = phoneInput,
+                            onValueChange = { phoneInput = it },
+                            label = { Text("Phone Number (10 digits)") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = cityInput,
+                            onValueChange = { cityInput = it },
+                            label = { Text("City / Region") },
+                            leadingIcon = {
+                                Icon(Icons.Default.LocationCity, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = addressInput,
+                            onValueChange = { addressInput = it },
+                            label = { Text("Address / Landmark") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Home, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            maxLines = 2,
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    isEditing = false
+                                    nameInput = profile.name
+                                    phoneInput = profile.phone
+                                    cityInput = profile.city
+                                    addressInput = profile.address
+                                },
+                                shape = RoundedCornerShape(50.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                            ) {
+                                Text("Cancel", color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (nameInput.trim().length < 2) {
+                                        Toast.makeText(context, "Please enter a valid name", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    val updated = profile.copy(
+                                        name = nameInput.trim(),
+                                        phone = phoneInput.trim(),
+                                        city = cityInput.trim(),
+                                        address = addressInput.trim()
+                                    )
+                                    repository.updateUserProfile(updated)
+                                    isEditing = false
+                                    Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                                shape = RoundedCornerShape(50.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                            ) {
+                                Text("Save Changes", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    } else {
+                        // Display Mode with Clean Rows and Icons
+                        ProfileDetailRow(
+                            icon = Icons.Default.Bloodtype,
+                            label = "Blood Group",
+                            value = profile.bloodGroup.ifBlank { "Not Specified" },
+                            accentColor = BloodRedPrimary,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
+                            icon = Icons.Default.Phone,
+                            label = "Phone Number",
+                            value = profile.phone.ifBlank { "Not Added" },
+                            accentColor = StatusEligibleGreen,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
+                            icon = Icons.Default.Email,
+                            label = "Email Address",
+                            value = profile.email.ifBlank { "donor@bloodsync.org" },
+                            accentColor = StatusWarningAmber,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
+                            icon = Icons.Default.LocationCity,
+                            label = "City / Region",
+                            value = profile.city.ifBlank { "Nearby" },
+                            accentColor = BloodRedPrimary,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
+                            icon = Icons.Default.Home,
+                            label = "Residential Address",
+                            value = profile.address.ifBlank { "Not Added" },
+                            accentColor = StatusEligibleGreen,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+                    }
+                }
+            }
+
+            // ==============================================================
+            // 3. AVAILABILITY & NOTIFICATION SETTINGS CARD
+            // ==============================================================
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Donor Availability Preferences",
+                        text = "Availability & Broadcast Alerts",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = MedicalTextPrimary
+                        fontSize = 16.sp,
+                        color = appColors.textPrimary
                     )
 
                     PreferenceSwitchRow(
                         title = "Available for Emergency Calls",
-                        subtitle = "Receive real-time 24/7 emergency broadcasts near you",
+                        subtitle = "Notify nearby patients and hospitals that you are ready to donate",
                         isChecked = profile.isAvailableDonor,
                         onCheckedChange = {
                             repository.updateUserProfile(profile.copy(isAvailableDonor = it))
-                        }
+                        },
+                        textColor = appColors.textPrimary,
+                        subColor = appColors.textSecondary
                     )
 
+                    HorizontalDivider(color = appColors.divider)
+
                     PreferenceSwitchRow(
-                        title = "Push Notifications",
-                        subtitle = "Appointment alerts, eligibility countdown, and certificates",
+                        title = "Push Notifications & Alerts",
+                        subtitle = "Receive appointment reminders, health cooldowns & verified certificates",
                         isChecked = profile.isNotificationEnabled,
                         onCheckedChange = {
                             repository.updateUserProfile(profile.copy(isNotificationEnabled = it))
-                        }
+                        },
+                        textColor = appColors.textPrimary,
+                        subColor = appColors.textSecondary
                     )
                 }
             }
 
-            // App Settings & Appearance Entry
+            // ==============================================================
+            // 4. SETTINGS SHORTCUT CARD
+            // ==============================================================
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
                     .clickable(onClick = onNavigateToSettings),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -260,8 +509,8 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
+                            .size(42.dp)
+                            .background(appColors.redLight, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -271,16 +520,16 @@ fun ProfileScreen(
                             modifier = Modifier.size(22.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Settings & Preferences",
+                            text = "Settings & Appearance",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = appColors.textPrimary
                         )
                         Text(
-                            text = "Light/Dark mode, 3-button insets & alerts",
+                            text = "Toggle Dark Mode, data management & about",
                             fontSize = 12.sp,
                             color = appColors.textSecondary
                         )
@@ -293,7 +542,9 @@ fun ProfileScreen(
                 }
             }
 
-            // Log Out Button - Pill Shape
+            // ==============================================================
+            // 5. LOG OUT BUTTON (PILL)
+            // ==============================================================
             OutlinedButton(
                 onClick = {
                     repository.setLoggedIn(false)
@@ -324,22 +575,78 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileInfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, fontSize = 13.sp, color = MedicalTextSecondary)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MedicalTextPrimary)
+private fun ProfileImpactStat(
+    value: String,
+    label: String,
+    accentColor: Color,
+    textColor: Color,
+    subColor: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            color = accentColor
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = subColor
+        )
     }
 }
 
 @Composable
-fun PreferenceSwitchRow(
+private fun ProfileDetailRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    accentColor: Color,
+    textColor: Color,
+    labelColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(accentColor.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, fontSize = 11.sp, color = labelColor)
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreferenceSwitchRow(
     title: String,
     subtitle: String,
     isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    textColor: Color,
+    subColor: Color
 ) {
     Row(
         modifier = Modifier
@@ -348,14 +655,28 @@ fun PreferenceSwitchRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MedicalTextPrimary)
-            Text(text = subtitle, fontSize = 11.sp, color = MedicalTextSecondary)
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = textColor
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = subColor,
+                lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 2.dp)
+            )
         }
         Switch(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = BloodRedPrimary, checkedTrackColor = BloodRedLight)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = StatusEligibleGreen
+            )
         )
     }
 }

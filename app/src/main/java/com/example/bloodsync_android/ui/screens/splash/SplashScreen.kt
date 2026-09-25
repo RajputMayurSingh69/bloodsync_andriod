@@ -26,11 +26,11 @@ import kotlinx.coroutines.launch
 fun SplashScreen(
     onSplashComplete: () -> Unit
 ) {
-    // Pure white background as specified
+    val appColors = BloodSyncTheme.colors
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MedicalWhite),
+            .background(appColors.background),
         contentAlignment = Alignment.Center
     ) {
         val dropOffsetY = remember { Animatable(-180f) }
@@ -213,7 +213,7 @@ fun SplashScreen(
                         text = "Sync",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MedicalTextPrimary,
+                        color = appColors.textPrimary,
                         letterSpacing = (-0.5).sp
                     )
                 }
@@ -224,7 +224,7 @@ fun SplashScreen(
                     text = "Connecting Life Savers in Real Time",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = MedicalTextSecondary,
+                    color = appColors.textSecondary,
                     letterSpacing = 0.2.sp
                 )
 

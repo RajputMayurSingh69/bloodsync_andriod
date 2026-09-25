@@ -53,6 +53,7 @@ fun CertificateScreen(
     onNotificationClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val appColors = BloodSyncTheme.colors
     val certificates = repository.certificates
     val unreadNotifs by repository.unreadNotificationCount
 
@@ -76,7 +77,7 @@ fun CertificateScreen(
             )
         },
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = appColors.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -98,7 +99,7 @@ fun CertificateScreen(
                     Text(
                         text = "Your Certificates (${certificates.size})",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MedicalTextSecondary,
+                        color = appColors.textSecondary,
                         modifier = Modifier.align(Alignment.Start)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -115,10 +116,10 @@ fun CertificateScreen(
                                     .clickable { selectedCertId = cert.id }
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) CertificateGold else MedicalBorder,
+                                        color = if (isSelected) CertificateGold else appColors.border,
                                         shape = RoundedCornerShape(50.dp)
                                     ),
-                                color = if (isSelected) AlertYellowLight else MedicalWhite
+                                color = if (isSelected) appColors.yellowLight else appColors.cardBackground
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -127,7 +128,7 @@ fun CertificateScreen(
                                     Icon(
                                         imageVector = Icons.Default.Verified,
                                         contentDescription = null,
-                                        tint = if (isSelected) CertificateGoldDark else MedicalTextMuted,
+                                        tint = if (isSelected) CertificateGoldDark else appColors.textMuted,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -135,7 +136,7 @@ fun CertificateScreen(
                                         text = "${cert.donationMilestone} (${cert.donationDate})",
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) CertificateGoldDark else MedicalTextPrimary
+                                        color = if (isSelected) CertificateGoldDark else appColors.textPrimary
                                     )
                                 }
                             }
@@ -168,7 +169,7 @@ fun CertificateScreen(
                         ) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share Certificate", fontWeight = FontWeight.Bold)
+                            Text("Share Certificate", fontWeight = FontWeight.Bold, color = Color.White)
                         }
 
                         OutlinedButton(
@@ -191,9 +192,9 @@ fun CertificateScreen(
 
                     // Authenticity & Verification note
                     Surface(
-                        color = MedicalSurfaceVariant,
+                        color = appColors.surfaceVariant,
                         shape = RoundedCornerShape(20.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -210,7 +211,7 @@ fun CertificateScreen(
                             Text(
                                 text = "Cryptographically signed by BloodSync. Verified ID: ${cert.certificateCode}",
                                 fontSize = 11.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                         }
                     }
@@ -225,12 +226,13 @@ fun CertificateCard(
     certificate: Certificate,
     modifier: Modifier = Modifier
 ) {
+    val appColors = BloodSyncTheme.colors
     Card(
         modifier = modifier
             .fillMaxWidth()
             .shadow(6.dp, RoundedCornerShape(26.dp)),
         shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
+        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
         border = androidx.compose.foundation.BorderStroke(2.dp, StatusWarningAmber)
     ) {
         Column(
@@ -262,7 +264,7 @@ fun CertificateCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 2.sp,
-                            color = BloodRedDark
+                            color = BloodRedPrimary
                         )
                     }
 
@@ -272,7 +274,7 @@ fun CertificateCard(
                         text = "CERTIFICATE OF APPRECIATION",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BloodRedDark,
+                        color = BloodRedPrimary,
                         letterSpacing = 1.sp,
                         textAlign = TextAlign.Center
                     )
@@ -282,7 +284,7 @@ fun CertificateCard(
                         fontSize = 9.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 2.sp,
-                        color = MedicalTextMuted,
+                        color = appColors.textMuted,
                         modifier = Modifier.padding(top = 10.dp)
                     )
 
@@ -292,7 +294,7 @@ fun CertificateCard(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Serif,
-                        color = BloodRedDark,
+                        color = BloodRedPrimary,
                         modifier = Modifier.padding(vertical = 4.dp),
                         textAlign = TextAlign.Center
                     )
@@ -309,7 +311,7 @@ fun CertificateCard(
                         text = "In grateful recognition of your humanitarian spirit and generous blood donation. Your selfless act helps preserve human life and brings hope to patients in critical medical care.",
                         fontSize = 12.sp,
                         fontStyle = FontStyle.Italic,
-                        color = MedicalTextSecondary,
+                        color = appColors.textSecondary,
                         textAlign = TextAlign.Center,
                         lineHeight = 17.sp,
                         modifier = Modifier.padding(horizontal = 8.dp)
@@ -319,7 +321,7 @@ fun CertificateCard(
 
                     // Milestone & Details Grid
                     Surface(
-                        color = AlertYellowLight,
+                        color = appColors.yellowLight,
                         shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, AlertYellow),
                         modifier = Modifier.fillMaxWidth()
@@ -350,22 +352,22 @@ fun CertificateCard(
                                 text = certificate.verifiedBy,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MedicalTextPrimary
+                                color = appColors.textPrimary
                             )
                             Text(
                                 text = certificate.hospitalName,
                                 fontSize = 10.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                             HorizontalDivider(
-                                color = MedicalBorder,
+                                color = appColors.border,
                                 thickness = 1.dp,
                                 modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
                             )
                             Text(
                                 text = "Authorized Signature",
                                 fontSize = 9.sp,
-                                color = MedicalTextMuted
+                                color = appColors.textMuted
                             )
                         }
 
@@ -386,17 +388,17 @@ fun CertificateCard(
                             Text(
                                 text = "Issued: ${certificate.issueDate}",
                                 fontSize = 10.sp,
-                                color = MedicalTextSecondary
+                                color = appColors.textSecondary
                             )
                             HorizontalDivider(
-                                color = MedicalBorder,
+                                color = appColors.border,
                                 thickness = 1.dp,
                                 modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
                             )
                             Text(
                                 text = "Official Verification ID",
                                 fontSize = 9.sp,
-                                color = MedicalTextMuted
+                                color = appColors.textMuted
                             )
                         }
                     }
@@ -439,17 +441,18 @@ fun GoldenCertificateSeal(size: Int) {
 
 @Composable
 fun CertificateField(title: String, value: String) {
+    val appColors = BloodSyncTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = title,
             fontSize = 10.sp,
-            color = MedicalTextMuted
+            color = appColors.textMuted
         )
         Text(
             text = value,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = MedicalTextPrimary
+            color = appColors.textPrimary
         )
     }
 }
