@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import com.example.bloodsync_android.util.AppLanguage
 
 enum class ThemeMode {
     SYSTEM, // Fallback
@@ -60,6 +61,22 @@ class BloodSyncRepository(private val context: Context) {
     fun setThemeMode(mode: ThemeMode) {
         _themeMode.value = mode
         prefs.edit().putString("theme_mode", mode.name).apply()
+    }
+
+    // App Language state for dynamic English, Hindi, Gujarati switching
+    private val _appLanguage = mutableStateOf(
+        try {
+            val saved = prefs.getString("app_language", AppLanguage.ENGLISH.name) ?: AppLanguage.ENGLISH.name
+            AppLanguage.valueOf(saved)
+        } catch (_: Exception) {
+            AppLanguage.ENGLISH
+        }
+    )
+    val appLanguage: State<AppLanguage> = _appLanguage
+
+    fun setAppLanguage(language: AppLanguage) {
+        _appLanguage.value = language
+        prefs.edit().putString("app_language", language.name).apply()
     }
 
     private val _userProfile = mutableStateOf(UserProfile())
@@ -115,24 +132,16 @@ class BloodSyncRepository(private val context: Context) {
     }
 
     private fun seedCommunityDataIfEmpty() {
+        // Purge any lingering dummy/mock donors
+        _donors.removeAll { it.id.startsWith("dn_") }
+
+        // Certified Indian Blood Banks fallback for offline emergencies
         if (_bloodBanks.isEmpty()) {
             _bloodBanks.addAll(
                 listOf(
                     BloodBank("bb_1", "Red Cross Central Blood Bank", "Connaught Place, Central Wing", 2.4, "24/7 Open", "+919876543210", "Available (All Groups)"),
                     BloodBank("bb_2", "Apex City Trauma & Blood Center", "Ring Road, Medical Enclave", 4.1, "8:00 AM - 10:00 PM", "+919811122233", "Critical Need (O-, B-)"),
                     BloodBank("bb_3", "National LifeLine Blood Bank", "Sector 14, Health Boulevard", 6.8, "24/7 Open", "+919999988888", "Available (A+, B+, O+)")
-                )
-            )
-        }
-        if (_donors.isEmpty()) {
-            _donors.addAll(
-                listOf(
-                    UserProfile(id = "dn_1", name = "Rahul Sharma", phone = "+919876543210", bloodGroup = "O+", city = "Delhi NCR", totalDonations = 4, livesSaved = 12, isAvailableDonor = true),
-                    UserProfile(id = "dn_2", name = "Priya Patel", phone = "+919812345678", bloodGroup = "B+", city = "Mumbai", totalDonations = 2, livesSaved = 6, isAvailableDonor = true),
-                    UserProfile(id = "dn_3", name = "Amit Verma", phone = "+919898765432", bloodGroup = "A+", city = "Bangalore", totalDonations = 5, livesSaved = 15, isAvailableDonor = true),
-                    UserProfile(id = "dn_4", name = "Sneha Reddy", phone = "+919765432109", bloodGroup = "O-", city = "Hyderabad", totalDonations = 3, livesSaved = 9, isAvailableDonor = true),
-                    UserProfile(id = "dn_5", name = "Vikram Singh", phone = "+919988776655", bloodGroup = "AB+", city = "Jaipur", totalDonations = 1, livesSaved = 3, isAvailableDonor = true),
-                    UserProfile(id = "dn_6", name = "Ananya Iyer", phone = "+919123456780", bloodGroup = "A-", city = "Chennai", totalDonations = 2, livesSaved = 6, isAvailableDonor = true)
                 )
             )
         }
@@ -541,6 +550,16 @@ class BloodSyncRepository(private val context: Context) {
             _donors.add(0, profile)
         }
         updateUserProfile(profile)
+
+        // 1. Direct registration to Firebase Firestore Cloud
+        firebaseService.registerNewDonorInCloud(profile)
+
+        // 2. Immediate push & in-app registration alert message
+        postNotification(
+            title = "🚨 New Donor Registered!",
+            message = "${profile.name.ifBlank { "Voluntary Donor" }} (${profile.bloodGroup}) registered from ${profile.city.ifBlank { "Local" }}. Phone: ${profile.phone}",
+            type = NotificationType.SYSTEM
+        )
     }
 
     fun addBloodBank(bloodBank: BloodBank) {
@@ -563,7 +582,40 @@ class BloodSyncRepository(private val context: Context) {
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
-        firebaseService.saveUserProfile(profile)
+
+        // Direct registration to Firebase Firestore Cloud
+        firebaseService.registerNewDonorInCloud(profile)
+
+        postNotification(
+            title = "🚨 New Donor Registered!",
+            message = "${name.ifBlank { "New Donor" }} ($bloodGroup) registered from ${profile.city.ifBlank { "BloodSync Network" }}. Contact: $phone",
+            type = NotificationType.SYSTEM
+        )
+    }
+
+    fun loginWithGoogleAccount(displayName: String, email: String) {
+        val id = "usr_" + UUID.randomUUID().toString().take(8)
+        val profile = UserProfile(
+            id = id,
+            name = displayName.ifBlank { "Google Donor" },
+            email = email,
+            phone = "",
+            bloodGroup = "O+",
+            isAvailableDonor = true
+        )
+        _userProfile.value = profile
+        _isUserLoggedIn.value = true
+        prefs.edit().putBoolean("is_logged_in", true).apply()
+        saveProfileToPrefs()
+
+        // Sync to Firebase Cloud
+        firebaseService.registerNewDonorInCloud(profile)
+
+        postNotification(
+            title = "🚨 Google Sign-In Successful!",
+            message = "$displayName ($email) registered and signed in via Google.",
+            type = NotificationType.SYSTEM
+        )
     }
 
     fun setLoggedIn(loggedIn: Boolean) {

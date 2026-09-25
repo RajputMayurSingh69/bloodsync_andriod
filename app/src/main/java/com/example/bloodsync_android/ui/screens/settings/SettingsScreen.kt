@@ -27,6 +27,8 @@ import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.data.repository.ThemeMode
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.AppLanguage
+import com.example.bloodsync_android.util.LanguageManager
 
 @Composable
 fun SettingsScreen(
@@ -34,6 +36,8 @@ fun SettingsScreen(
     onBackClick: () -> Unit
 ) {
     val currentTheme by repository.themeMode
+    val currentLanguage by repository.appLanguage
+    val strings = remember(currentLanguage) { LanguageManager.getStrings(currentLanguage) }
     val healthRecord by repository.healthRecord
     val profile by repository.userProfile
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
@@ -125,6 +129,78 @@ fun SettingsScreen(
                             icon = Icons.Default.Nightlight,
                             isSelected = currentTheme == ThemeMode.DARK,
                             onClick = { repository.setThemeMode(ThemeMode.DARK) }
+                        )
+                    }
+                }
+            }
+
+            // ==========================================
+            // 2. Language Preferences (English, Hindi, Gujarati)
+            // ==========================================
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                border = BorderStroke(1.dp, appColors.border)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = BloodRedPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = strings.languageSection,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "English • हिंदी • ગુજરાતી",
+                                fontSize = 12.sp,
+                                color = appColors.textSecondary
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LanguageOptionTile(
+                            title = "English",
+                            nativeName = "English",
+                            isSelected = currentLanguage == AppLanguage.ENGLISH,
+                            onClick = { repository.setAppLanguage(AppLanguage.ENGLISH) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        LanguageOptionTile(
+                            title = "Hindi",
+                            nativeName = "हिंदी",
+                            isSelected = currentLanguage == AppLanguage.HINDI,
+                            onClick = { repository.setAppLanguage(AppLanguage.HINDI) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        LanguageOptionTile(
+                            title = "Gujarati",
+                            nativeName = "ગુજરાતી",
+                            isSelected = currentLanguage == AppLanguage.GUJARATI,
+                            onClick = { repository.setAppLanguage(AppLanguage.GUJARATI) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -587,6 +663,58 @@ private fun ThemeOptionTile(
                     selectedColor = BloodRedPrimary,
                     unselectedColor = appColors.textMuted
                 )
+            )
+        }
+    }
+}
+
+@Composable
+private fun LanguageOptionTile(
+    title: String,
+    nativeName: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val appColors = BloodSyncTheme.colors
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) BloodRedPrimary.copy(alpha = if (appColors.isDark) 0.22f else 0.08f) else appColors.surfaceVariant,
+        animationSpec = tween(200),
+        label = "langTileBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) BloodRedPrimary else appColors.border,
+        animationSpec = tween(200),
+        label = "langTileBorder"
+    )
+
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(20.dp)
+            ),
+        color = backgroundColor
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = nativeName,
+                fontSize = 15.sp,
+                fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+                color = if (isSelected) BloodRedPrimary else appColors.textPrimary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = title,
+                fontSize = 11.sp,
+                color = if (isSelected) BloodRedPrimary.copy(alpha = 0.9f) else appColors.textSecondary
             )
         }
     }

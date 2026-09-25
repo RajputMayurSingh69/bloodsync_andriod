@@ -3,7 +3,7 @@
 **Date:** September 25, 2026  
 **Version:** v2.2.0 (Modern Pill UI, Universal Dark Mode & Dedicated Donors Directory)  
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/OIf8NFMn](https://gofile.io/d/OIf8NFMn)  
+**Cloud Download Link:** [gofile.io/d/tyug8Uls](https://gofile.io/d/tyug8Uls)  
 
 ---
 
@@ -111,19 +111,37 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
   - Streamed installation directly to connected hardware (`z979tgx8nfjjizor`).
   - Uploaded fresh build to GoFile: [`https://gofile.io/d/OIf8NFMn`](https://gofile.io/d/OIf8NFMn).
 
+### 11. Real Cloud Migration, Multi-Language & Google Auth (v2.2.0-cloud-release)
+- **Purged All Mock / Dummy Donors**:
+  - Completely removed mock donors (`Rahul Sharma`, `Priya Patel`, `Amit Verma`, etc.). All donor records are now streamed directly from official Firebase Firestore collections (`donors` and `users`).
+- **Direct Cloud Registration & Admin Registration Alert**:
+  - Every donor registration or sign-in writes directly to Firebase Firestore first (`users/{userId}`, `donors/{userId}`).
+  - Added dedicated registration audit collection (`donor_registrations/{userId}`) logging registration timestamp, donor details, and alert message.
+  - Automatically sends immediate system push and in-app alert notification: `🚨 New Donor Registered! {Name} ({BloodGroup}) from {City}`.
+- **Multi-Language Localization Engine (English, Hindi, Gujarati)**:
+  - Created `AppLanguage.kt` and `LanguageManager` containing comprehensive translations for English, Hindi (हिंदी), and Gujarati (ગુજરાતી).
+  - Added modern interactive language selection card in `SettingsScreen` with responsive, tactile pill option tiles.
+- **Strict Email Extension Validation**:
+  - Implemented strict email format validation on login and register forms (`^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$`).
+  - Blocks submission and displays instant error if missing domain extension (e.g. `@gmail.com`).
+- **Continue with Google Integration**:
+  - Added native Google Sign-In full pill button on the authentication screen (`play-services-auth`).
+  - Seamlessly signs in with Google account and registers donor in Firebase Cloud.
+
 ---
 
 ## 📂 File Deliverables & Locations
 
 | File / Location | Description |
 |---|---|
-| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/OIf8NFMn) | **Latest Dark Mode & Pill UI APK [Direct Cloud Download: gofile.io/d/OIf8NFMn]** |
+| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/tyug8Uls) | **Latest Real Cloud, Multi-Language & Google Auth APK [Direct Cloud Download: gofile.io/d/tyug8Uls]** |
 | `bloodsync-v2.1.0-eye-catching-ui.apk` | v2.1.0 Eye-Catching Simple UI Build |
 | `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Release Build |
 | `firestore.rules` | Hardened Firebase Security Rules |
 | `app/proguard-rules.pro` | Obfuscation, Minification & Log-stripping Rules |
 | `app/src/main/res/xml/network_security_config.xml` | TLS / Cleartext Network Rules |
 | `app/src/main/res/xml/data_extraction_rules.xml` | Block USB / Device Transfer Extraction |
+| `app/src/main/java/com/example/bloodsync_android/util/AppLanguage.kt` | Multilingual Translation Engine (EN, HI, GU) |
 | `app/src/main/java/com/example/bloodsync_android/ui/screens/donors/DonorsDirectoryScreen.kt` | Dedicated Available Donors Directory Screen |
 | `app/src/main/java/com/example/bloodsync_android/util/ValidationHelper.kt` | Input Validation & Sanitization Engine |
 | `app/src/main/java/com/example/bloodsync_android/ui/components/ExitConfirmationDialog.kt` | Back Button Exit Dialog Component |

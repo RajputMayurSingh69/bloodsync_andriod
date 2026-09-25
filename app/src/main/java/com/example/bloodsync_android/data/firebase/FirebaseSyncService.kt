@@ -318,6 +318,48 @@ class FirebaseSyncService(private val context: Context) {
         db.collection("appointments").document(appointment.id).set(data, SetOptions.merge())
     }
 
+    /**
+     * Register a new voluntary donor in Firebase Cloud (both /users and /donors)
+     * and log the registration event to /donor_registrations for real-time donor tracking and admin notification.
+     */
+    fun registerNewDonorInCloud(
+        profile: UserProfile,
+        onSuccess: () -> Unit = {},
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        val db = firestore
+        val currentUserId = auth?.currentUser?.uid ?: profile.id.ifBlank { "usr_${System.currentTimeMillis()}" }
+
+        saveUserProfile(profile)
+
+        if (db != null) {
+            val registrationLog = hashMapOf(
+                "donorId" to currentUserId,
+                "name" to profile.name,
+                "phone" to profile.phone,
+                "email" to profile.email,
+                "bloodGroup" to profile.bloodGroup,
+                "city" to profile.city,
+                "address" to profile.address,
+                "isAvailableDonor" to profile.isAvailableDonor,
+                "registeredAt" to FieldValue.serverTimestamp(),
+                "alertMessage" to "New Voluntary Donor Registered: ${profile.name} (${profile.bloodGroup}), City: ${profile.city}, Contact: ${profile.phone}"
+            )
+            db.collection("donor_registrations").document(currentUserId)
+                .set(registrationLog, SetOptions.merge())
+                .addOnSuccessListener {
+                    Log.d(tag, "Donor registration logged in Firebase Cloud: $currentUserId")
+                    onSuccess()
+                }
+                .addOnFailureListener { e ->
+                    Log.w(tag, "Failed to log donor registration: ${e.message}")
+                    onFailure(e)
+                }
+        } else {
+            onSuccess()
+        }
+    }
+
     fun cleanup() {
         emergencyListener?.remove()
         bloodBankListener?.remove()
