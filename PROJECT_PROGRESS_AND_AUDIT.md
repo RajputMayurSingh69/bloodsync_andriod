@@ -1,9 +1,9 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** September 24, 2026  
-**Version:** v2.0.0 (Official Release & Hardened Build)  
+**Version:** v2.2.0 (Modern Pill UI & Dedicated Donors Directory)  
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/mY4Iljry](https://gofile.io/d/mY4Iljry)  
+**Cloud Download Link:** [gofile.io/d/HEZjZQ3w](https://gofile.io/d/HEZjZQ3w)  
 
 ---
 
@@ -105,7 +105,7 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
 
 | File / Location | Description |
 |---|---|
-| `bloodsync-v2.2.0-pill-ui.apk` | **Latest Ultra-Clean Pill UI APK (Strict Red/Green/White/Yellow + Dedicated Donors)** |
+| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/HEZjZQ3w) | **Latest Ultra-Clean Pill UI APK [Direct Cloud Download: gofile.io/d/HEZjZQ3w]** |
 | `bloodsync-v2.1.0-eye-catching-ui.apk` | v2.1.0 Eye-Catching Simple UI Build |
 | `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Release Build |
 | `firestore.rules` | Hardened Firebase Security Rules |
