@@ -52,19 +52,19 @@ fun BloodSyncBottomNav(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 10.dp,
-                    shape = RoundedCornerShape(22.dp),
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(36.dp),
                     ambientColor = Color(0x15000000),
                     spotColor = Color(0x20000000)
                 ),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(36.dp),
             color = MedicalWhite,
             border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp, horizontal = 4.dp),
+                    .padding(vertical = 6.dp, horizontal = 6.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -84,7 +84,7 @@ fun BloodSyncBottomNav(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .scale(scale)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(50.dp))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -92,9 +92,9 @@ fun BloodSyncBottomNav(
                             )
                             .background(
                                 color = if (isSelected) BloodRedLight else Color.Transparent,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(50.dp)
                             )
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = destination.icon,

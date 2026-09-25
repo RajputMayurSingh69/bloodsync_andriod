@@ -164,7 +164,7 @@ fun EmergencyLiveTrackingScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(26.dp),
                         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
                     ) {
@@ -268,7 +268,7 @@ fun EmergencyLiveTrackingScreen(
                                     .weight(1f)
                                     .height(48.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(50.dp)
                             ) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -282,7 +282,7 @@ fun EmergencyLiveTrackingScreen(
                                 modifier = Modifier
                                     .weight(0.7f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(50.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, StatusUrgentRed)
                             ) {
                                 Text("Cancel", color = StatusUrgentRed, fontWeight = FontWeight.Bold)
@@ -339,9 +339,9 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -421,7 +421,7 @@ fun ResponderCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
     ) {
@@ -495,7 +495,7 @@ fun LiveStatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
     ) {

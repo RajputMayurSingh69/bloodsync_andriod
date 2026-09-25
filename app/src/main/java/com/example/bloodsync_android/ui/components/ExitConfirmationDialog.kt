@@ -83,10 +83,10 @@ fun ExitConfirmationDialog(
                     containerColor = BloodRedPrimary,
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(50.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(46.dp)
             ) {
                 Text(
                     text = "Yes, Exit",
@@ -98,14 +98,14 @@ fun ExitConfirmationDialog(
         dismissButton = {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(50.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = colors.textPrimary
                 ),
                 border = androidx.compose.foundation.BorderStroke(1.dp, colors.border),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(46.dp)
             ) {
                 Text(
                     text = "No, Stay",

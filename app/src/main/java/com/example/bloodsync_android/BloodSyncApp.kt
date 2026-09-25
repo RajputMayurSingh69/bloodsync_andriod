@@ -22,6 +22,7 @@ import com.example.bloodsync_android.ui.components.ExitConfirmationDialog
 import com.example.bloodsync_android.ui.screens.appointment.AppointmentScreen
 import com.example.bloodsync_android.ui.screens.auth.AuthScreen
 import com.example.bloodsync_android.ui.screens.certificate.CertificateScreen
+import com.example.bloodsync_android.ui.screens.donors.DonorsDirectoryScreen
 import com.example.bloodsync_android.ui.screens.emergency.EmergencyLiveTrackingScreen
 import com.example.bloodsync_android.ui.screens.emergency.EmergencyRequestScreen
 import com.example.bloodsync_android.ui.screens.health.HealthTrackerScreen
@@ -42,6 +43,7 @@ sealed class Screen {
     data class CertificateView(val certificateId: String?) : Screen()
     object Notifications : Screen()
     object Settings : Screen()
+    object DonorsDirectory : Screen()
 }
 
 @Composable
@@ -149,7 +151,8 @@ fun BloodSyncApp(
                                     onNavigateToHealth = { currentNavDestination = AppNavDestination.HEALTH },
                                     onNavigateToAppointments = { currentNavDestination = AppNavDestination.APPOINTMENTS },
                                     onNavigateToNotifications = { currentScreen = Screen.Notifications },
-                                    onNavigateToSettings = { currentScreen = Screen.Settings }
+                                    onNavigateToSettings = { currentScreen = Screen.Settings },
+                                    onNavigateToDonors = { currentScreen = Screen.DonorsDirectory }
                                 )
                             }
 
@@ -264,6 +267,15 @@ fun BloodSyncApp(
                 SettingsScreen(
                     repository = repository,
                     onBackClick = { currentScreen = Screen.Main }
+                )
+            }
+
+            is Screen.DonorsDirectory -> {
+                DonorsDirectoryScreen(
+                    repository = repository,
+                    onBackClick = { currentScreen = Screen.Main },
+                    onNavigateToEmergency = { currentScreen = Screen.EmergencyRequest },
+                    onNotificationClick = { currentScreen = Screen.Notifications }
                 )
             }
         }

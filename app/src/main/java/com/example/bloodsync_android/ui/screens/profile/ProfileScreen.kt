@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,7 +79,7 @@ fun ProfileScreen(
             // Profile Card Header
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -130,7 +131,7 @@ fun ProfileScreen(
             // Editable or Display Information
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -150,24 +151,28 @@ fun ProfileScreen(
                             value = nameInput,
                             onValueChange = { nameInput = it },
                             label = { Text("Full Name") },
+                            shape = RoundedCornerShape(50.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = phoneInput,
                             onValueChange = { phoneInput = it },
                             label = { Text("Phone Number") },
+                            shape = RoundedCornerShape(50.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = cityInput,
                             onValueChange = { cityInput = it },
                             label = { Text("City") },
+                            shape = RoundedCornerShape(50.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
                             value = addressInput,
                             onValueChange = { addressInput = it },
                             label = { Text("Address") },
+                            shape = RoundedCornerShape(50.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -183,9 +188,12 @@ fun ProfileScreen(
                                 isEditing = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                            modifier = Modifier.fillMaxWidth()
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
                         ) {
-                            Text("Save Changes")
+                            Text("Save Changes", fontWeight = FontWeight.Bold)
                         }
                     } else {
                         ProfileInfoRow("Blood Group", profile.bloodGroup)
@@ -200,7 +208,7 @@ fun ProfileScreen(
             // Preferences & Availability
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -240,7 +248,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onNavigateToSettings),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
             ) {
@@ -285,7 +293,7 @@ fun ProfileScreen(
                 }
             }
 
-            // Log Out Button
+            // Log Out Button - Pill Shape
             OutlinedButton(
                 onClick = {
                     repository.setLoggedIn(false)
@@ -293,12 +301,12 @@ fun ProfileScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(10.dp),
+                    .height(50.dp),
+                shape = RoundedCornerShape(50.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, StatusUrgentRed)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Logout,
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
                     contentDescription = null,
                     tint = StatusUrgentRed,
                     modifier = Modifier.size(18.dp)

@@ -34,7 +34,7 @@ fun StatusBadge(
 ) {
     Surface(
         color = backgroundColor,
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(50.dp),
         modifier = modifier
     ) {
         Text(
@@ -42,7 +42,7 @@ fun StatusBadge(
             color = textColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
     }
 }
@@ -58,7 +58,7 @@ fun StatMetricCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -174,12 +174,12 @@ fun BloodGroupChip(
     Surface(
         modifier = modifier
             .height(48.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(50.dp))
             .clickable(onClick = onClick)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) BloodRedPrimary else MedicalBorder,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(50.dp)
             ),
         color = if (isSelected) BloodRedLight else MedicalWhite
     ) {
@@ -247,9 +247,9 @@ fun EmptyStateView(
             Button(
                 onClick = onActionClick,
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(50.dp)
             ) {
-                Text(text = actionText, color = MedicalWhite)
+                Text(text = actionText, color = MedicalWhite, fontWeight = FontWeight.Bold)
             }
         }
     }

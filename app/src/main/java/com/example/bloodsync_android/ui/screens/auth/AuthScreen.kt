@@ -89,12 +89,12 @@ fun AuthScreen(
                 modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
             )
 
-            // Segmented Tab for Login / Register
+            // Segmented Tab for Login / Register (Pill Shape)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(50.dp),
                 color = MedicalSurfaceVariant,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -104,7 +104,7 @@ fun AuthScreen(
                             .weight(1f)
                             .fillMaxHeight()
                             .padding(3.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(50.dp))
                             .background(if (!isRegisterMode) MedicalWhite else Color.Transparent)
                             .clickable {
                                 isRegisterMode = false
@@ -125,7 +125,7 @@ fun AuthScreen(
                             .weight(1f)
                             .fillMaxHeight()
                             .padding(3.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(50.dp))
                             .background(if (isRegisterMode) MedicalWhite else Color.Transparent)
                             .clickable {
                                 isRegisterMode = true
@@ -145,10 +145,10 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Card Form Container
+            // Card Form Container (Pill Curves)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -358,9 +358,9 @@ fun AuthScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .height(50.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(50.dp),
                         enabled = !isLoading
                     ) {
                         if (isLoading) {
@@ -381,7 +381,7 @@ fun AuthScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Quick Demo Login Button for convenient testing
+                    // Quick Demo Login Button (Pill Shape)
                     OutlinedButton(
                         onClick = {
                             isLoading = true
@@ -394,8 +394,8 @@ fun AuthScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp),
-                        shape = RoundedCornerShape(10.dp),
+                            .height(46.dp),
+                        shape = RoundedCornerShape(50.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
                     ) {
                         Icon(

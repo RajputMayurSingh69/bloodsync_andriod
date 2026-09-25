@@ -74,12 +74,12 @@ fun DonationHistoryScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,12 +103,12 @@ fun DonationHistoryScreen(
                             Button(
                                 onClick = { showLogDonationDialog = true },
                                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                shape = RoundedCornerShape(50.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Log Donation", fontSize = 12.sp)
+                                Text("Log Donation", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -215,7 +215,7 @@ fun DonationHistoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -368,11 +368,12 @@ fun DonationDetailDialog(
             if (record.certificateId != null) {
                 Button(
                     onClick = { onViewCertificate(record.certificateId) },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp)
                 ) {
                     Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Certificate")
+                    Text("Certificate", fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -381,7 +382,7 @@ fun DonationDetailDialog(
                 Text("Close", color = MedicalTextSecondary)
             }
         },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MedicalWhite
     )
 }
@@ -481,9 +482,10 @@ fun LogDonationDialog(
                     )
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                shape = RoundedCornerShape(50.dp)
             ) {
-                Text("Log & Generate Certificate")
+                Text("Log & Generate Certificate", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -491,7 +493,7 @@ fun LogDonationDialog(
                 Text("Cancel", color = MedicalTextSecondary)
             }
         },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MedicalWhite
     )
 }

@@ -79,17 +79,40 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
   - Blocked USB/cloud extraction in `data_extraction_rules.xml` & `backup_rules.xml`.
   - Enforced authenticated/owner-only rules in `firestore.rules`.
 
+### 9. Modern Pill-Shape Design System & Dedicated Donors Directory (v2.2.0)
+- **Uncluttered Home Dashboard**: Available donors feed moved out of the homepage to a high-performance dedicated `DonorsDirectoryScreen`.
+- **4 Neo-Action Pill Tiles**: 
+  - 🚨 **Request Blood** (Instant SOS broadcast)
+  - 🔍 **Find Donors** (Direct navigation to donor directory)
+  - 🏥 **Blood Banks** (Regional certified reserves)
+  - 📅 **Book Slot** (WHO cooldown-aware scheduling)
+- **Complete App-Wide Pill Design Consistency (`50.dp`)**:
+  - All CTA buttons, search inputs, blood filter chips, and dialog actions now feature consistent, tactile 50.dp pill styling.
+  - All container cards upgraded to ergonomic 24.dp / 26.dp corner radius.
+- **Across All Screens**:
+  - `HomeScreen`: Zero clutter, hero SOS radar, WHO gauge, and direct directory shortcut cards.
+  - `DonorsDirectoryScreen`: Search pill, spring-animated blood group chips, live pulsing donor cards with 1-tap WhatsApp chat.
+  - `AppointmentScreen`: Dynamic date cards, slot chips, and reschedule dialog in pill styling.
+  - `HealthTrackerScreen`: Clinical vitals cards, deferral checklist, guidelines, and vitals editor dialog in curved pill styling.
+  - `CertificateScreen`: Recognition card, golden seal, and pill share/save buttons.
+  - `DonationHistoryScreen`: Lifetime impact summary, verified donation history records, and logging dialog.
+  - `NotificationCenterScreen`: Pill category filters, push alert simulator, and unread priority cards.
+  - `ProfileScreen` & `SettingsScreen`: Pill logout button, theme selectors, and system status indicators.
+
 ---
 
 ## 📂 File Deliverables & Locations
 
 | File / Location | Description |
 |---|---|
-| `bloodsync-v2.1.0-eye-catching-ui.apk` | **Latest Eye-Catching Simple UI APK (Strict Red/Green/White/Yellow)** |
-| `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Build |
+| `bloodsync-v2.2.0-pill-ui.apk` | **Latest Ultra-Clean Pill UI APK (Strict Red/Green/White/Yellow + Dedicated Donors)** |
+| `bloodsync-v2.1.0-eye-catching-ui.apk` | v2.1.0 Eye-Catching Simple UI Build |
+| `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Release Build |
 | `firestore.rules` | Hardened Firebase Security Rules |
 | `app/proguard-rules.pro` | Obfuscation, Minification & Log-stripping Rules |
 | `app/src/main/res/xml/network_security_config.xml` | TLS / Cleartext Network Rules |
 | `app/src/main/res/xml/data_extraction_rules.xml` | Block USB / Device Transfer Extraction |
+| `app/src/main/java/com/example/bloodsync_android/ui/screens/donors/DonorsDirectoryScreen.kt` | Dedicated Available Donors Directory Screen |
 | `app/src/main/java/com/example/bloodsync_android/util/ValidationHelper.kt` | Input Validation & Sanitization Engine |
 | `app/src/main/java/com/example/bloodsync_android/ui/components/ExitConfirmationDialog.kt` | Back Button Exit Dialog Component |
+

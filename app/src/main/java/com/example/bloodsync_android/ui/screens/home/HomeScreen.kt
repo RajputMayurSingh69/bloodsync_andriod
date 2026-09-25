@@ -8,8 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.bloodsync_android.data.model.BloodBank
 import com.example.bloodsync_android.data.model.EligibilityStatus
 import com.example.bloodsync_android.data.model.EmergencyRequest
 import com.example.bloodsync_android.data.model.UserProfile
@@ -43,9 +40,9 @@ import com.example.bloodsync_android.ui.theme.*
 import com.example.bloodsync_android.util.ShareHelper
 
 /**
- * Eye-Catching, Clean & Simple Home Dashboard.
+ * Super Simple, Clean & Eye-Catching Home Dashboard with Modern Pill-Shape Design.
+ * Available Donors feed shifted to dedicated directory screen for zero homepage clutter.
  * Strict Palette: RED, GREEN, WHITE, YELLOW ONLY.
- * Features live radar pulse, WHO safety dial, quick blood filters, and 1-tap SOS.
  */
 @Composable
 fun HomeScreen(
@@ -56,7 +53,8 @@ fun HomeScreen(
     onNavigateToHealth: () -> Unit,
     onNavigateToAppointments: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToDonors: () -> Unit = {}
 ) {
     val appColors = BloodSyncTheme.colors
     val context = LocalContext.current
@@ -68,11 +66,9 @@ fun HomeScreen(
     val donors = repository.donors
     val bloodBanks = repository.bloodBanks
 
-    var selectedSearchGroup by remember { mutableStateOf("All") }
-
     val firstName = profile.name.trim().split(" ").firstOrNull { it.isNotBlank() }
     val greetingSubtitle = if (!firstName.isNullOrBlank()) {
-        "Hello, $firstName • Voluntary Donor"
+        "Hello, $firstName • ${profile.bloodGroup.ifBlank { "Voluntary Donor" }}"
     } else {
         "24/7 Voluntary Blood Donor Network"
     }
@@ -91,41 +87,41 @@ fun HomeScreen(
             onSettingsClick = onNavigateToSettings
         )
 
-        // Main Scrollable Area
+        // Main Clean Dashboard
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .weight(1f),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ==============================================================
-            // 1. EYE-CATCHING EMERGENCY SOS PULSE BANNER (RED)
+            // 1. EYE-CATCHING EMERGENCY SOS PILL HERO CARD (RED)
             // ==============================================================
             item {
                 if (activeEmergencies.isNotEmpty()) {
                     val latestEmg = activeEmergencies.first()
-                    ActiveEmergencyPulseCard(
+                    ActiveEmergencyPillCard(
                         emergency = latestEmg,
                         onViewDetails = onNavigateToEmergency,
                         onShareWhatsApp = { ShareHelper.shareEmergencySos(context, latestEmg) }
                     )
                 } else {
-                    EmergencySosPulseCard(
+                    EmergencySosPillCard(
                         onRequestBloodClick = onNavigateToEmergency
                     )
                 }
             }
 
             // ==============================================================
-            // 2. QUICK ACTIONS (STRICT RED, GREEN, WHITE, YELLOW)
+            // 2. 4 PILL NEO-ACTION TILES (RED, GREEN, WHITE, YELLOW)
             // ==============================================================
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ModernActionTile(
+                    PillActionTile(
                         title = "Request Blood",
                         subtitle = "Instant SOS Broadcast",
                         icon = Icons.Default.Warning,
@@ -135,13 +131,13 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
 
-                    ModernActionTile(
+                    PillActionTile(
                         title = "Find Donors",
                         subtitle = "${donors.size} Donors Active",
                         icon = Icons.Default.PersonSearch,
                         accentColor = StatusEligibleGreen,
                         bgColor = StatusEligibleGreenLight,
-                        onClick = onNavigateToEmergency,
+                        onClick = onNavigateToDonors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -152,9 +148,9 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ModernActionTile(
+                    PillActionTile(
                         title = "Blood Banks",
-                        subtitle = "24/7 Verified Centers",
+                        subtitle = "${bloodBanks.size} Verified Centers",
                         icon = Icons.Default.LocalHospital,
                         accentColor = BloodRedPrimary,
                         bgColor = BloodRedLight,
@@ -162,7 +158,7 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
 
-                    ModernActionTile(
+                    PillActionTile(
                         title = "Book Slot",
                         subtitle = if (eligibilityResult.daysRemaining > 0) "${eligibilityResult.daysRemaining}d Cooldown" else "Ready to Donate",
                         icon = Icons.Default.CalendarToday,
@@ -175,10 +171,10 @@ fun HomeScreen(
             }
 
             // ==============================================================
-            // 3. EYE-CATCHING WHO 90-DAY SAFETY DIAL & DONOR STATUS
+            // 3. WHO 90-DAY SAFETY DIAL & DONOR METER (PILL CARD)
             // ==============================================================
             item {
-                WhoSafetyGaugeCard(
+                WhoSafetyGaugePillCard(
                     profile = profile,
                     eligibilityStatus = eligibilityResult.status,
                     daysRemaining = eligibilityResult.daysRemaining,
@@ -188,170 +184,34 @@ fun HomeScreen(
             }
 
             // ==============================================================
-            // 4. QUICK BLOOD GROUP FILTER CAROUSEL (SPRING ANIMATED PILLS)
+            // 4. CLEAN DIRECTORY PILL SHORTCUT: ACTIVE DONORS (GREEN)
             // ==============================================================
             item {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Find Donors by Group",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MedicalTextPrimary
-                        )
-
-                        Text(
-                            text = "Tap to filter",
-                            fontSize = 11.sp,
-                            color = MedicalTextMuted
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    val bloodGroups = listOf("All", "O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-")
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(bloodGroups) { group ->
-                            val isSelected = selectedSearchGroup == group
-                            val scale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.05f else 1.0f,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                                label = "chipScale"
-                            )
-
-                            Surface(
-                                modifier = Modifier
-                                    .scale(scale)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable { selectedSearchGroup = group }
-                                    .border(
-                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) BloodRedPrimary else MedicalBorder,
-                                        shape = RoundedCornerShape(12.dp)
-                                    ),
-                                color = if (isSelected) BloodRedPrimary else MedicalWhite,
-                                shadowElevation = if (isSelected) 2.dp else 0.dp
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = group,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = if (isSelected) MedicalWhite else MedicalTextPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                DirectoryPillBanner(
+                    badge = "ACTIVE DIRECTORY",
+                    title = "Voluntary Donors Online",
+                    subtitle = "Browse ${donors.size} registered donors filtered by blood group and city.",
+                    icon = Icons.Default.People,
+                    actionText = "Browse Donors →",
+                    accentColor = StatusEligibleGreen,
+                    bgColor = StatusEligibleGreenLight,
+                    onActionClick = onNavigateToDonors
+                )
             }
 
             // ==============================================================
-            // 5. MATCHING DONORS FEED (WITH PULSING ACTIVE BEACON)
-            // ==============================================================
-            val filteredDonors = donors.filter {
-                if (selectedSearchGroup == "All") true
-                else it.bloodGroup.equals(selectedSearchGroup, ignoreCase = true)
-            }
-
-            if (filteredDonors.isEmpty()) {
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MedicalWhite,
-                        shape = RoundedCornerShape(14.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .background(BloodRedLight, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                BloodDropIcon(size = 28.dp, tint = BloodRedPrimary)
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = "No registered donors yet for $selectedSearchGroup",
-                                fontWeight = FontWeight.Bold,
-                                color = MedicalTextPrimary,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "Broadcast an emergency request to alert nearby volunteers instantly.",
-                                fontSize = 12.sp,
-                                color = MedicalTextSecondary
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = onNavigateToEmergency,
-                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Text("Broadcast Emergency SOS", color = MedicalWhite, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            } else {
-                items(filteredDonors) { donor ->
-                    LiveDonorFeedCard(
-                        donor = donor,
-                        onWhatsAppClick = {
-                            val msg = "Hello ${donor.name}, I am reaching out from BloodSync App regarding voluntary blood donation (${donor.bloodGroup}). Are you available?"
-                            ShareHelper.openWhatsApp(context, donor.phone, msg)
-                        },
-                        onRequestClick = onNavigateToEmergency
-                    )
-                }
-            }
-
-            // ==============================================================
-            // 6. CERTIFIED BLOOD BANKS DIRECTORY
+            // 5. CLEAN DIRECTORY PILL SHORTCUT: CERTIFIED BLOOD BANKS (RED)
             // ==============================================================
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Certified Blood Banks",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MedicalTextPrimary
-                        )
-                        Text(
-                            text = "24/7 Verified regional blood stock",
-                            fontSize = 12.sp,
-                            color = MedicalTextSecondary
-                        )
-                    }
-
-                    TextButton(onClick = onNavigateToAppointments) {
-                        Text("View All", color = BloodRedPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            items(bloodBanks.take(2)) { bank ->
-                CertifiedBankFeedCard(
-                    bank = bank,
-                    onBookClick = onNavigateToAppointments
+                DirectoryPillBanner(
+                    badge = "24/7 BLOOD STOCK",
+                    title = "Certified Blood Banks",
+                    subtitle = "Verified regional hospital blood storage reserves ready for emergency dispatch.",
+                    icon = Icons.Default.LocalHospital,
+                    actionText = "View Centers →",
+                    accentColor = BloodRedPrimary,
+                    bgColor = BloodRedLight,
+                    onActionClick = onNavigateToAppointments
                 )
             }
         }
@@ -359,16 +219,16 @@ fun HomeScreen(
 }
 
 // =======================================================================
-// EYE-CATCHING COMPONENT: EMERGENCY SOS PULSE CARD (RADAR ANIMATION)
+// COMPONENT 1: EMERGENCY SOS PILL HERO CARD (RADAR ANIMATION)
 // =======================================================================
 @Composable
-private fun EmergencySosPulseCard(
+private fun EmergencySosPillCard(
     onRequestBloodClick: () -> Unit
 ) {
     val transition = rememberInfiniteTransition(label = "sosPulse")
     val pulseScale by transition.animateFloat(
         initialValue = 0.9f,
-        targetValue = 1.3f,
+        targetValue = 1.35f,
         animationSpec = infiniteRepeatable(
             animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -379,9 +239,9 @@ private fun EmergencySosPulseCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onRequestBloodClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = BloodRedPrimary),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -389,17 +249,17 @@ private fun EmergencySosPulseCard(
             // Pulse circle glow on top right
             Box(
                 modifier = Modifier
-                    .size(110.dp)
-                    .offset(x = 24.dp, y = (-24).dp)
+                    .size(120.dp)
+                    .offset(x = 28.dp, y = (-28).dp)
                     .scale(pulseScale)
-                    .background(Color.White.copy(alpha = 0.08f), CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
                     .align(Alignment.TopEnd)
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(22.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -408,10 +268,10 @@ private fun EmergencySosPulseCard(
                 ) {
                     Surface(
                         color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(50.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -432,38 +292,39 @@ private fun EmergencySosPulseCard(
 
                     Text(
                         text = "10km Radius",
-                        color = MedicalWhite.copy(alpha = 0.85f),
+                        color = MedicalWhite.copy(alpha = 0.9f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
                     text = "Need Blood Urgently?",
                     color = MedicalWhite,
-                    fontSize = 22.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Black
                 )
 
                 Text(
-                    text = "Broadcast an instant emergency alert to all matching donors nearby.",
-                    color = MedicalWhite.copy(alpha = 0.9f),
+                    text = "Broadcast an instant emergency SOS to all matching voluntary donors nearby.",
+                    color = MedicalWhite.copy(alpha = 0.92f),
                     fontSize = 13.sp,
-                    lineHeight = 18.sp
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-                // Big Tactile White Button
+                // Full Pill Tactile White Button
                 Button(
                     onClick = onRequestBloodClick,
                     colors = ButtonDefaults.buttonColors(containerColor = MedicalWhite),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(50.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(52.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                 ) {
                     Icon(
@@ -486,10 +347,10 @@ private fun EmergencySosPulseCard(
 }
 
 // =======================================================================
-// COMPONENT: ACTIVE EMERGENCY HERO WITH LIVE BEACON
+// COMPONENT 2: ACTIVE EMERGENCY HERO PILL CARD
 // =======================================================================
 @Composable
-private fun ActiveEmergencyPulseCard(
+private fun ActiveEmergencyPillCard(
     emergency: EmergencyRequest,
     onViewDetails: () -> Unit,
     onShareWhatsApp: () -> Unit
@@ -497,13 +358,13 @@ private fun ActiveEmergencyPulseCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onViewDetails),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = BloodRedLight),
         border = androidx.compose.foundation.BorderStroke(2.dp, BloodRedPrimary)
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -531,12 +392,12 @@ private fun ActiveEmergencyPulseCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "${emergency.unitsRequired} Unit(s) Needed at ${emergency.hospitalName}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 17.sp,
                 color = MedicalTextPrimary
             )
 
@@ -548,7 +409,7 @@ private fun ActiveEmergencyPulseCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -557,10 +418,10 @@ private fun ActiveEmergencyPulseCard(
                 Button(
                     onClick = onViewDetails,
                     colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(50.dp),
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(46.dp)
                 ) {
                     Text("View & Track", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MedicalWhite)
                 }
@@ -568,8 +429,8 @@ private fun ActiveEmergencyPulseCard(
                 Button(
                     onClick = onShareWhatsApp,
                     colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.height(44.dp)
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier.height(46.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
@@ -586,10 +447,10 @@ private fun ActiveEmergencyPulseCard(
 }
 
 // =======================================================================
-// MODERN ACTION TILE (BIG, TACTILE, ENGAGING)
+// COMPONENT 3: PILL NEO-ACTION TILE
 // =======================================================================
 @Composable
-private fun ModernActionTile(
+private fun PillActionTile(
     title: String,
     subtitle: String,
     icon: ImageVector,
@@ -600,19 +461,20 @@ private fun ModernActionTile(
 ) {
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
-            .border(1.dp, MedicalBorder, RoundedCornerShape(14.dp)),
+            .border(1.dp, MedicalBorder, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
         color = MedicalWhite,
         shadowElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier.padding(14.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .background(bgColor, RoundedCornerShape(12.dp)),
+                    .size(44.dp)
+                    .background(bgColor, RoundedCornerShape(50.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -623,7 +485,7 @@ private fun ModernActionTile(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = title,
@@ -642,10 +504,10 @@ private fun ModernActionTile(
 }
 
 // =======================================================================
-// EYE-CATCHING COMPONENT: WHO 90-DAY SAFETY DIAL & DONOR METER
+// COMPONENT 4: WHO 90-DAY SAFETY GAUGE PILL CARD
 // =======================================================================
 @Composable
-private fun WhoSafetyGaugeCard(
+private fun WhoSafetyGaugePillCard(
     profile: UserProfile,
     eligibilityStatus: EligibilityStatus,
     daysRemaining: Int,
@@ -664,20 +526,20 @@ private fun WhoSafetyGaugeCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onHealthClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MedicalWhite,
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
         shadowElevation = 1.dp
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Left: Circular Health Dial
+                // Circular Health Donut
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(64.dp)
@@ -698,7 +560,7 @@ private fun WhoSafetyGaugeCard(
                             style = Stroke(width = strokeWidth)
                         )
 
-                        // Dynamic Colored Arc
+                        // Colored Arc
                         drawArc(
                             color = if (isEligible) StatusEligibleGreen else AlertYellow,
                             startAngle = -90f,
@@ -722,7 +584,7 @@ private fun WhoSafetyGaugeCard(
                             text = "${daysRemaining}d",
                             fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
-                            color = AlertYellowDark
+                            color = StatusWarningAmber
                         )
                     }
                 }
@@ -734,19 +596,17 @@ private fun WhoSafetyGaugeCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             color = BloodRedPrimary,
-                            shape = CircleShape,
-                            modifier = Modifier.size(26.dp)
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier.padding(end = 6.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = profile.bloodGroup.ifBlank { "O+" },
-                                    color = MedicalWhite,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp
-                                )
-                            }
+                            Text(
+                                text = profile.bloodGroup.ifBlank { "O+" },
+                                color = MedicalWhite,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (isEligible) "Ready to Donate" else "$daysRemaining Days to Recovery",
                             fontWeight = FontWeight.Bold,
@@ -758,7 +618,7 @@ private fun WhoSafetyGaugeCard(
                     Text(
                         text = if (isEligible) "WHO Clinical Safety: Cleared" else "WHO 90-Day Medical Gap Rule",
                         fontSize = 12.sp,
-                        color = if (isEligible) StatusEligibleGreen else AlertYellowDark
+                        color = if (isEligible) StatusEligibleGreen else StatusWarningAmber
                     )
                 }
 
@@ -774,7 +634,7 @@ private fun WhoSafetyGaugeCard(
             HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 3 Clean Counters
+            // 3 Clean Counters (Pill clickable)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -818,7 +678,7 @@ private fun WhoSafetyGaugeCard(
                         text = "90-Day",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        color = AlertYellowDark
+                        color = StatusWarningAmber
                     )
                     Text("WHO Interval", fontSize = 11.sp, color = MedicalTextSecondary)
                 }
@@ -828,199 +688,100 @@ private fun WhoSafetyGaugeCard(
 }
 
 // =======================================================================
-// COMPONENT: LIVE DONOR CARD WITH PULSING ACTIVE BEACON
+// COMPONENT 5: DIRECTORY PILL BANNER
 // =======================================================================
 @Composable
-private fun LiveDonorFeedCard(
-    donor: UserProfile,
-    onWhatsAppClick: () -> Unit,
-    onRequestClick: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "donorBeacon")
-    val beaconAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "beaconAlpha"
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MedicalWhite,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
-        shadowElevation = 1.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                // Big Red Blood Pill
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .background(BloodRedPrimary, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = donor.bloodGroup,
-                        color = MedicalWhite,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = if (donor.name.isNotBlank()) donor.name else "Volunteer Donor",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = MedicalTextPrimary
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Verified",
-                            tint = StatusEligibleGreen,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        // Pulsing Green Active Beacon
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .background(StatusEligibleGreen.copy(alpha = beaconAlpha), CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "Active Now • ${if (donor.city.isNotBlank()) donor.city else "Nearby"}",
-                            fontSize = 12.sp,
-                            color = StatusEligibleGreen,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Large Round Green Contact Button
-                IconButton(
-                    onClick = onWhatsAppClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(StatusEligibleGreen, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = "Contact Donor",
-                        tint = MedicalWhite,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Request Action Button (Red)
-                Button(
-                    onClick = onRequestClick,
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
-                ) {
-                    Text(
-                        text = "Request",
-                        fontSize = 12.sp,
-                        color = MedicalWhite,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-// =======================================================================
-// COMPONENT: CERTIFIED BLOOD BANK FEED CARD
-// =======================================================================
-@Composable
-private fun CertifiedBankFeedCard(
-    bank: BloodBank,
-    onBookClick: () -> Unit
+private fun DirectoryPillBanner(
+    badge: String,
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    actionText: String,
+    accentColor: Color,
+    bgColor: Color,
+    onActionClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onBookClick),
-        shape = RoundedCornerShape(14.dp),
+            .clip(RoundedCornerShape(26.dp))
+            .clickable(onClick = onActionClick),
+        shape = RoundedCornerShape(26.dp),
         color = MedicalWhite,
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
         shadowElevation = 1.dp
     ) {
-        Row(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = bank.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = MedicalTextPrimary
-                )
-                Text(
-                    text = "${bank.address} • ${bank.distanceKm} km away",
-                    fontSize = 12.sp,
-                    color = MedicalTextSecondary
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp)
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    color = bgColor,
+                    shape = RoundedCornerShape(50.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .background(StatusEligibleGreen, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = "24/7 Verified Blood Storage",
-                        fontSize = 11.sp,
-                        color = StatusEligibleGreen,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(accentColor, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = badge,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = accentColor,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
+
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MedicalTextPrimary
+            )
+
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = MedicalTextSecondary,
+                lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             Button(
-                onClick = onBookClick,
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                onClick = onActionClick,
+                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                shape = RoundedCornerShape(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
             ) {
-                Text("Book Slot", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MedicalWhite)
+                Text(
+                    text = actionText,
+                    color = MedicalWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
         }
     }

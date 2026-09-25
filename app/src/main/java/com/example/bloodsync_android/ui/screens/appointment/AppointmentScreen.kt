@@ -142,13 +142,13 @@ fun AppointmentScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Tab Switcher (My Appointments vs Book Slot)
+            // Tab Switcher (My Appointments vs Book Slot) - Pill Shaped
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .height(46.dp),
-                shape = RoundedCornerShape(10.dp),
+                    .height(48.dp),
+                shape = RoundedCornerShape(50.dp),
                 color = MedicalSurfaceVariant,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -157,8 +157,8 @@ fun AppointmentScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(3.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(50.dp))
                             .background(if (!isBookingTab) MedicalWhite else Color.Transparent)
                             .clickable { isBookingTab = false },
                         contentAlignment = Alignment.Center
@@ -175,8 +175,8 @@ fun AppointmentScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(3.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .padding(4.dp)
+                            .clip(RoundedCornerShape(50.dp))
                             .background(if (isBookingTab) MedicalWhite else Color.Transparent)
                             .clickable { isBookingTab = true },
                         contentAlignment = Alignment.Center
@@ -202,13 +202,13 @@ fun AppointmentScreen(
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isUnder3MonthCooldown) StatusWarningAmberLight else StatusEligibleGreenLight
                             ),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isUnder3MonthCooldown) Color(0xFFFDE68A) else Color(0xFF86EFAC)
+                                if (isUnder3MonthCooldown) StatusWarningAmber else StatusEligibleGreen
                             )
                         ) {
                             Row(
@@ -270,9 +270,9 @@ fun AppointmentScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(24.dp))
                                 .clickable { selectedBloodBank = bank },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected) BloodRedLight else MedicalWhite
                             ),
@@ -387,20 +387,20 @@ fun AppointmentScreen(
                             }
                         }
 
-                        // Display active selected date
+                        // Display active selected date - Pill Shaped
                         Surface(
                             color = if (isDateAllowedBy3MonthRule) BloodRedLight else StatusUrgentRedLight,
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(50.dp),
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (isDateAllowedBy3MonthRule) Color(0xFFFFCDD2) else Color(0xFFFECACA)
+                                if (isDateAllowedBy3MonthRule) BloodRedPrimary else StatusUrgentRed
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -428,12 +428,12 @@ fun AppointmentScreen(
                         if (!isDateAllowedBy3MonthRule) {
                             Surface(
                                 color = StatusUrgentRedLight,
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                             ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
+                                Column(modifier = Modifier.padding(14.dp)) {
                                     Text(
                                         text = "⚠️ 3-Month Rule Violation:",
                                         fontSize = 12.sp,
@@ -443,16 +443,16 @@ fun AppointmentScreen(
                                     Text(
                                         text = "You cannot donate before your 3-month recovery period. Please pick $nextEligibleDateStr or later.",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF7F1D1D)
+                                        color = StatusUrgentRed
                                     )
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Button(
                                         onClick = { selectedDate = nextEligibleDateStr },
                                         colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                                        shape = RoundedCornerShape(6.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                        shape = RoundedCornerShape(50.dp),
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                                     ) {
-                                        Text("Select Earliest Date: $nextEligibleDateStr", fontSize = 11.sp)
+                                        Text("Select Earliest Date: $nextEligibleDateStr", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -460,7 +460,7 @@ fun AppointmentScreen(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Horizontal upcoming date cards
+                        // Horizontal upcoming date cards - Pill style
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -470,17 +470,17 @@ fun AppointmentScreen(
 
                                 Surface(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(20.dp))
                                         .clickable { selectedDate = dateOption.fullFormattedDate }
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) Color(0xFFFECACA) else MedicalBorder),
-                                            shape = RoundedCornerShape(8.dp)
+                                            color = if (isSelected) BloodRedPrimary else (if (!isOptionAllowed) StatusUrgentRedLight else MedicalBorder),
+                                            shape = RoundedCornerShape(20.dp)
                                         ),
-                                    color = if (isSelected) BloodRedLight else (if (!isOptionAllowed) Color(0xFFFFF1F2) else MedicalWhite)
+                                    color = if (isSelected) BloodRedLight else (if (!isOptionAllowed) StatusUrgentRedLight else MedicalWhite)
                                 ) {
                                     Column(
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
@@ -575,12 +575,12 @@ fun AppointmentScreen(
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(50.dp))
                                         .clickable { selectedDonationType = type }
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
                                             color = if (isSelected) BloodRedPrimary else MedicalBorder,
-                                            shape = RoundedCornerShape(8.dp)
+                                            shape = RoundedCornerShape(50.dp)
                                         ),
                                     color = if (isSelected) BloodRedLight else MedicalWhite
                                 ) {
@@ -589,7 +589,7 @@ fun AppointmentScreen(
                                         fontSize = 11.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) BloodRedPrimary else MedicalTextPrimary,
-                                        modifier = Modifier.padding(8.dp),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
@@ -597,7 +597,7 @@ fun AppointmentScreen(
                         }
                     }
 
-                    // Submit Booking Action (Enforced 3-Month Interval)
+                    // Submit Booking Action (Enforced 3-Month Interval) - Pill Button
                     item {
                         Button(
                             onClick = {
@@ -621,11 +621,11 @@ fun AppointmentScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
+                                .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDateAllowedBy3MonthRule) BloodRedPrimary else Color(0xFF9CA3AF)
+                                containerColor = if (isDateAllowedBy3MonthRule) BloodRedPrimary else MedicalTextMuted
                             ),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(50.dp),
                             enabled = selectedBloodBank != null && isDateAllowedBy3MonthRule
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -793,12 +793,12 @@ fun TimeSlotChip(
 ) {
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(50.dp))
             .clickable(onClick = onSelect)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) BloodRedPrimary else MedicalBorder,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(50.dp)
             ),
         color = if (isSelected) BloodRedLight else MedicalWhite
     ) {
@@ -825,7 +825,7 @@ fun AppointmentItemCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -928,8 +928,8 @@ fun AppointmentItemCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedButton(
                         onClick = onRescheduleClick,
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(50.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
                     ) {
                         Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(14.dp), tint = BloodRedPrimary)
@@ -1053,14 +1053,14 @@ fun RescheduleDialog(
                     }
                 }
 
-                // Selected New Date indicator
+                // Selected New Date indicator - Pill
                 Surface(
                     color = if (isNewDateValid) BloodRedLight else StatusUrgentRedLight,
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(50.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -1096,17 +1096,17 @@ fun RescheduleDialog(
                         val isAllowed = healthRecord.isAppointmentDateAllowed(option.fullFormattedDate)
                         Surface(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(20.dp))
                                 .clickable { selectedNewDate = option.fullFormattedDate }
                                 .border(
                                     width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) Color(0xFFFECACA) else MedicalBorder),
-                                    shape = RoundedCornerShape(6.dp)
+                                    color = if (isSelected) BloodRedPrimary else (if (!isAllowed) StatusUrgentRedLight else MedicalBorder),
+                                    shape = RoundedCornerShape(20.dp)
                                 ),
-                            color = if (isSelected) BloodRedLight else (if (!isAllowed) Color(0xFFFFF1F2) else MedicalWhite)
+                            color = if (isSelected) BloodRedLight else (if (!isAllowed) StatusUrgentRedLight else MedicalWhite)
                         ) {
                             Column(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -1168,6 +1168,7 @@ fun RescheduleDialog(
             Button(
                 onClick = { onConfirmReschedule(selectedNewDate, selectedNewSlot) },
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                shape = RoundedCornerShape(50.dp),
                 enabled = isNewDateValid
             ) {
                 Text(if (isNewDateValid) "Confirm Reschedule" else "Date Ineligible")
@@ -1178,7 +1179,7 @@ fun RescheduleDialog(
                 Text("Cancel", color = MedicalTextSecondary)
             }
         },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MedicalWhite
     )
 }

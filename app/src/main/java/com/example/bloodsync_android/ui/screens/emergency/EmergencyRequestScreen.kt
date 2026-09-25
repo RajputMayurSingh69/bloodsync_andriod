@@ -79,7 +79,7 @@ fun EmergencyRequestScreen(
             // Urgent Red Alert Header
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = BloodRedPrimary)
             ) {
                 Row(
@@ -112,7 +112,7 @@ fun EmergencyRequestScreen(
             // Step 1: Blood Group & Units (Most Critical Information)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -186,7 +186,7 @@ fun EmergencyRequestScreen(
             // Step 2: Urgency Selection (Strict Red / Yellow / Green)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -214,17 +214,17 @@ fun EmergencyRequestScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(50.dp))
                                     .clickable { urgencyLevel = level }
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
                                         color = if (isSelected) activeColor else MedicalBorder,
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(50.dp)
                                     ),
                                 color = if (isSelected) activeColor else MedicalWhite
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
@@ -256,7 +256,7 @@ fun EmergencyRequestScreen(
             // Step 3: Hospital & Contact Info
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(containerColor = MedicalWhite),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -380,7 +380,7 @@ fun EmergencyRequestScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(50.dp),
                 enabled = !isSubmitting
             ) {
                 if (isSubmitting) {

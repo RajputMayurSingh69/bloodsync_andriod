@@ -111,12 +111,12 @@ fun CertificateScreen(
                             val isSelected = cert.id == currentCertificate?.id
                             Surface(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(50.dp))
                                     .clickable { selectedCertId = cert.id }
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
                                         color = if (isSelected) CertificateGold else MedicalBorder,
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(50.dp)
                                     ),
                                 color = if (isSelected) AlertYellowLight else MedicalWhite
                             ) {
@@ -162,9 +162,9 @@ fun CertificateScreen(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp),
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(50.dp)
                         ) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -177,8 +177,8 @@ fun CertificateScreen(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(10.dp),
+                                .height(50.dp),
+                            shape = RoundedCornerShape(50.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, tint = BloodRedPrimary, modifier = Modifier.size(18.dp))
@@ -192,7 +192,7 @@ fun CertificateScreen(
                     // Authenticity & Verification note
                     Surface(
                         color = MedicalSurfaceVariant,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(20.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -228,8 +228,8 @@ fun CertificateCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
+            .shadow(6.dp, RoundedCornerShape(26.dp)),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(containerColor = MedicalWhite),
         border = androidx.compose.foundation.BorderStroke(2.dp, StatusWarningAmber)
     ) {
@@ -243,7 +243,7 @@ fun CertificateCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, AlertYellow.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .border(1.dp, AlertYellow.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
                     .padding(14.dp)
             ) {
                 Column(
@@ -320,7 +320,7 @@ fun CertificateCard(
                     // Milestone & Details Grid
                     Surface(
                         color = AlertYellowLight,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, AlertYellow),
                         modifier = Modifier.fillMaxWidth()
                     ) {

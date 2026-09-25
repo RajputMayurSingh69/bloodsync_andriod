@@ -141,10 +141,10 @@ fun NotificationCenterScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            shape = RoundedCornerShape(50.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Text("Allow", fontSize = 12.sp, color = MedicalWhite)
+                            Text("Allow", fontSize = 12.sp, color = MedicalWhite, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -198,11 +198,11 @@ fun NotificationCenterScreen(
                     .padding(horizontal = 16.dp, vertical = 4.dp)
                     .fillMaxWidth(),
                 color = MedicalSurfaceVariant,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -223,10 +223,10 @@ fun NotificationCenterScreen(
                                     targetScreen = "emergency"
                                 )
                             },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(6.dp)
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(50.dp)
                         ) {
-                            Text("Emergency", fontSize = 10.sp)
+                            Text("Emergency", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         FilledTonalButton(
                             onClick = {
@@ -237,10 +237,10 @@ fun NotificationCenterScreen(
                                     targetScreen = "certificate"
                                 )
                             },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(6.dp)
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(50.dp)
                         ) {
-                            Text("Certificate", fontSize = 10.sp)
+                            Text("Certificate", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -284,7 +284,7 @@ fun NotificationItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!notification.isRead) BloodRedLight else MedicalWhite
         ),

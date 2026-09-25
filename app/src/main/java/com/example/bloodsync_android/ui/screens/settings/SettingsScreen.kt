@@ -76,7 +76,7 @@ fun SettingsScreen(
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border)
             ) {
@@ -137,7 +137,7 @@ fun SettingsScreen(
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border)
             ) {
@@ -204,7 +204,7 @@ fun SettingsScreen(
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border)
             ) {
@@ -267,7 +267,7 @@ fun SettingsScreen(
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border)
             ) {
@@ -319,7 +319,7 @@ fun SettingsScreen(
             // ==========================================
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border)
             ) {
@@ -341,8 +341,10 @@ fun SettingsScreen(
 
                     OutlinedButton(
                         onClick = { showResetDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(50.dp),
                         border = BorderStroke(1.dp, StatusUrgentRed)
                     ) {
                         Icon(
@@ -433,9 +435,10 @@ fun SettingsScreen(
                         showResetDialog = false
                         showResetSuccess = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp)
                 ) {
-                    Text("Confirm Clear", color = Color.White)
+                    Text("Confirm Clear", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -443,6 +446,7 @@ fun SettingsScreen(
                     Text("Cancel", color = appColors.textSecondary)
                 }
             },
+            shape = RoundedCornerShape(26.dp),
             containerColor = appColors.cardBackground
         )
     }
@@ -468,11 +472,13 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = { showResetSuccess = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp)
                 ) {
-                    Text("OK", color = Color.White)
+                    Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
+            shape = RoundedCornerShape(26.dp),
             containerColor = appColors.cardBackground
         )
     }
@@ -513,11 +519,13 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = { showTermsDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp)
                 ) {
-                    Text("Close", color = Color.White)
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
+            shape = RoundedCornerShape(26.dp),
             containerColor = appColors.cardBackground
         )
     }
@@ -546,17 +554,17 @@ private fun ThemeOptionTile(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(50.dp))
             .clickable(onClick = onClick)
             .border(
                 width = if (isSelected) 1.5.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(50.dp)
             ),
         color = backgroundColor
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -638,7 +646,7 @@ private fun SystemFeatureStatusRow(
         Spacer(modifier = Modifier.width(8.dp))
 
         Surface(
-            shape = RoundedCornerShape(6.dp),
+            shape = RoundedCornerShape(50.dp),
             color = statusColor.copy(alpha = 0.12f),
             border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
         ) {
@@ -647,7 +655,7 @@ private fun SystemFeatureStatusRow(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = statusColor,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
     }

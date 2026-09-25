@@ -121,11 +121,12 @@ fun HealthTrackerScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -134,14 +135,21 @@ fun HealthTrackerScreen(
                             Text(
                                 text = "Current Donor Vitals",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                                 color = MedicalTextPrimary
                             )
-                            TextButton(
-                                onClick = { showEditSheet = true },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            Surface(
+                                color = BloodRedLight,
+                                shape = RoundedCornerShape(50.dp),
+                                modifier = Modifier.clickable { showEditSheet = true }
                             ) {
-                                Text("Update", color = BloodRedPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "Update",
+                                    color = BloodRedPrimary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                )
                             }
                         }
 
@@ -210,12 +218,13 @@ fun HealthTrackerScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
@@ -275,9 +284,10 @@ fun HealthTrackerScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = StatusEligibleGreenLight),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -337,7 +347,7 @@ fun EligibilityStatusBanner(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
             containerColor = when (result.status) {
                 EligibilityStatus.ELIGIBLE -> StatusEligibleGreenLight
@@ -475,7 +485,10 @@ fun EligibilityStatusBanner(
                 Button(
                     onClick = onBookAppointment,
                     colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
                 ) {
                     Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -496,7 +509,7 @@ fun VitalItem(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(18.dp),
         color = MedicalSurfaceVariant,
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MedicalBorder)
     ) {
@@ -525,7 +538,7 @@ fun ChecklistRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable { onToggle(!isChecked) }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -654,9 +667,10 @@ fun EditVitalsDialog(
                     )
                     onSave(updated)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                shape = RoundedCornerShape(50.dp)
             ) {
-                Text("Recalculate Eligibility")
+                Text("Recalculate Eligibility", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -664,7 +678,7 @@ fun EditVitalsDialog(
                 Text("Cancel", color = MedicalTextSecondary)
             }
         },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(26.dp),
         containerColor = MedicalWhite
     )
 }
