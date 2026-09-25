@@ -151,7 +151,7 @@ fun SettingsScreen(
                                 .size(36.dp)
                                 .background(
                                     if (isFirebaseConnected) StatusEligibleGreen.copy(alpha = 0.15f)
-                                    else StatusInfoBlue.copy(alpha = 0.15f),
+                                    else StatusWarningAmber.copy(alpha = 0.15f),
                                     CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -159,7 +159,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.CloudSync,
                                 contentDescription = null,
-                                tint = if (isFirebaseConnected) StatusEligibleGreen else StatusInfoBlue,
+                                tint = if (isFirebaseConnected) StatusEligibleGreen else StatusWarningAmber,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -183,7 +183,7 @@ fun SettingsScreen(
                         title = "Cloud Connection",
                         description = "Direct connection to Firebase Firestore & Realtime Database for emergency broadcasting, donor matching, and blood bank stock sync.",
                         statusText = if (isFirebaseConnected) "Active" else "Ready",
-                        statusColor = if (isFirebaseConnected) StatusEligibleGreen else StatusInfoBlue
+                        statusColor = if (isFirebaseConnected) StatusEligibleGreen else StatusWarningAmber
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -216,13 +216,13 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(StatusInfoBlue.copy(alpha = 0.12f), CircleShape),
+                                .background(StatusWarningAmber.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AspectRatio,
                                 contentDescription = null,
-                                tint = StatusInfoBlue,
+                                tint = StatusWarningAmber,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

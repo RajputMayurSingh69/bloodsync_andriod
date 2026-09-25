@@ -6,6 +6,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.example.bloodsync_android.data.model.*
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
@@ -21,6 +23,7 @@ class FirebaseSyncService(private val context: Context) {
     val connectionStatus: State<String> = _connectionStatus
 
     private var firestore: FirebaseFirestore? = null
+    private var auth: FirebaseAuth? = null
     private var emergencyListener: ListenerRegistration? = null
     private var bloodBankListener: ListenerRegistration? = null
     private var donorListener: ListenerRegistration? = null
@@ -39,6 +42,20 @@ class FirebaseSyncService(private val context: Context) {
 
             if (app != null) {
                 firestore = FirebaseFirestore.getInstance()
+                val authInstance = FirebaseAuth.getInstance()
+                auth = authInstance
+
+                // Authenticate to satisfy Firestore security rules
+                if (authInstance.currentUser == null) {
+                    authInstance.signInAnonymously()
+                        .addOnSuccessListener {
+                            Log.d(tag, "Signed in anonymously for secure Firestore access: ${it.user?.uid}")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.w(tag, "Anonymous auth notice: ${e.message}")
+                        }
+                }
+
                 _isFirebaseConnected.value = true
                 _connectionStatus.value = "Connected to Firebase Cloud"
                 Log.d(tag, "Firebase initialized successfully.")
@@ -67,8 +84,11 @@ class FirebaseSyncService(private val context: Context) {
             return
         }
 
+        val currentUserId = auth?.currentUser?.uid ?: ""
+
         val data = hashMapOf(
             "id" to request.id,
+            "userId" to currentUserId,
             "patientName" to request.patientName,
             "bloodGroupNeeded" to request.bloodGroupNeeded,
             "unitsRequired" to request.unitsRequired,
@@ -190,6 +210,7 @@ class FirebaseSyncService(private val context: Context) {
 
     /**
      * Listen for real-time registered donors from Firebase server.
+     * Sanitized projection: private PII (email, phone, street address) is never exposed.
      */
     fun listenToDonors(onUpdate: (List<UserProfile>) -> Unit) {
         val db = firestore ?: return
@@ -206,12 +227,12 @@ class FirebaseSyncService(private val context: Context) {
                             try {
                                 UserProfile(
                                     id = doc.getString("id") ?: doc.id,
-                                    name = doc.getString("name") ?: "Volunteer Donor",
-                                    email = doc.getString("email") ?: "",
-                                    phone = doc.getString("phone") ?: "",
+                                    name = doc.getString("displayName") ?: doc.getString("name") ?: "Volunteer Donor",
+                                    email = "", // Sanitized - private to owner
+                                    phone = "", // Sanitized - private to owner
                                     bloodGroup = doc.getString("bloodGroup") ?: "O+",
                                     city = doc.getString("city") ?: "",
-                                    address = doc.getString("address") ?: "",
+                                    address = "", // Sanitized - private to owner
                                     totalDonations = (doc.getLong("totalDonations") ?: 0L).toInt(),
                                     livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
                                     isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true
@@ -231,12 +252,17 @@ class FirebaseSyncService(private val context: Context) {
     }
 
     /**
-     * Sync user profile to Firestore
+     * Sync user profile to Firestore.
+     * Step 2: Full details (email, phone, address) are written exclusively to private /users/{userId}.
+     * Only a sanitized projection is written to public /donors/{userId}.
      */
     fun saveUserProfile(profile: UserProfile) {
         val db = firestore ?: return
-        val data = hashMapOf(
-            "id" to profile.id,
+        val currentUserId = auth?.currentUser?.uid ?: profile.id.ifBlank { "usr_${System.currentTimeMillis()}" }
+
+        // 1. Private User Profile (Full data under /users/{userId})
+        val privateData = hashMapOf(
+            "id" to currentUserId,
             "name" to profile.name,
             "email" to profile.email,
             "phone" to profile.phone,
@@ -246,21 +272,39 @@ class FirebaseSyncService(private val context: Context) {
             "totalDonations" to profile.totalDonations,
             "livesSaved" to profile.livesSaved,
             "isAvailableDonor" to profile.isAvailableDonor,
-            "updatedAt" to System.currentTimeMillis()
+            "lastUpdated" to FieldValue.serverTimestamp()
         )
-        db.collection("users").document(profile.id).set(data, SetOptions.merge())
+        db.collection("users").document(currentUserId).set(privateData, SetOptions.merge())
+
+        // 2. Public Directory Projection (Sanitized data under /donors/{userId})
         if (profile.isAvailableDonor) {
-            db.collection("donors").document(profile.id).set(data, SetOptions.merge())
+            val sanitizedPublicData = hashMapOf(
+                "id" to currentUserId,
+                "displayName" to if (profile.name.isNotBlank()) profile.name.take(1).uppercase() + "***" else "Volunteer Donor",
+                "bloodGroup" to profile.bloodGroup,
+                "city" to profile.city,
+                "totalDonations" to profile.totalDonations,
+                "livesSaved" to profile.livesSaved,
+                "isAvailableDonor" to true,
+                "lastUpdated" to FieldValue.serverTimestamp()
+            )
+            db.collection("donors").document(currentUserId).set(sanitizedPublicData, SetOptions.merge())
+        } else {
+            // Remove from public registry if marked unavailable
+            db.collection("donors").document(currentUserId).delete()
         }
     }
 
     /**
-     * Save booked appointment to Firestore
+     * Save booked appointment to Firestore.
+     * Includes userId to enforce Firestore ownership rules.
      */
     fun saveAppointment(appointment: Appointment) {
         val db = firestore ?: return
+        val currentUserId = auth?.currentUser?.uid ?: ""
         val data = hashMapOf(
             "id" to appointment.id,
+            "userId" to currentUserId,
             "bloodBankId" to appointment.bloodBankId,
             "bloodBankName" to appointment.bloodBankName,
             "bloodBankAddress" to appointment.bloodBankAddress,

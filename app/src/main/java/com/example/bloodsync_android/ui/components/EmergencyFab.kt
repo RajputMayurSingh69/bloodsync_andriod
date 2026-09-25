@@ -25,9 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.bloodsync_android.ui.theme.BloodRedDark
-import com.example.bloodsync_android.ui.theme.BloodRedPrimary
-import com.example.bloodsync_android.ui.theme.MedicalWhite
+import com.example.bloodsync_android.ui.theme.*
 
 @Composable
 fun EmergencyFloatingButton(
@@ -88,7 +86,7 @@ fun EmergencyFloatingButton(
                     .fillMaxSize()
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(Color(0xFFE53935), BloodRedDark)
+                            colors = listOf(BloodRedPrimary, BloodRedDark)
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -126,9 +124,9 @@ fun EmergencyBannerCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onTriggerEmergency),
-        color = Color(0xFFFEF2F2),
+        color = BloodRedLight,
         shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA))
+        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedContainer)
     ) {
         Row(
             modifier = Modifier
@@ -165,7 +163,7 @@ fun EmergencyBannerCard(
                     Text(
                         text = "Broadcast urgent blood need instantly",
                         fontSize = 12.sp,
-                        color = Color(0xFF7F1D1D)
+                        color = BloodRedDark
                     )
                 }
             }

@@ -107,11 +107,21 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val publicNotification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(com.example.bloodsync_android.R.mipmap.ic_launcher)
+            .setContentTitle("BloodSync Alert")
+            .setContentText("You have a new confidential update.")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(com.example.bloodsync_android.R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicNotification)
             .setPriority(
                 if (type == NotificationType.EMERGENCY)
                     NotificationCompat.PRIORITY_HIGH

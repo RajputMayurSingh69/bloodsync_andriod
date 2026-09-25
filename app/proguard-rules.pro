@@ -20,6 +20,10 @@
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
 
+# Jetpack Security Crypto & Keystore
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
+
 # Kotlin Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
@@ -27,9 +31,10 @@
     volatile <fields>;
 }
 
-# Strip all debug logging in release builds for hacker protection
+# Strip all verbose, debug, and info logging in release builds for hacker protection
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
     public static int d(...);
+    public static int i(...);
 }

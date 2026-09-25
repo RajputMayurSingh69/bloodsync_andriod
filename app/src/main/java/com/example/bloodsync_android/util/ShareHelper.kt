@@ -19,6 +19,15 @@ object ShareHelper {
             cleanPhone = cleanPhone.substring(1)
         }
         
+        if (cleanPhone.length < 7) {
+            Toast.makeText(
+                context,
+                "Donor phone number is protected for privacy. Broadcast an Emergency SOS to connect with nearby donors!",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        
         try {
             val encodedMessage = Uri.encode(prefillMessage)
             val uri = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=$encodedMessage")

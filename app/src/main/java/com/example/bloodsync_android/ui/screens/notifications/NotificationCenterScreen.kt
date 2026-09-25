@@ -286,11 +286,11 @@ fun NotificationItemCard(
             .clickable(onClick = onItemClick),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) Color(0xFFFFF9F9) else MedicalWhite
+            containerColor = if (!notification.isRead) BloodRedLight else MedicalWhite
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (!notification.isRead) Color(0xFFFFCDD2) else MedicalBorder
+            if (!notification.isRead) BloodRedContainer else MedicalBorder
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (!notification.isRead) 2.dp else 0.5.dp)
     ) {
@@ -307,9 +307,9 @@ fun NotificationItemCard(
                     .background(
                         when (notification.type) {
                             NotificationType.EMERGENCY -> StatusUrgentRedLight
-                            NotificationType.APPOINTMENT -> StatusInfoBlueLight
+                            NotificationType.APPOINTMENT -> StatusWarningAmberLight
                             NotificationType.ELIGIBILITY -> StatusEligibleGreenLight
-                            NotificationType.CERTIFICATE -> Color(0xFFFEF3C7)
+                            NotificationType.CERTIFICATE -> AlertYellowLight
                             NotificationType.SYSTEM -> MedicalSurfaceVariant
                         },
                         CircleShape
@@ -327,7 +327,7 @@ fun NotificationItemCard(
                     contentDescription = null,
                     tint = when (notification.type) {
                         NotificationType.EMERGENCY -> StatusUrgentRed
-                        NotificationType.APPOINTMENT -> StatusInfoBlue
+                        NotificationType.APPOINTMENT -> StatusWarningAmber
                         NotificationType.ELIGIBILITY -> StatusEligibleGreen
                         NotificationType.CERTIFICATE -> CertificateGold
                         NotificationType.SYSTEM -> MedicalTextSecondary

@@ -2,47 +2,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Emergency Requests Security Rules
-    match /emergency_requests/{requestId} {
-      // Donors need to view incoming emergency requests
-      allow read: if true;
-
-      // Ensure creation has valid types, lengths, and valid blood group
-      allow create: if request.resource.data.hospitalName is string
-                    && request.resource.data.hospitalName.size() >= 3
-                    && request.resource.data.hospitalName.size() <= 100
-                    && request.resource.data.unitsRequired is int
-                    && request.resource.data.unitsRequired >= 1
-                    && request.resource.data.unitsRequired <= 10
-                    && request.resource.data.bloodGroupNeeded in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-
-      // Allow status updates (e.g. donors responding), but disallow deletion
-      allow update: if true;
-      allow delete: if false;
+    // Authenticated helper
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Blood Banks Directory: Public can read; only authorized admins can write
+    // Owner helper
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Public donor directory: Read-only for authenticated users, owner write
+    match /donors/{donorId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(donorId);
+    }
+
+    // User profiles: Only the profile owner can read or write
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Appointments: Only the owner can view or edit
+    match /appointments/{appointmentId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Emergency SOS requests: Authenticated users can view and create
+    match /emergency_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    // Certified Blood Banks Directory: Read-only for all users, write restricted
     match /blood_banks/{bankId} {
       allow read: if true;
       allow write: if false;
-    }
-
-    // Registered Donors Directory
-    match /donors/{donorId} {
-      allow read: if true;
-      allow write: if request.resource.data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-                   && request.resource.data.name is string
-                   && request.resource.data.name.size() >= 2;
-    }
-
-    // Appointments
-    match /appointments/{appointmentId} {
-      allow read, write: if true;
-    }
-
-    // Users collection
-    match /users/{userId} {
-      allow read, write: if true;
     }
   }
 }

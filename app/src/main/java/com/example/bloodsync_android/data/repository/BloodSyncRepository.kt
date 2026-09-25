@@ -2,6 +2,8 @@ package com.example.bloodsync_android.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -24,8 +26,22 @@ enum class ThemeMode {
 
 class BloodSyncRepository(private val context: Context) {
 
-    private val prefs: SharedPreferences =
+    // Initialize AES256-encrypted preferences using Android Jetpack Security MasterKey
+    private val masterKey: MasterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val prefs: SharedPreferences = try {
+        EncryptedSharedPreferences.create(
+            context,
+            "bloodsync_secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (_: Exception) {
         context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
+    }
 
     // Firebase Cloud Sync Service
     val firebaseService: FirebaseSyncService = FirebaseSyncService(context)
@@ -720,6 +736,25 @@ class BloodSyncRepository(private val context: Context) {
 
     private fun loadFromPrefs() {
         try {
+            // Migrate legacy unencrypted preferences to AES256-encrypted preferences if present
+            try {
+                val oldPrefs = context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
+                if (oldPrefs.contains("is_logged_in") && !prefs.contains("is_logged_in")) {
+                    val editor = prefs.edit()
+                    for ((k, v) in oldPrefs.all) {
+                        when (v) {
+                            is String -> editor.putString(k, v)
+                            is Boolean -> editor.putBoolean(k, v)
+                            is Int -> editor.putInt(k, v)
+                            is Long -> editor.putLong(k, v)
+                            is Float -> editor.putFloat(k, v)
+                        }
+                    }
+                    editor.apply()
+                    oldPrefs.edit().clear().apply()
+                }
+            } catch (_: Exception) {}
+
             val isLoggedIn = prefs.getBoolean("is_logged_in", false)
             _isUserLoggedIn.value = isLoggedIn
 

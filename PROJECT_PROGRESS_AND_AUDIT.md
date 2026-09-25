@@ -62,27 +62,34 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
 - **Populated Verified Regional Donors & Blood Banks**: Replaced the bleak "No registered donors yet" empty screen with interactive community cards with direct one-tap WhatsApp integration and appointment scheduling.
 - **Clean Header Formatting**: Removed the trailing comma bug (`"Welcome back, "`) with smart first-name parsing and context badges.
 
+### 8. Strict 4-Color Palette & Eye-Catching Simple UI Overhaul (v2.1.0)
+- **Strict Color Constraint Enforced**: The visual design uses exclusively **Red, Green, White, and Yellow**. All blues, purples, oranges, and off-palette colors have been eliminated.
+  - **Red (`#D32F2F`, `#B71C1C`, `#FFEBEE`)**: Emergency SOS triggers, blood group badges, critical alerts, broadcast buttons.
+  - **Green (`#2E7D32`, `#E8F5E9`)**: Active live donor beacons, verified badges, WHO eligibility success, WhatsApp contact buttons.
+  - **White (`#FFFFFF`, `#F8F9FA`)**: Clean medical-grade cards, surfaces, backgrounds, tactile action buttons.
+  - **Yellow (`#F57F17`, `#FBC02D`, `#FFFDE7`)**: 90-day WHO recovery countdown, upcoming appointment status, lifesaver certificate seals.
+- **Eye-Catching Hero Radar**: Animated radar pulse wave on the Emergency SOS card with unmissable 1-tap "REQUEST BLOOD (1-TAP SOS)" CTA.
+- **Zero-Friction Emergency UX**: 3-step SOS form with large blood group chips, units counter stepper, urgency chips, and 1-tap broadcast.
+- **WHO 90-Day Safety Dial**: Animated circular donut gauge tracking donation intervals and countdown to next eligible donation.
+- **Spring-Animated Blood Filter Carousel**: Fast horizontal pill selector for instant matching donor filtering.
+- **Data Leakage & Privacy Hardening**:
+  - Replaced plaintext preferences with hardware-backed `EncryptedSharedPreferences` (`AES256_GCM`).
+  - Added `WindowManager.LayoutParams.FLAG_SECURE` to block task-switcher screenshots.
+  - Redacted notification payload on lock screen using `NotificationCompat.VISIBILITY_PRIVATE`.
+  - Blocked USB/cloud extraction in `data_extraction_rules.xml` & `backup_rules.xml`.
+  - Enforced authenticated/owner-only rules in `firestore.rules`.
+
 ---
 
 ## 📂 File Deliverables & Locations
 
 | File / Location | Description |
 |---|---|
-| `c:\Users\ADMIN\AndroidStudioProjects\bloodsync_android\bloodsync-v2.0.0.apk` | Workspace Root APK |
-| `C:\Users\ADMIN\Desktop\bloodsync-v2.0.0.apk` | Desktop Mirror APK |
-| `https://gofile.io/d/RZzdjYI6` | Cloud Direct Download Link (GoFile v2.0.0 Clean 3D Drop Icon Build) |
-| `firestore.rules` | Production Firebase Security Rules |
-| `app/proguard-rules.pro` | Obfuscation and Security Rules |
+| `bloodsync-v2.1.0-eye-catching-ui.apk` | **Latest Eye-Catching Simple UI APK (Strict Red/Green/White/Yellow)** |
+| `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Build |
+| `firestore.rules` | Hardened Firebase Security Rules |
+| `app/proguard-rules.pro` | Obfuscation, Minification & Log-stripping Rules |
 | `app/src/main/res/xml/network_security_config.xml` | TLS / Cleartext Network Rules |
+| `app/src/main/res/xml/data_extraction_rules.xml` | Block USB / Device Transfer Extraction |
 | `app/src/main/java/com/example/bloodsync_android/util/ValidationHelper.kt` | Input Validation & Sanitization Engine |
 | `app/src/main/java/com/example/bloodsync_android/ui/components/ExitConfirmationDialog.kt` | Back Button Exit Dialog Component |
-
----
-
-## 🔮 Future Roadmap (Next Milestones)
-
-1. **Firebase Cloud Messaging (FCM)**: Background push notifications with high-priority siren alert for urgent SOS broadcasts when the app is closed.
-2. **Interactive Map (Google Maps / Mapbox)**: Live radar view displaying nearby donors and blood banks on a map.
-3. **Firebase Phone Auth (OTP)**: 6-digit SMS verification to authenticate donor phone numbers.
-4. **PDF Certificate Export**: Vector-based PDF certificate generation for sharing on professional networks.
-5. **Government Blood Bank APIs**: Live inventory counts connected to national donor registries (e-RaktKosh).

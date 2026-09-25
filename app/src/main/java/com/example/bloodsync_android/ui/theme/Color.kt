@@ -5,44 +5,54 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Primary BloodSync Red Palette
-val BloodRedPrimary = Color(0xFFD32F2F)      // Primary Healthcare Red
-val BloodRedDark = Color(0xFFB71C1C)         // Dark Crimson
-val BloodRedSecondary = Color(0xFFC62828)    // Secondary Red
-val BloodRedLight = Color(0xFFFFEBEE)        // Soft Crimson Tint
-val BloodRedContainer = Color(0xFFFFCDD2)    // Light Red Container
-val BloodCrimson = Color(0xFF8B0000)         // Deep Certificate Crimson
+// =======================================================================
+// STRICT 4-COLOR PALETTE: RED, GREEN, WHITE, YELLOW ONLY
+// Optimized for emergency readability, high contrast, and zero confusion.
+// =======================================================================
 
-// Background and Surface Colors (Light Defaults)
+// 1. RED (Emergency SOS, blood groups, primary actions, urgent alerts)
+val BloodRedPrimary = Color(0xFFD32F2F)
+val BloodRedDark = Color(0xFFB71C1C)
+val BloodRedSecondary = Color(0xFFC62828)
+val BloodRedLight = Color(0xFFFFEBEE)
+val BloodRedContainer = Color(0xFFFFCDD2)
+val BloodCrimson = Color(0xFFB71C1C)
+val StatusUrgentRed = Color(0xFFD32F2F)
+val StatusUrgentRedLight = Color(0xFFFFEBEE)
+
+// 2. GREEN (Eligible to donate, available, call/WhatsApp, success, verified)
+val StatusEligibleGreen = Color(0xFF2E7D32)
+val StatusEligibleGreenLight = Color(0xFFE8F5E9)
+
+// 3. WHITE (Clean, sterile, high contrast surfaces & cards)
 val MedicalWhite = Color(0xFFFFFFFF)
-val MedicalBackground = Color(0xFFF9FAFB)     // Clean medical gray-white
+val MedicalBackground = Color(0xFFFFFFFF)
 val MedicalSurface = Color(0xFFFFFFFF)
-val MedicalSurfaceVariant = Color(0xFFF3F4F6)
-val MedicalBorder = Color(0xFFE5E7EB)
+val MedicalSurfaceVariant = Color(0xFFF8F9FA)
+val MedicalBorder = Color(0xFFE0E0E0)
 val MedicalDivider = Color(0xFFEEEEEE)
 
-// Typography Colors
-val MedicalTextPrimary = Color(0xFF111827)   // Charcoal Black
-val MedicalTextSecondary = Color(0xFF4B5563) // Balanced Neutral Gray
-val MedicalTextMuted = Color(0xFF9CA3AF)     // Light Neutral Gray
+// 4. YELLOW (Waiting, cooldown period, warning alerts, milestones)
+val StatusWarningAmber = Color(0xFFF57F17)
+val StatusWarningAmberLight = Color(0xFFFFFDE7)
+val AlertYellow = Color(0xFFFBC02D)
+val AlertYellowLight = Color(0xFFFFFDE7)
+val CertificateGold = Color(0xFFF57F17)
+val CertificateGoldDark = Color(0xFFF57F17)
+val CertificateSealGold = Color(0xFFFBC02D)
+val AlertYellowDark = Color(0xFFF57F17)
 
-// Status & Accent Colors
-val StatusEligibleGreen = Color(0xFF16A34A)  // Success Green
-val StatusEligibleGreenLight = Color(0xFFDCFCE7)
-val StatusWarningAmber = Color(0xFFD97706)   // Amber / Countdown
-val StatusWarningAmberLight = Color(0xFFFEF3C7)
-val StatusUrgentRed = Color(0xFFDC2626)      // Urgent / Emergency
-val StatusUrgentRedLight = Color(0xFFFEE2E2)
-val StatusInfoBlue = Color(0xFF2563EB)
-val StatusInfoBlueLight = Color(0xFFDBEAFE)
+// No Blue: Map info states to Yellow or Green for strict palette adherence
+val StatusInfoBlue = Color(0xFFF57F17)
+val StatusInfoBlueLight = Color(0xFFFFFDE7)
 
-// Gold for Certificate
-val CertificateGold = Color(0xFFD97706)
-val CertificateGoldDark = Color(0xFF92400E)
-val CertificateSealGold = Color(0xFFFBBF24)
+// Text Colors (High Contrast Black & Charcoal on White)
+val MedicalTextPrimary = Color(0xFF1E1E1E)   // Pure high-contrast dark text
+val MedicalTextSecondary = Color(0xFF424242) // Crisp secondary text
+val MedicalTextMuted = Color(0xFF757575)     // Clear muted text
 
 /**
- * Adaptive Design Tokens for Light & Dark Mode
+ * Adaptive Design Tokens for Light & Dark Mode (Strict Red, Green, White, Yellow)
  */
 data class BloodSyncColors(
     val isDark: Boolean,
@@ -69,39 +79,39 @@ val LightBloodSyncColors = BloodSyncColors(
     primary = BloodRedPrimary,
     primaryLight = BloodRedLight,
     primaryDark = BloodRedDark,
-    background = Color(0xFFF9FAFB),
+    background = Color(0xFFFFFFFF),
     surface = Color(0xFFFFFFFF),
     cardBackground = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFFF3F4F6),
-    border = Color(0xFFE5E7EB),
+    surfaceVariant = Color(0xFFF8F9FA),
+    border = Color(0xFFE0E0E0),
     divider = Color(0xFFEEEEEE),
-    textPrimary = Color(0xFF111827),
-    textSecondary = Color(0xFF4B5563),
-    textMuted = Color(0xFF9CA3AF),
+    textPrimary = Color(0xFF1E1E1E),
+    textSecondary = Color(0xFF424242),
+    textMuted = Color(0xFF757575),
     topBarBackground = Color(0xFFFFFFFF),
     bottomNavBackground = Color(0xFFFFFFFF),
-    inputBackground = Color(0xFFF9FAFB),
-    badgeBackground = Color(0xFFF3F4F6)
+    inputBackground = Color(0xFFFFFFFF),
+    badgeBackground = Color(0xFFF8F9FA)
 )
 
 val DarkBloodSyncColors = BloodSyncColors(
     isDark = true,
-    primary = Color(0xFFEF4444),          // High contrast bright red for dark surfaces
-    primaryLight = Color(0xFF3B1215),     // Deep dark crimson tint
-    primaryDark = Color(0xFFDC2626),
-    background = Color(0xFF0B0F17),       // Deep slate-black canvas
-    surface = Color(0xFF161E2E),          // Elevated surface
-    cardBackground = Color(0xFF161E2E),   // Crisp dark card container
-    surfaceVariant = Color(0xFF222F45),   // Highlighted chip/element surface
-    border = Color(0xFF2B3A52),           // Visible subtle dark border
-    divider = Color(0xFF1E293B),
-    textPrimary = Color(0xFFF8FAFC),      // Crisp high-contrast white text
-    textSecondary = Color(0xFF94A3B8),    // Muted slate text
-    textMuted = Color(0xFF64748B),        // Soft slate gray
-    topBarBackground = Color(0xFF0F172A), // Seamless dark top app bar
-    bottomNavBackground = Color(0xFF161E2E), // Elevated bottom navigation bar
-    inputBackground = Color(0xFF161E2E),
-    badgeBackground = Color(0xFF222F45)
+    primary = Color(0xFFE53935),
+    primaryLight = Color(0xFF3B1215),
+    primaryDark = Color(0xFFB71C1C),
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    cardBackground = Color(0xFF1E1E1E),
+    surfaceVariant = Color(0xFF2A2A2A),
+    border = Color(0xFF333333),
+    divider = Color(0xFF2A2A2A),
+    textPrimary = Color(0xFFFFFFFF),
+    textSecondary = Color(0xFFCCCCCC),
+    textMuted = Color(0xFF888888),
+    topBarBackground = Color(0xFF1E1E1E),
+    bottomNavBackground = Color(0xFF1E1E1E),
+    inputBackground = Color(0xFF2A2A2A),
+    badgeBackground = Color(0xFF2A2A2A)
 )
 
 val LocalBloodSyncColors = staticCompositionLocalOf { LightBloodSyncColors }

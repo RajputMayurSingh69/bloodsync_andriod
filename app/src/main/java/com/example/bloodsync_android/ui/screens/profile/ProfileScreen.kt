@@ -122,7 +122,7 @@ fun ProfileScreen(
                     StatusBadge(
                         text = "🏆 Silver Lifesaver (${profile.totalDonations} Donations)",
                         textColor = CertificateGoldDark,
-                        backgroundColor = Color(0xFFFEF3C7)
+                        backgroundColor = AlertYellowLight
                     )
                 }
             }

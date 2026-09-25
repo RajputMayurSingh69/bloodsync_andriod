@@ -27,6 +27,11 @@ import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.theme.*
 import com.example.bloodsync_android.util.ValidationHelper
 
+/**
+ * Super Simple, Fast Emergency Request Screen.
+ * Strict Palette: RED, GREEN, WHITE, YELLOW ONLY.
+ * Designed for immediate SOS submission without confusion during emergencies.
+ */
 @Composable
 fun EmergencyRequestScreen(
     repository: BloodSyncRepository,
@@ -36,7 +41,7 @@ fun EmergencyRequestScreen(
 ) {
     val unreadNotifs by repository.unreadNotificationCount
 
-    var selectedGroup by remember { mutableStateOf("O-") }
+    var selectedGroup by remember { mutableStateOf("O+") }
     var unitsRequired by remember { mutableIntStateOf(2) }
     var urgencyLevel by remember { mutableStateOf(UrgencyLevel.IMMEDIATE) }
 
@@ -52,8 +57,8 @@ fun EmergencyRequestScreen(
     Scaffold(
         topBar = {
             BloodSyncTopBar(
-                title = "24/7 Emergency Request",
-                subtitle = "Urgent Donor Broadcast",
+                title = "Emergency Request",
+                subtitle = "Fast SOS Broadcast",
                 showBackButton = true,
                 onBackClick = onBackClick,
                 unreadCount = unreadNotifs,
@@ -61,22 +66,21 @@ fun EmergencyRequestScreen(
             )
         },
         contentWindowInsets = WindowInsets.systemBars,
-        containerColor = BloodSyncTheme.colors.background
+        containerColor = MedicalWhite
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Urgent Header Warning
+            // Urgent Red Alert Header
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = StatusUrgentRedLight),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECACA))
+                colors = CardDefaults.cardColors(containerColor = BloodRedPrimary)
             ) {
                 Row(
                     modifier = Modifier.padding(14.dp),
@@ -85,102 +89,27 @@ fun EmergencyRequestScreen(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = StatusUrgentRed,
+                        tint = MedicalWhite,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Urgent Real-Time Broadcast",
-                            fontWeight = FontWeight.Bold,
+                            text = "🚨 LIVE EMERGENCY BROADCAST",
+                            fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
-                            color = BloodRedDark
+                            color = MedicalWhite
                         )
                         Text(
-                            text = "Submitting this form immediately pushes high-priority notifications to all verified matching donors within 10km.",
-                            fontSize = 11.sp,
-                            color = Color(0xFF7F1D1D)
+                            text = "This form alerts all verified donors within 10km immediately.",
+                            fontSize = 12.sp,
+                            color = MedicalWhite.copy(alpha = 0.9f)
                         )
                     }
                 }
             }
 
-            // Step 1: Urgency Level Selector
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Urgency Level",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MedicalTextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    UrgencyLevel.entries.forEach { level ->
-                        val isSelected = urgencyLevel == level
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { urgencyLevel = level }
-                                .border(
-                                    width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) Color(level.badgeColorHex) else MedicalBorder,
-                                    shape = RoundedCornerShape(8.dp)
-                                ),
-                            color = if (isSelected) Color(level.badgeColorHex).copy(alpha = 0.08f) else MedicalWhite
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(
-                                        selected = isSelected,
-                                        onClick = { urgencyLevel = level },
-                                        colors = RadioButtonDefaults.colors(
-                                            selectedColor = Color(level.badgeColorHex)
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = level.label,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = MedicalTextPrimary
-                                    )
-                                }
-
-                                if (level == UrgencyLevel.IMMEDIATE) {
-                                    Surface(
-                                        color = StatusUrgentRed,
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "CRITICAL",
-                                            color = MedicalWhite,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Black,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Step 2: Blood Group & Units Stepper
+            // Step 1: Blood Group & Units (Most Critical Information)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -194,7 +123,7 @@ fun EmergencyRequestScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = MedicalBorder, thickness = 0.5.dp)
+                    HorizontalDivider(color = MedicalDivider, thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
@@ -210,7 +139,7 @@ fun EmergencyRequestScreen(
                                 color = MedicalTextPrimary
                             )
                             Text(
-                                text = "Standard blood bags (450ml each)",
+                                text = "Whole blood bags needed",
                                 fontSize = 11.sp,
                                 color = MedicalTextSecondary
                             )
@@ -222,22 +151,30 @@ fun EmergencyRequestScreen(
                         ) {
                             FilledTonalIconButton(
                                 onClick = { if (unitsRequired > 1) unitsRequired-- },
-                                enabled = unitsRequired > 1
+                                enabled = unitsRequired > 1,
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = BloodRedLight,
+                                    contentColor = BloodRedPrimary
+                                )
                             ) {
                                 Icon(Icons.Default.Remove, contentDescription = "Decrease")
                             }
 
                             Text(
                                 text = "$unitsRequired",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Black,
                                 color = BloodRedPrimary,
-                                modifier = Modifier.padding(horizontal = 8.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp)
                             )
 
                             FilledTonalIconButton(
                                 onClick = { if (unitsRequired < 10) unitsRequired++ },
-                                enabled = unitsRequired < 10
+                                enabled = unitsRequired < 10,
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = BloodRedLight,
+                                    contentColor = BloodRedPrimary
+                                )
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Increase")
                             }
@@ -246,7 +183,77 @@ fun EmergencyRequestScreen(
                 }
             }
 
-            // Step 3: Hospital & Contact Information
+            // Step 2: Urgency Selection (Strict Red / Yellow / Green)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MedicalWhite),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Urgency Level",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MedicalTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        UrgencyLevel.entries.forEach { level ->
+                            val isSelected = urgencyLevel == level
+                            val activeColor = when (level) {
+                                UrgencyLevel.IMMEDIATE -> BloodRedPrimary
+                                UrgencyLevel.URGENT -> StatusWarningAmber
+                                UrgencyLevel.WITHIN_24_HOURS -> StatusEligibleGreen
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { urgencyLevel = level }
+                                    .border(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        color = if (isSelected) activeColor else MedicalBorder,
+                                        shape = RoundedCornerShape(8.dp)
+                                    ),
+                                color = if (isSelected) activeColor else MedicalWhite
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = when (level) {
+                                            UrgencyLevel.IMMEDIATE -> "Immediate"
+                                            UrgencyLevel.URGENT -> "Urgent"
+                                            UrgencyLevel.WITHIN_24_HOURS -> "24 Hours"
+                                        },
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) MedicalWhite else MedicalTextPrimary
+                                    )
+                                    Text(
+                                        text = when (level) {
+                                            UrgencyLevel.IMMEDIATE -> "< 1 hr"
+                                            UrgencyLevel.URGENT -> "< 3 hrs"
+                                            UrgencyLevel.WITHIN_24_HOURS -> "< 24 hrs"
+                                        },
+                                        fontSize = 10.sp,
+                                        color = if (isSelected) MedicalWhite.copy(alpha = 0.9f) else MedicalTextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Step 3: Hospital & Contact Info
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -258,40 +265,19 @@ fun EmergencyRequestScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Hospital & Patient Information",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Hospital & Contact Details",
                         fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
                         color = MedicalTextPrimary
-                    )
-
-                    OutlinedTextField(
-                        value = patientName,
-                        onValueChange = { patientName = it },
-                        label = { Text("Patient Name / Ward (Optional)") },
-                        placeholder = { Text("e.g. Rahul Sharma / ICU Bed 4", color = MedicalTextMuted) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
                     )
 
                     OutlinedTextField(
                         value = hospitalName,
                         onValueChange = { hospitalName = it },
                         label = { Text("Hospital Name *") },
-                        placeholder = { Text("e.g. AIIMS Trauma Center", color = MedicalTextMuted) },
+                        placeholder = { Text("e.g. City General Hospital", color = MedicalTextMuted) },
                         leadingIcon = {
                             Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = hospitalAddress,
-                        onValueChange = { hospitalAddress = it },
-                        label = { Text("Hospital Address / Wing") },
-                        placeholder = { Text("e.g. Block B, Ring Road", color = MedicalTextMuted) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Place, contentDescription = null, tint = MedicalTextMuted)
                         },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -303,7 +289,7 @@ fun EmergencyRequestScreen(
                         label = { Text("Emergency Contact Phone *") },
                         placeholder = { Text("e.g. 9876543210", color = MedicalTextMuted) },
                         leadingIcon = {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = MedicalTextMuted)
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = StatusEligibleGreen)
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
@@ -311,32 +297,44 @@ fun EmergencyRequestScreen(
                     )
 
                     OutlinedTextField(
-                        value = additionalNotes,
-                        onValueChange = { additionalNotes = it },
-                        label = { Text("Medical Reason / Notes") },
-                        placeholder = { Text("e.g. Scheduled emergency surgery, urgently needed", color = MedicalTextMuted) },
-                        maxLines = 3,
+                        value = hospitalAddress,
+                        onValueChange = { hospitalAddress = it },
+                        label = { Text("Hospital Address / Ward (Optional)") },
+                        placeholder = { Text("e.g. Ward 4, Ring Road", color = MedicalTextMuted) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = patientName,
+                        onValueChange = { patientName = it },
+                        label = { Text("Patient Name (Optional)") },
+                        placeholder = { Text("e.g. Amit Kumar", color = MedicalTextMuted) },
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
+            // Validation Error Alert (Red)
             if (validationError != null) {
                 Surface(
-                    color = StatusUrgentRedLight,
+                    color = BloodRedLight,
                     shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = validationError ?: "",
-                        color = StatusUrgentRed,
-                        fontSize = 12.sp,
+                        color = BloodRedPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(12.dp)
                     )
                 }
             }
 
-            // Broadcast Trigger Button
+            // Big Bold Broadcast Button (Red with White text)
             Button(
                 onClick = {
                     val hospitalValidation = ValidationHelper.validateHospitalName(hospitalName)
@@ -380,7 +378,7 @@ fun EmergencyRequestScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(54.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                 shape = RoundedCornerShape(12.dp),
                 enabled = !isSubmitting
@@ -388,12 +386,12 @@ fun EmergencyRequestScreen(
                 if (isSubmitting) {
                     CircularProgressIndicator(color = MedicalWhite, modifier = Modifier.size(24.dp))
                 } else {
-                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp), tint = MedicalWhite)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Broadcast Emergency Request Now",
+                        text = "🚨 BROADCAST EMERGENCY SOS NOW",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = MedicalWhite
                     )
                 }

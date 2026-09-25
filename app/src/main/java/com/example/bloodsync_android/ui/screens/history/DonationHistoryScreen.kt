@@ -264,12 +264,12 @@ fun DonationHistoryCard(
                     },
                     textColor = when (record.status) {
                         DonationStatus.VERIFIED -> StatusEligibleGreen
-                        DonationStatus.COMPLETED -> StatusInfoBlue
+                        DonationStatus.COMPLETED -> StatusEligibleGreen
                         DonationStatus.IN_REVIEW -> StatusWarningAmber
                     },
                     backgroundColor = when (record.status) {
                         DonationStatus.VERIFIED -> StatusEligibleGreenLight
-                        DonationStatus.COMPLETED -> StatusInfoBlueLight
+                        DonationStatus.COMPLETED -> StatusEligibleGreenLight
                         DonationStatus.IN_REVIEW -> StatusWarningAmberLight
                     }
                 )

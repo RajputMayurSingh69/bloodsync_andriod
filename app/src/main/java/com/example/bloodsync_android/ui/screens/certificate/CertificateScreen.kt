@@ -118,7 +118,7 @@ fun CertificateScreen(
                                         color = if (isSelected) CertificateGold else MedicalBorder,
                                         shape = RoundedCornerShape(8.dp)
                                     ),
-                                color = if (isSelected) Color(0xFFFEF3C7) else MedicalWhite
+                                color = if (isSelected) AlertYellowLight else MedicalWhite
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -191,7 +191,7 @@ fun CertificateScreen(
 
                     // Authenticity & Verification note
                     Surface(
-                        color = Color(0xFFF9FAFB),
+                        color = MedicalSurfaceVariant,
                         shape = RoundedCornerShape(8.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MedicalBorder),
                         modifier = Modifier.fillMaxWidth()
@@ -230,8 +230,8 @@ fun CertificateCard(
             .fillMaxWidth()
             .shadow(6.dp, RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF8)), // Warm parchment white
-        border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFD97706)) // Gold border
+        colors = CardDefaults.cardColors(containerColor = MedicalWhite),
+        border = androidx.compose.foundation.BorderStroke(2.dp, StatusWarningAmber)
     ) {
         Column(
             modifier = Modifier
@@ -243,7 +243,7 @@ fun CertificateCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color(0xFFFDE68A), RoundedCornerShape(8.dp))
+                    .border(1.dp, AlertYellow.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                     .padding(14.dp)
             ) {
                 Column(
@@ -272,7 +272,7 @@ fun CertificateCard(
                         text = "CERTIFICATE OF APPRECIATION",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF78350F), // Deep bronze
+                        color = BloodRedDark,
                         letterSpacing = 1.sp,
                         textAlign = TextAlign.Center
                     )
@@ -298,7 +298,7 @@ fun CertificateCard(
                     )
 
                     HorizontalDivider(
-                        color = Color(0xFFD97706).copy(alpha = 0.5f),
+                        color = StatusWarningAmber.copy(alpha = 0.5f),
                         thickness = 1.dp,
                         modifier = Modifier.width(180.dp)
                     )
@@ -319,9 +319,9 @@ fun CertificateCard(
 
                     // Milestone & Details Grid
                     Surface(
-                        color = Color(0xFFFEF9C3).copy(alpha = 0.6f),
+                        color = AlertYellowLight,
                         shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE047)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, AlertYellow),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -413,11 +413,11 @@ fun GoldenCertificateSeal(size: Int) {
             .size(size.dp)
             .background(
                 brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                    colors = listOf(Color(0xFFFDE047), Color(0xFFD97706), Color(0xFF92400E))
+                    colors = listOf(AlertYellow, StatusWarningAmber, StatusWarningAmber)
                 ),
                 shape = CircleShape
             )
-            .border(2.dp, Color(0xFFFEF08A), CircleShape),
+            .border(2.dp, AlertYellowLight, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

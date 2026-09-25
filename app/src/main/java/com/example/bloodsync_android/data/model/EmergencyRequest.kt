@@ -1,9 +1,9 @@
 package com.example.bloodsync_android.data.model
 
 enum class UrgencyLevel(val label: String, val badgeColorHex: Long) {
-    IMMEDIATE("Immediate (< 1 Hour)", 0xFFDC2626),
-    URGENT("Urgent (< 3 Hours)", 0xFFEA580C),
-    WITHIN_24_HOURS("Within 24 Hours", 0xFF2563EB)
+    IMMEDIATE("Immediate (< 1 Hour)", 0xFFD32F2F),       // Red - Critical
+    URGENT("Urgent (< 3 Hours)", 0xFFF57F17),           // Yellow - High Priority
+    WITHIN_24_HOURS("Scheduled (< 24 Hours)", 0xFF2E7D32) // Green - Standard
 }
 
 enum class EmergencyStatus {

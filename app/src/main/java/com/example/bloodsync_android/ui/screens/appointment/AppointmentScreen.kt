@@ -875,13 +875,13 @@ fun AppointmentItemCard(
                 StatusBadge(
                     text = appointment.status.name,
                     textColor = when (appointment.status) {
-                        AppointmentStatus.UPCOMING -> StatusEligibleGreen
-                        AppointmentStatus.COMPLETED -> StatusInfoBlue
+                        AppointmentStatus.UPCOMING -> StatusWarningAmber
+                        AppointmentStatus.COMPLETED -> StatusEligibleGreen
                         AppointmentStatus.CANCELLED -> StatusUrgentRed
                     },
                     backgroundColor = when (appointment.status) {
-                        AppointmentStatus.UPCOMING -> StatusEligibleGreenLight
-                        AppointmentStatus.COMPLETED -> StatusInfoBlueLight
+                        AppointmentStatus.UPCOMING -> StatusWarningAmberLight
+                        AppointmentStatus.COMPLETED -> StatusEligibleGreenLight
                         AppointmentStatus.CANCELLED -> StatusUrgentRedLight
                     }
                 )

@@ -106,7 +106,7 @@ fun EmergencyLiveTrackingScreen(
                         LiveStatCard(
                             value = "${request.unitsRequired} Units",
                             label = "Needed: ${request.bloodGroupNeeded}",
-                            color = StatusInfoBlue,
+                            color = StatusWarningAmber,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -234,7 +234,7 @@ fun EmergencyLiveTrackingScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(

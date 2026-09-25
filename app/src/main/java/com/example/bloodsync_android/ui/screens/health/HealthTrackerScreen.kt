@@ -276,8 +276,8 @@ fun HealthTrackerScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0))
+                    colors = CardDefaults.cardColors(containerColor = StatusEligibleGreenLight),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -292,7 +292,7 @@ fun HealthTrackerScreen(
                                 text = "Donor Preparation Guidelines",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
-                                color = Color(0xFF14532D)
+                                color = StatusEligibleGreen
                             )
                         }
 
@@ -348,9 +348,9 @@ fun EligibilityStatusBanner(
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             when (result.status) {
-                EligibilityStatus.ELIGIBLE -> Color(0xFF86EFAC)
-                EligibilityStatus.ELIGIBLE_FUTURE -> Color(0xFFFDE68A)
-                EligibilityStatus.NOT_ELIGIBLE -> Color(0xFFFECACA)
+                EligibilityStatus.ELIGIBLE -> StatusEligibleGreen.copy(alpha = 0.4f)
+                EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmber.copy(alpha = 0.4f)
+                EligibilityStatus.NOT_ELIGIBLE -> StatusUrgentRed.copy(alpha = 0.4f)
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -429,7 +429,7 @@ fun EligibilityStatusBanner(
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = StatusWarningAmber,
-                    trackColor = Color(0xFFFEF3C7),
+                    trackColor = StatusWarningAmberLight,
                 )
                 Text(
                     text = "${90 - result.daysRemaining} of 90 recovery days elapsed",
@@ -549,8 +549,8 @@ fun ChecklistRow(
 @Composable
 fun HealthTipItem(title: String, description: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF14532D))
-        Text(text = description, fontSize = 11.sp, color = Color(0xFF166534), lineHeight = 16.sp)
+        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = StatusEligibleGreen)
+        Text(text = description, fontSize = 11.sp, color = MedicalTextSecondary, lineHeight = 16.sp)
     }
 }
 
