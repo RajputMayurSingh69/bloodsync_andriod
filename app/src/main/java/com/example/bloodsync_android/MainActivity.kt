@@ -19,12 +19,9 @@ import com.example.bloodsync_android.ui.theme.Bloodsync_androidTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Block screenshots and blank out task-switcher thumbnail for medical privacy
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
-        enableEdgeToEdge()
+        try {
+            enableEdgeToEdge()
+        } catch (_: Throwable) {}
         setContent {
             val repository = remember { BloodSyncRepository(applicationContext) }
             val themeMode by repository.themeMode

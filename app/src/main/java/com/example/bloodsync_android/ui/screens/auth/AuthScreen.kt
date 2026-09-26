@@ -51,7 +51,8 @@ fun AuthScreen(
     val currentLanguage by repository.appLanguage
     val strings = remember(currentLanguage) { LanguageManager.getStrings(currentLanguage) }
 
-    var isRegisterMode by remember { mutableStateOf(false) }
+    // Primary default mode is REGISTER FIRST as required by user
+    var isRegisterMode by remember { mutableStateOf(true) }
     var emailInput by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -74,10 +75,14 @@ fun AuthScreen(
 
     // Google Sign-In Client & Activity Result Launcher
     val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build()
+            GoogleSignIn.getClient(context, gso)
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -185,7 +190,7 @@ fun AuthScreen(
                     .padding(top = 4.dp, bottom = 20.dp)
             )
 
-            // Segmented Tab for Login / Register (Pill Shape)
+            // Segmented Tab: REGISTER FIRST (Left), SIGN IN SECOND (Right)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,27 +200,7 @@ fun AuthScreen(
                 border = BorderStroke(1.dp, appColors.border)
             ) {
                 Row(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(3.dp)
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(if (!isRegisterMode) appColors.cardBackground else Color.Transparent)
-                            .clickable {
-                                isRegisterMode = false
-                                errorMessage = null
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = strings.signIn,
-                            fontWeight = if (!isRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isRegisterMode) BloodRedPrimary else appColors.textSecondary,
-                            fontSize = 14.sp
-                        )
-                    }
-
+                    // 1. REGISTER AS DONOR (First, Default)
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -233,6 +218,28 @@ fun AuthScreen(
                             text = strings.registerDonor,
                             fontWeight = if (isRegisterMode) FontWeight.Bold else FontWeight.Medium,
                             color = if (isRegisterMode) BloodRedPrimary else appColors.textSecondary,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    // 2. SIGN IN (Second)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(3.dp)
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(if (!isRegisterMode) appColors.cardBackground else Color.Transparent)
+                            .clickable {
+                                isRegisterMode = false
+                                errorMessage = null
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = strings.signIn,
+                            fontWeight = if (!isRegisterMode) FontWeight.Bold else FontWeight.Medium,
+                            color = if (!isRegisterMode) BloodRedPrimary else appColors.textSecondary,
                             fontSize = 14.sp
                         )
                     }
@@ -683,7 +690,15 @@ fun AuthScreen(
                     Surface(
                         onClick = {
                             errorMessage = null
-                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                            if (googleSignInClient != null) {
+                                try {
+                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                } catch (e: Exception) {
+                                    errorMessage = "Google Play Services unavailable on this device."
+                                }
+                            } else {
+                                errorMessage = "Google Sign-In is unavailable on this device."
+                            }
                         },
                         shape = RoundedCornerShape(50.dp),
                         color = appColors.surfaceVariant,
