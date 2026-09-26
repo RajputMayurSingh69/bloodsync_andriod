@@ -1,9 +1,9 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** September 25, 2026  
-**Version:** v2.2.0 (Modern Pill UI, Universal Dark Mode & Dedicated Donors Directory)  
+**Date:** September 26, 2026  
+**Version:** v2.3.0 (Gender, Age 15+ Restriction, Post-Auth Language Popup & Universal Localization)  
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/tyug8Uls](https://gofile.io/d/tyug8Uls)  
+**Cloud Download Link:** [gofile.io/d/Ha87y5dK](https://gofile.io/d/Ha87y5dK)  
 
 ---
 
@@ -128,21 +128,51 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
   - Added native Google Sign-In full pill button on the authentication screen (`play-services-auth`).
   - Seamlessly signs in with Google account and registers donor in Firebase Cloud.
 
+### 12. Gender, Age (15+ Restriction) & Complete Dynamic Multi-Language Engine (v2.3.0)
+- **Donor Registration Enhancements**:
+  - Added **Gender Selection** (`Male` / `Female`) with tactile interactive pill selectors and icons.
+  - Added **Age Input Field** (`KeyboardType.Number`) with minimum age limit (15+ years).
+  - Implemented **Strict Age Restriction Engine**:
+    - Users under 15 years old are strictly blocked from registering as blood donors.
+    - Added instant real-time inline warning alert as soon as an age < 15 is typed.
+    - Added localized error message: `⚠️ Age Restriction: Minimum age required to register is 15 years old.` (also translated in Hindi & Gujarati).
+  - Saved `gender` and `age` into `UserProfile`, synced with local preferences and Firebase Firestore cloud.
+  - Profile screen updated with Gender and Age display rows and full edit capabilities.
+- **Post-Login & Post-Register Language Selection Popup (`LanguageSelectionDialog.kt`)**:
+  - Immediately following successful login (Email or Google) or registration, an interactive modal dialog appears asking the user to choose their preferred language / locale:
+    - 🇬🇧 **English**
+    - 🇮🇳 **हिंदी (Hindi)**
+    - 🇮🇳 **ગુજરાતી (Gujarati)**
+  - Tapping a language instantly switches the app and dialog text.
+  - Clicking the **"Continue"** button smoothly finishes the login flow and launches the app in that chosen language.
+- **Universal Dynamic Multi-Language Localization Engine**:
+  - Integrated `LocalAppStrings` and `LocalAppLanguage` `CompositionLocalProvider` in `BloodSyncApp.kt`.
+  - Expanded `AppLanguage.kt` with comprehensive, natural translations for English, Hindi (हिंदी), and Gujarati (ગુજરાતી).
+  - Connected dynamic translations into:
+    - `BloodSyncBottomNav`: Dynamic navigation tabs (Home, History, Safety, Book, Profile) in EN, HI, GU.
+    - `HomeScreen`: SOS Hero Card, 1-tap SOS trigger, Quick Service tiles, directory banners, top bar.
+    - `AuthScreen`: All labels, inputs, gender, age, warnings, errors, and Google sign-in.
+    - `ProfileScreen`: Donor metrics, details, gender, age, edit form, save/cancel buttons.
+    - `DonorsDirectoryScreen`: Search placeholder, filter chips, available badge, call & WhatsApp actions.
+    - `ExitConfirmationDialog`: Exit prompt, yes/no buttons in all languages.
+    - `SettingsScreen`: Interactive language cards, top bar, and theme options.
+
 ---
 
 ## 📂 File Deliverables & Locations
 
 | File / Location | Description |
 |---|---|
-| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/tyug8Uls) | **Latest Real Cloud, Multi-Language & Google Auth APK [Direct Cloud Download: gofile.io/d/tyug8Uls]** |
+| [`bloodsync-v2.3.0-multilingual-age-gender.apk`](https://gofile.io/d/Ha87y5dK) | **Latest Production Build with Gender, Age (15+ Restriction), Post-Auth Language Popup & Universal Multi-Language Support [Direct Cloud Download: gofile.io/d/Ha87y5dK]** |
+| [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/tyug8Uls) | Real Cloud, Multi-Language & Google Auth APK |
 | `bloodsync-v2.1.0-eye-catching-ui.apk` | v2.1.0 Eye-Catching Simple UI Build |
 | `bloodsync-v2.0.0-simple-ui.apk` | v2.0.0 Stable Release Build |
-| `firestore.rules` | Hardened Firebase Security Rules |
-| `app/proguard-rules.pro` | Obfuscation, Minification & Log-stripping Rules |
-| `app/src/main/res/xml/network_security_config.xml` | TLS / Cleartext Network Rules |
-| `app/src/main/res/xml/data_extraction_rules.xml` | Block USB / Device Transfer Extraction |
-| `app/src/main/java/com/example/bloodsync_android/util/AppLanguage.kt` | Multilingual Translation Engine (EN, HI, GU) |
-| `app/src/main/java/com/example/bloodsync_android/ui/screens/donors/DonorsDirectoryScreen.kt` | Dedicated Available Donors Directory Screen |
-| `app/src/main/java/com/example/bloodsync_android/util/ValidationHelper.kt` | Input Validation & Sanitization Engine |
-| `app/src/main/java/com/example/bloodsync_android/ui/components/ExitConfirmationDialog.kt` | Back Button Exit Dialog Component |
+| `app/src/main/java/com/example/bloodsync_android/ui/components/LanguageSelectionDialog.kt` | Interactive Post-Login/Register Language Dialog |
+| `app/src/main/java/com/example/bloodsync_android/util/AppLanguage.kt` | Universal Multilingual Engine (CompositionLocal EN, HI, GU) |
+| `app/src/main/java/com/example/bloodsync_android/ui/screens/auth/AuthScreen.kt` | Gender, Age (15+ Restriction) & Language Integration |
+| `app/src/main/java/com/example/bloodsync_android/ui/screens/profile/ProfileScreen.kt` | Gender & Age Display and Editable Details |
+| `app/src/main/java/com/example/bloodsync_android/ui/components/BloodSyncBottomNav.kt` | Dynamic Multilingual Bottom Navigation Bar |
+| `app/src/main/java/com/example/bloodsync_android/ui/screens/home/HomeScreen.kt` | Fully Localized Home Dashboard |
+| `app/src/main/java/com/example/bloodsync_android/data/model/UserProfile.kt` | UserProfile with Gender & Age Attributes |
+
 

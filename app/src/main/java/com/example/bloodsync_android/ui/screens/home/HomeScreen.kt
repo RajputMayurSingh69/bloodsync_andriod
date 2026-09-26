@@ -58,6 +58,8 @@ fun HomeScreen(
 ) {
     val appColors = BloodSyncTheme.colors
     val context = LocalContext.current
+    val strings = com.example.bloodsync_android.util.LocalAppStrings.current
+    val currentLanguage = com.example.bloodsync_android.util.LocalAppLanguage.current
     val profile by repository.userProfile
     val healthRecord by repository.healthRecord
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
@@ -67,10 +69,15 @@ fun HomeScreen(
     val bloodBanks = repository.bloodBanks
 
     val firstName = profile.name.trim().split(" ").firstOrNull { it.isNotBlank() }
+    val greetingHello = when (currentLanguage) {
+        com.example.bloodsync_android.util.AppLanguage.HINDI -> "नमस्ते"
+        com.example.bloodsync_android.util.AppLanguage.GUJARATI -> "નમસ્તે"
+        com.example.bloodsync_android.util.AppLanguage.ENGLISH -> "Hello"
+    }
     val greetingSubtitle = if (!firstName.isNullOrBlank()) {
-        "Hello, $firstName • ${profile.bloodGroup.ifBlank { "Voluntary Donor" }}"
+        "$greetingHello, $firstName • ${profile.bloodGroup.ifBlank { strings.profile }}"
     } else {
-        "24/7 Voluntary Blood Donor Network"
+        strings.donorNetworkSubtitle
     }
 
     Column(
@@ -80,7 +87,7 @@ fun HomeScreen(
     ) {
         // Top App Bar
         BloodSyncTopBar(
-            title = "BloodSync",
+            title = strings.appName,
             subtitle = greetingSubtitle,
             unreadCount = unreadNotifs,
             onNotificationClick = onNavigateToNotifications,
@@ -122,22 +129,22 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PillActionTile(
-                        title = "Request Blood",
-                        subtitle = "Instant SOS Broadcast",
-                        icon = Icons.Default.Warning,
-                        accentColor = BloodRedPrimary,
-                        bgColor = appColors.redLight,
-                        onClick = onNavigateToEmergency,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    PillActionTile(
-                        title = "Find Donors",
-                        subtitle = "${donors.size} Donors Active",
+                        title = strings.findDonorsTitle,
+                        subtitle = "${donors.size} ${strings.donors}",
                         icon = Icons.Default.PersonSearch,
                         accentColor = StatusEligibleGreen,
                         bgColor = appColors.greenLight,
                         onClick = onNavigateToDonors,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    PillActionTile(
+                        title = strings.bloodBanksTitle,
+                        subtitle = "${bloodBanks.size} Centers",
+                        icon = Icons.Default.LocalHospital,
+                        accentColor = BloodRedPrimary,
+                        bgColor = appColors.redLight,
+                        onClick = onNavigateToAppointments,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -149,22 +156,27 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PillActionTile(
-                        title = "Blood Banks",
-                        subtitle = "${bloodBanks.size} Verified Centers",
-                        icon = Icons.Default.LocalHospital,
-                        accentColor = BloodRedPrimary,
-                        bgColor = appColors.redLight,
+                        title = strings.bookSlotTitle,
+                        subtitle = if (eligibilityResult.daysRemaining > 0) "${eligibilityResult.daysRemaining} ${strings.waitingDays}" else strings.eligibleNow,
+                        icon = Icons.Default.CalendarToday,
+                        accentColor = StatusWarningAmber,
+                        bgColor = appColors.yellowLight,
                         onClick = onNavigateToAppointments,
                         modifier = Modifier.weight(1f)
                     )
 
                     PillActionTile(
-                        title = "Book Slot",
-                        subtitle = if (eligibilityResult.daysRemaining > 0) "${eligibilityResult.daysRemaining}d Cooldown" else "Ready to Donate",
-                        icon = Icons.Default.CalendarToday,
-                        accentColor = StatusWarningAmber,
-                        bgColor = appColors.yellowLight,
-                        onClick = onNavigateToAppointments,
+                        title = strings.emergencyCall,
+                        subtitle = "Dial 108 Helpline",
+                        icon = Icons.Default.PhoneInTalk,
+                        accentColor = BloodRedPrimary,
+                        bgColor = appColors.redLight,
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_DIAL).apply {
+                                data = android.net.Uri.parse("tel:108")
+                            }
+                            context.startActivity(intent)
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -300,15 +312,17 @@ private fun EmergencySosPillCard(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                val strings = com.example.bloodsync_android.util.LocalAppStrings.current
+
                 Text(
-                    text = "Need Blood Urgently?",
+                    text = strings.needBloodUrgently,
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black
                 )
 
                 Text(
-                    text = "Broadcast an instant emergency SOS to all matching voluntary donors nearby.",
+                    text = strings.broadcastSosDesc,
                     color = Color.White.copy(alpha = 0.92f),
                     fontSize = 13.sp,
                     lineHeight = 18.sp,
@@ -335,7 +349,7 @@ private fun EmergencySosPillCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "REQUEST BLOOD (1-TAP SOS)",
+                        text = strings.requestBloodSos,
                         color = BloodRedPrimary,
                         fontWeight = FontWeight.Black,
                         fontSize = 14.sp

@@ -1,5 +1,7 @@
 package com.example.bloodsync_android.util
 
+import androidx.compose.runtime.staticCompositionLocalOf
+
 enum class AppLanguage(val code: String, val englishName: String, val nativeName: String) {
     ENGLISH("en", "English", "English"),
     HINDI("hi", "Hindi", "हिंदी"),
@@ -23,6 +25,13 @@ data class TranslationStrings(
     val saveChanges: String,
     val signOut: String,
 
+    // Bottom Navigation Specific
+    val navHome: String,
+    val navHistory: String,
+    val navSafety: String,
+    val navBook: String,
+    val navProfile: String,
+
     // Home Screen
     val needBloodUrgently: String,
     val broadcastSosDesc: String,
@@ -36,6 +45,10 @@ data class TranslationStrings(
     val bookSlotDesc: String,
     val eligibleNow: String,
     val recoveryActive: String,
+    val activeSosAlerts: String,
+    val certifiedBloodBanks: String,
+    val emergencyCall: String,
+    val donorNetworkSubtitle: String,
 
     // Auth Screen
     val signIn: String,
@@ -54,6 +67,24 @@ data class TranslationStrings(
     val invalidPhoneError: String,
     val invalidNameError: String,
     val passwordMinLengthError: String,
+
+    // Gender & Age & Restrictions
+    val gender: String,
+    val genderMale: String,
+    val genderFemale: String,
+    val age: String,
+    val agePlaceholder: String,
+    val minAgeHint: String,
+    val ageRestrictionError: String,
+    val invalidAgeError: String,
+
+    // Language Dialog
+    val chooseYourLanguage: String,
+    val selectLanguageSubtitle: String,
+    val continueButton: String,
+    val englishLabel: String,
+    val hindiLabel: String,
+    val gujaratiLabel: String,
 
     // Donors Directory
     val donorsDirectoryTitle: String,
@@ -91,6 +122,15 @@ data class TranslationStrings(
     val waitingDays: String,
     val personalContactInfo: String,
     val availabilityNotifications: String,
+    val bloodDonated: String,
+    val availableForDonations: String,
+    val profileUpdatedSuccess: String,
+
+    // Exit Dialog
+    val exitAppTitle: String,
+    val exitAppMessage: String,
+    val yesExit: String,
+    val noStay: String,
 
     // Notifications & Alerts
     val newDonorRegisteredTitle: String,
@@ -113,6 +153,12 @@ val EnglishTranslations = TranslationStrings(
     saveChanges = "Save Changes",
     signOut = "Sign Out",
 
+    navHome = "Home",
+    navHistory = "History",
+    navSafety = "Safety",
+    navBook = "Book",
+    navProfile = "Profile",
+
     needBloodUrgently = "Need Blood Urgently?",
     broadcastSosDesc = "Broadcast an instant emergency SOS to all matching voluntary donors nearby.",
     requestBloodSos = "REQUEST BLOOD (1-TAP SOS)",
@@ -125,6 +171,10 @@ val EnglishTranslations = TranslationStrings(
     bookSlotDesc = "Scheduled clinic donation",
     eligibleNow = "Eligible Now",
     recoveryActive = "Days Recovery Left",
+    activeSosAlerts = "Active Emergency SOS Alerts",
+    certifiedBloodBanks = "Certified Regional Blood Banks",
+    emergencyCall = "Emergency Hotline (108)",
+    donorNetworkSubtitle = "Fast, reliable real-time blood donor network",
 
     signIn = "Sign In",
     registerDonor = "Register Donor",
@@ -142,6 +192,22 @@ val EnglishTranslations = TranslationStrings(
     invalidPhoneError = "Invalid phone number! Must be a 10-digit number.",
     invalidNameError = "Please enter your full name (minimum 2 letters).",
     passwordMinLengthError = "Password must be at least 6 characters.",
+
+    gender = "Gender",
+    genderMale = "Male",
+    genderFemale = "Female",
+    age = "Age (Years)",
+    agePlaceholder = "e.g. 18",
+    minAgeHint = "Minimum registration age: 15 years",
+    ageRestrictionError = "⚠️ Age Restriction: Minimum age required to register is 15 years old. You cannot register if you are under 15.",
+    invalidAgeError = "Please enter a valid age (15 - 100 years).",
+
+    chooseYourLanguage = "Choose Your Language",
+    selectLanguageSubtitle = "Select your preferred language for BloodSync",
+    continueButton = "Continue",
+    englishLabel = "English",
+    hindiLabel = "हिंदी (Hindi)",
+    gujaratiLabel = "ગુજરાતી (Gujarati)",
 
     donorsDirectoryTitle = "Voluntary Donors Directory",
     searchDonorsPlaceholder = "Search donors by name, city, or blood group...",
@@ -165,7 +231,7 @@ val EnglishTranslations = TranslationStrings(
     clinicalSafetySection = "Clinical Safety",
     dataManagementSection = "Data Management",
     clearCacheButton = "Clear Local Cache & Reset",
-    appVersion = "BloodSync v2.2.0 • Production Build",
+    appVersion = "BloodSync v2.3.0 • Production Build",
 
     donorProfileTitle = "Donor Profile",
     editProfile = "Edit Profile",
@@ -176,6 +242,14 @@ val EnglishTranslations = TranslationStrings(
     waitingDays = "Days Left",
     personalContactInfo = "Personal & Contact Information",
     availabilityNotifications = "Donor Availability & Alerts",
+    bloodDonated = "Donated",
+    availableForDonations = "Available for Emergency Donations",
+    profileUpdatedSuccess = "Profile updated successfully!",
+
+    exitAppTitle = "Exit BloodSync?",
+    exitAppMessage = "Are you sure you want to close the app? You can stay to receive live blood donation and emergency alerts.",
+    yesExit = "Yes, Exit",
+    noStay = "No, Stay",
 
     newDonorRegisteredTitle = "🚨 New Donor Registered!",
     newDonorRegisteredBody = "has registered as an active voluntary donor."
@@ -186,7 +260,7 @@ val HindiTranslations = TranslationStrings(
     home = "होम",
     donors = "रक्तदाता",
     appointments = "अपॉइंटमेंट",
-    health = "स्वास्थ्य",
+    health = "सुरक्षा",
     profile = "प्रोफाइल",
     settings = "सेटिंग्स",
     notifications = "सूचनाएं",
@@ -196,6 +270,12 @@ val HindiTranslations = TranslationStrings(
     confirm = "पुष्टि करें",
     saveChanges = "बदलाव सहेजें",
     signOut = "लॉग आउट",
+
+    navHome = "होम",
+    navHistory = "इतिहास",
+    navSafety = "सुरक्षा",
+    navBook = "बुक",
+    navProfile = "प्रोफाइल",
 
     needBloodUrgently = "क्या तुरंत रक्त की आवश्यकता है?",
     broadcastSosDesc = "आस-पास के सभी योग्य स्वैच्छिक रक्तदाताओं को तुरंत आपातकालीन SOS संदेश भेजें।",
@@ -209,6 +289,10 @@ val HindiTranslations = TranslationStrings(
     bookSlotDesc = "रक्तदान के लिए समय चुनें",
     eligibleNow = "रक्तदान के लिए योग्य",
     recoveryActive = "दिन रिकवरी बाकी",
+    activeSosAlerts = "सक्रिय आपातकालीन SOS अलर्ट",
+    certifiedBloodBanks = "प्रमाणित क्षेत्रीय ब्लड बैंक",
+    emergencyCall = "आपातकालीन हेल्पलाइन (108)",
+    donorNetworkSubtitle = "तेज, विश्वसनीय 24/7 स्वैच्छिक रक्तदाता नेटवर्क",
 
     signIn = "साइन इन",
     registerDonor = "रक्तदाता पंजीकरण",
@@ -227,7 +311,23 @@ val HindiTranslations = TranslationStrings(
     invalidNameError = "कृपया अपना पूरा नाम दर्ज करें (कम से कम 2 अक्षर)।",
     passwordMinLengthError = "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।",
 
-    donorsDirectoryTitle = "स्वैच्छिक रक्तदाता सूची",
+    gender = "लिंग (Gender)",
+    genderMale = "पुरुष (Male)",
+    genderFemale = "महिला (Female)",
+    age = "आयु (वर्ष)",
+    agePlaceholder = "उदा. 18",
+    minAgeHint = "पंजीकरण के लिए न्यूनतम आयु: 15 वर्ष",
+    ageRestrictionError = "⚠️ आयु प्रतिबंध: पंजीकरण के लिए न्यूनतम आयु 15 वर्ष होनी चाहिए। 15 वर्ष से कम आयु वाले पंजीकरण नहीं कर सकते।",
+    invalidAgeError = "कृपया 15 से 100 वर्ष के बीच मान्य आयु दर्ज करें।",
+
+    chooseYourLanguage = "अपनी भाषा चुनें",
+    selectLanguageSubtitle = "BloodSync ऐप के लिए अपनी पसंदीदा भाषा का चयन करें",
+    continueButton = "आगे बढ़ें",
+    englishLabel = "English (अंग्रेज़ी)",
+    hindiLabel = "हिंदी (Hindi)",
+    gujaratiLabel = "ગુજરાતી (Gujarati)",
+
+    donorsDirectoryTitle = "स्वैच्छिक रक्तदाता निर्देशिका",
     searchDonorsPlaceholder = "नाम, शहर या रक्त समूह से खोजें...",
     allBloodGroups = "सभी ग्रुप",
     noDonorsFound = "कोई पंजीकृत रक्तदाता नहीं मिला",
@@ -242,14 +342,14 @@ val HindiTranslations = TranslationStrings(
     lightMode = "लाइट मोड",
     darkMode = "डार्क मोड",
     systemMode = "सिस्टम मोड",
-    languageSection = "ऐप भाषा (Language / ભાષા)",
+    languageSection = "ऐप भाषा (Language / भाषा / ભાષા)",
     notificationSection = "सूचना नियंत्रण",
     emergencyAlerts = "आपातकालीन रक्त प्रसारण",
     appointmentReminders = "रक्तदान रिमाइंडर और माइलस्टोन",
     clinicalSafetySection = "चिकित्सीय सुरक्षा (WHO 90-दिन)",
     dataManagementSection = "डेटा प्रबंधन",
     clearCacheButton = "लोकल कैश साफ़ करें और रीसेट करें",
-    appVersion = "BloodSync v2.2.0 • सुरक्षित संस्करण",
+    appVersion = "BloodSync v2.3.0 • सुरक्षित संस्करण",
 
     donorProfileTitle = "रक्तदाता प्रोफाइल",
     editProfile = "प्रोफाइल संपादित करें",
@@ -260,6 +360,14 @@ val HindiTranslations = TranslationStrings(
     waitingDays = "दिन शेष",
     personalContactInfo = "व्यक्तिगत और संपर्क जानकारी",
     availabilityNotifications = "रक्तदाता उपलब्धता और अलर्ट",
+    bloodDonated = "रक्तदान किया",
+    availableForDonations = "आपातकालीन रक्तदान के लिए उपलब्ध",
+    profileUpdatedSuccess = "प्रोफाइल सफलतापूर्वक अपडेट हो गई!",
+
+    exitAppTitle = "BloodSync से बाहर निकलें?",
+    exitAppMessage = "क्या आप वाकई ऐप बंद करना चाहते हैं? आप आपातकालीन रक्तदान अलर्ट प्राप्त करने के लिए ऐप में बने रह सकते हैं।",
+    yesExit = "हाँ, बाहर निकलें",
+    noStay = "नहीं, यहीं रहें",
 
     newDonorRegisteredTitle = "🚨 नया रक्तदाता पंजीकृत हुआ!",
     newDonorRegisteredBody = "एक सक्रिय स्वैच्छिक रक्तदाता के रूप में पंजीकृत हुए हैं।"
@@ -270,7 +378,7 @@ val GujaratiTranslations = TranslationStrings(
     home = "હોમ",
     donors = "દાતાઓ",
     appointments = "મુલાકાત",
-    health = "સ્વાસ્થ્ય",
+    health = "સુરક્ષા",
     profile = "પ્રોફાઇલ",
     settings = "સેટિંગ્સ",
     notifications = "સૂચનાઓ",
@@ -280,6 +388,12 @@ val GujaratiTranslations = TranslationStrings(
     confirm = "પુષ્ટિ કરો",
     saveChanges = "ફેરફારો સાચવો",
     signOut = "લૉગ આઉટ",
+
+    navHome = "હોમ",
+    navHistory = "ઇતિહાસ",
+    navSafety = "સુરક્ષા",
+    navBook = "બુકિંગ",
+    navProfile = "પ્રોફાઇલ",
 
     needBloodUrgently = "શું તાત્કાલિક લોહીની જરૂર છે?",
     broadcastSosDesc = "નજીકના તમામ સુસંગત સ્વૈચ્છિક રક્તદાતાઓને તાત્કાલિક કટોકટી SOS સંદેશ મોકલો.",
@@ -293,6 +407,10 @@ val GujaratiTranslations = TranslationStrings(
     bookSlotDesc = "રક્તદાન માટે સમય પસંદ કરો",
     eligibleNow = "રક્તદાન માટે યોગ્ય",
     recoveryActive = "દિવસ રિકવરી બાકી",
+    activeSosAlerts = "સક્રિય કટોકટી SOS ચેતવણીઓ",
+    certifiedBloodBanks = "પ્રમાણિત પ્રાદેશિક બ્લડ બેંકો",
+    emergencyCall = "કટોકટી હેલ્પલાઇન (108)",
+    donorNetworkSubtitle = "ઝડપી, વિશ્વસનીય 24/7 સ્વૈચ્છિક રક્તદાતા નેટવર્ક",
 
     signIn = "સાઇન ઇન",
     registerDonor = "દાતા નોંધણી",
@@ -311,6 +429,22 @@ val GujaratiTranslations = TranslationStrings(
     invalidNameError = "કૃપા કરીને તમારું પૂરું નામ દાખલ કરો (ઓછામાં ઓછા 2 અક્ષરો).",
     passwordMinLengthError = "પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરોનો હોવો જોઈએ.",
 
+    gender = "જાતિ (Gender)",
+    genderMale = "પુરુષ (Male)",
+    genderFemale = "સ્ત્રી (Female)",
+    age = "ઉંમર (વર્ષ)",
+    agePlaceholder = "દા.ત. 18",
+    minAgeHint = "નોંધણી માટે લઘુત્તમ ઉંમર: 15 વર્ષ",
+    ageRestrictionError = "⚠️ ઉંમર મર્યાદા: રક્તદાતા નોંધણી માટે લઘુત્તમ ઉંમર 15 વર્ષ હોવી જરૂરી છે. 15 વર્ષથી ઓછી ઉંમરના વપરાશકર્તાઓ નોંધણી કરી શકતા નથી.",
+    invalidAgeError = "કૃપા કરીને 15 થી 100 વર્ષ વચ્ચે માન્ય ઉંમર દાખલ કરો.",
+
+    chooseYourLanguage = "તમારી ભાષા પસંદ કરો",
+    selectLanguageSubtitle = "BloodSync એપ્લિકેશન માટે તમારી પસંદગીની ભાષા પસંદ કરો",
+    continueButton = "આગળ વધો",
+    englishLabel = "English (અંગ્રેજી)",
+    hindiLabel = "हिंदी (હિન્દી)",
+    gujaratiLabel = "ગુજરાતી (Gujarati)",
+
     donorsDirectoryTitle = "સ્વૈચ્છિક રક્તદાતાઓની યાદી",
     searchDonorsPlaceholder = "નામ, શહેર અથવા બ્લડ ગ્રૂપથી શોધો...",
     allBloodGroups = "બધા ગ્રૂપ",
@@ -326,14 +460,14 @@ val GujaratiTranslations = TranslationStrings(
     lightMode = "લાઇટ મોડ",
     darkMode = "ડાર્ક મોડ",
     systemMode = "સિસ્ટમ મોડ",
-    languageSection = "એપ્લિકેશન ભાષા (Language / भाषा)",
+    languageSection = "એપ્લિકેશન ભાષા (Language / भाषा / ભાષા)",
     notificationSection = "સૂચના નિયંત્રણો",
     emergencyAlerts = "કટોકટી રક્ત પ્રસારણ",
     appointmentReminders = "રક્તદાન રીમાઇન્ડર અને પ્રમાણપત્ર",
     clinicalSafetySection = "તબીબી સલામતી (WHO 90-દિવસ)",
     dataManagementSection = "ડેટા મેનેજમેન્ટ",
     clearCacheButton = "લોકલ કેશ સાફ કરો અને રીસેટ કરો",
-    appVersion = "BloodSync v2.2.0 • ઉત્પાદન સંસ્કરણ",
+    appVersion = "BloodSync v2.3.0 • ઉત્પાદન સંસ્કરણ",
 
     donorProfileTitle = "દાતા પ્રોફાઇલ",
     editProfile = "પ્રોફાઇલ સંપાદિત કરો",
@@ -344,10 +478,21 @@ val GujaratiTranslations = TranslationStrings(
     waitingDays = "દિવસ બાકી",
     personalContactInfo = "વ્યક્તિગત અને સંપર્ક માહિતી",
     availabilityNotifications = "દાતા ઉપલબ્ધતા અને સૂચનાઓ",
+    bloodDonated = "દાન કર્યું",
+    availableForDonations = "કટોકટી રક્તદાન માટે ઉપલબ્ધ",
+    profileUpdatedSuccess = "પ્રોફાઇલ સફળતાપૂર્વક અપડેટ થઈ ગઈ!",
+
+    exitAppTitle = "BloodSync બંધ કરવું છે?",
+    exitAppMessage = "શું તમે ખરેખર એપ બંધ કરવા માંગો છો? કટોકટી રક્તદાન એલર્ટ મેળવવા માટે તમે એપમાં રહી શકો છો.",
+    yesExit = "હા, બહાર નીકળો",
+    noStay = "ના, રોકાઓ",
 
     newDonorRegisteredTitle = "🚨 નવો રક્તદાતા નોંધાયો!",
     newDonorRegisteredBody = "એક સક્રિય સ્વૈચ્છિક રક્તદાતા તરીકે નોંધાયા છે."
 )
+
+val LocalAppStrings = staticCompositionLocalOf<TranslationStrings> { EnglishTranslations }
+val LocalAppLanguage = staticCompositionLocalOf<AppLanguage> { AppLanguage.ENGLISH }
 
 object LanguageManager {
     fun getStrings(language: AppLanguage): TranslationStrings = when (language) {

@@ -40,11 +40,14 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val appColors = BloodSyncTheme.colors
+    val strings = com.example.bloodsync_android.util.LocalAppStrings.current
     val profile by repository.userProfile
     val unreadNotifs by repository.unreadNotificationCount
 
     var isEditing by remember { mutableStateOf(false) }
     var nameInput by remember(profile.name) { mutableStateOf(profile.name) }
+    var genderInput by remember(profile.gender) { mutableStateOf(profile.gender) }
+    var ageInput by remember(profile.age) { mutableStateOf(profile.age.toString()) }
     var phoneInput by remember(profile.phone) { mutableStateOf(profile.phone) }
     var addressInput by remember(profile.address) { mutableStateOf(profile.address) }
     var cityInput by remember(profile.city) { mutableStateOf(profile.city) }
@@ -52,13 +55,15 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             BloodSyncTopBar(
-                title = "Donor Profile",
-                subtitle = if (isEditing) "Editing Your Information" else "Manage Account & Preferences",
+                title = strings.donorProfileTitle,
+                subtitle = if (isEditing) strings.editProfile else strings.personalContactInfo,
                 showBackButton = true,
                 onBackClick = {
                     if (isEditing) {
                         isEditing = false
                         nameInput = profile.name
+                        genderInput = profile.gender
+                        ageInput = profile.age.toString()
                         phoneInput = profile.phone
                         cityInput = profile.city
                         addressInput = profile.address
@@ -74,7 +79,7 @@ fun ProfileScreen(
                         IconButton(onClick = { isEditing = true }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Profile",
+                                contentDescription = strings.editProfile,
                                 tint = BloodRedPrimary
                             )
                         }
@@ -82,13 +87,15 @@ fun ProfileScreen(
                         IconButton(onClick = {
                             isEditing = false
                             nameInput = profile.name
+                            genderInput = profile.gender
+                            ageInput = profile.age.toString()
                             phoneInput = profile.phone
                             cityInput = profile.city
                             addressInput = profile.address
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Cancel Edit",
+                                contentDescription = strings.cancel,
                                 tint = appColors.textMuted
                             )
                         }
@@ -295,10 +302,83 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        // Gender Selector in Edit Mode
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = strings.gender,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = appColors.textPrimary,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                listOf("Male" to strings.genderMale, "Female" to strings.genderFemale).forEach { (gKey, gLabel) ->
+                                    val isSelected = genderInput == gKey
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(50.dp))
+                                            .clickable { genderInput = gKey },
+                                        shape = RoundedCornerShape(50.dp),
+                                        color = if (isSelected) appColors.redLight else appColors.inputBackground,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            width = if (isSelected) 1.8.dp else 1.dp,
+                                            color = if (isSelected) BloodRedPrimary else appColors.border
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (gKey == "Male") Icons.Default.Male else Icons.Default.Female,
+                                                contentDescription = null,
+                                                tint = if (isSelected) BloodRedPrimary else appColors.textMuted,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = gLabel,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Age Input Field
+                        OutlinedTextField(
+                            value = ageInput,
+                            onValueChange = { input ->
+                                if (input.all { it.isDigit() } && input.length <= 3) {
+                                    ageInput = input
+                                }
+                            },
+                            label = { Text(strings.age) },
+                            placeholder = { Text("18") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Cake, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
                         OutlinedTextField(
                             value = phoneInput,
                             onValueChange = { phoneInput = it },
-                            label = { Text("Phone Number (10 digits)") },
+                            label = { Text(strings.phoneNumber) },
+                            placeholder = { Text("+91 98765 43210") },
                             leadingIcon = {
                                 Icon(Icons.Default.Phone, contentDescription = null, tint = BloodRedPrimary)
                             },
@@ -312,7 +392,7 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = cityInput,
                             onValueChange = { cityInput = it },
-                            label = { Text("City / Region") },
+                            label = { Text(strings.cityRegion) },
                             leadingIcon = {
                                 Icon(Icons.Default.LocationCity, contentDescription = null, tint = BloodRedPrimary)
                             },
@@ -345,6 +425,8 @@ fun ProfileScreen(
                                 onClick = {
                                     isEditing = false
                                     nameInput = profile.name
+                                    genderInput = profile.gender
+                                    ageInput = profile.age.toString()
                                     phoneInput = profile.phone
                                     cityInput = profile.city
                                     addressInput = profile.address
@@ -355,24 +437,31 @@ fun ProfileScreen(
                                     .weight(1f)
                                     .height(48.dp)
                             ) {
-                                Text("Cancel", color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                Text(strings.cancel, color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
                             }
 
                             Button(
                                 onClick = {
                                     if (nameInput.trim().length < 2) {
-                                        Toast.makeText(context, "Please enter a valid name", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, strings.invalidNameError, Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    val parsedAge = ageInput.toIntOrNull()
+                                    if (parsedAge == null || parsedAge < 15) {
+                                        Toast.makeText(context, strings.ageRestrictionError, Toast.LENGTH_LONG).show()
                                         return@Button
                                     }
                                     val updated = profile.copy(
                                         name = nameInput.trim(),
+                                        gender = genderInput,
+                                        age = parsedAge,
                                         phone = phoneInput.trim(),
                                         city = cityInput.trim(),
                                         address = addressInput.trim()
                                     )
                                     repository.updateUserProfile(updated)
                                     isEditing = false
-                                    Toast.makeText(context, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, strings.profileUpdatedSuccess, Toast.LENGTH_SHORT).show()
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                                 shape = RoundedCornerShape(50.dp),
@@ -380,14 +469,14 @@ fun ProfileScreen(
                                     .weight(1f)
                                     .height(48.dp)
                             ) {
-                                Text("Save Changes", color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(strings.saveChanges, color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     } else {
                         // Display Mode with Clean Rows and Icons
                         ProfileDetailRow(
                             icon = Icons.Default.Bloodtype,
-                            label = "Blood Group",
+                            label = strings.selectBloodGroup,
                             value = profile.bloodGroup.ifBlank { "Not Specified" },
                             accentColor = BloodRedPrimary,
                             textColor = appColors.textPrimary,
@@ -397,8 +486,30 @@ fun ProfileScreen(
                         HorizontalDivider(color = appColors.divider)
 
                         ProfileDetailRow(
+                            icon = if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Male,
+                            label = strings.gender,
+                            value = if (profile.gender == "Female") strings.genderFemale else strings.genderMale,
+                            accentColor = StatusEligibleGreen,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
+                            icon = Icons.Default.Cake,
+                            label = strings.age,
+                            value = "${profile.age} Yrs (${strings.minAgeHint.take(12)}...)",
+                            accentColor = StatusWarningAmber,
+                            textColor = appColors.textPrimary,
+                            labelColor = appColors.textSecondary
+                        )
+
+                        HorizontalDivider(color = appColors.divider)
+
+                        ProfileDetailRow(
                             icon = Icons.Default.Phone,
-                            label = "Phone Number",
+                            label = strings.phoneNumber,
                             value = profile.phone.ifBlank { "Not Added" },
                             accentColor = StatusEligibleGreen,
                             textColor = appColors.textPrimary,
@@ -409,7 +520,7 @@ fun ProfileScreen(
 
                         ProfileDetailRow(
                             icon = Icons.Default.Email,
-                            label = "Email Address",
+                            label = strings.emailAddress,
                             value = profile.email.ifBlank { "donor@bloodsync.org" },
                             accentColor = StatusWarningAmber,
                             textColor = appColors.textPrimary,
@@ -420,7 +531,7 @@ fun ProfileScreen(
 
                         ProfileDetailRow(
                             icon = Icons.Default.LocationCity,
-                            label = "City / Region",
+                            label = strings.cityRegion,
                             value = profile.city.ifBlank { "Nearby" },
                             accentColor = BloodRedPrimary,
                             textColor = appColors.textPrimary,

@@ -42,6 +42,8 @@ fun BloodSyncBottomNav(
     modifier: Modifier = Modifier
 ) {
     val appColors = BloodSyncTheme.colors
+    val strings = com.example.bloodsync_android.util.LocalAppStrings.current
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -71,6 +73,13 @@ fun BloodSyncBottomNav(
             ) {
                 AppNavDestination.entries.forEach { destination ->
                     val isSelected = destination == currentDestination
+                    val label = when (destination) {
+                        AppNavDestination.HOME -> strings.navHome
+                        AppNavDestination.HISTORY -> strings.navHistory
+                        AppNavDestination.HEALTH -> strings.navSafety
+                        AppNavDestination.APPOINTMENTS -> strings.navBook
+                        AppNavDestination.PROFILE -> strings.navProfile
+                    }
                     val scale by animateFloatAsState(
                         targetValue = if (isSelected) 1.05f else 1.0f,
                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -99,13 +108,13 @@ fun BloodSyncBottomNav(
                     ) {
                         Icon(
                             imageVector = destination.icon,
-                            contentDescription = destination.title,
+                            contentDescription = label,
                             tint = iconTint,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = destination.title,
+                            text = label,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) BloodRedPrimary else appColors.textSecondary

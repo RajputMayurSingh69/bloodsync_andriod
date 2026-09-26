@@ -8,6 +8,8 @@ data class UserProfile(
     val bloodGroup: String = "O+",
     val city: String = "",
     val address: String = "",
+    val gender: String = "Male",
+    val age: Int = 18,
     val totalDonations: Int = 0,
     val livesSaved: Int = 0,
     val isAvailableDonor: Boolean = true,

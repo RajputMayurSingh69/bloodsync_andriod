@@ -45,6 +45,7 @@ fun DonorsDirectoryScreen(
     onNotificationClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val strings = com.example.bloodsync_android.util.LocalAppStrings.current
     val donors = repository.donors
     val unreadNotifs by repository.unreadNotificationCount
 
@@ -67,8 +68,8 @@ fun DonorsDirectoryScreen(
     Scaffold(
         topBar = {
             BloodSyncTopBar(
-                title = "Available Donors",
-                subtitle = "${donors.size} registered lifesavers online",
+                title = strings.donorsDirectoryTitle,
+                subtitle = "${donors.size} ${strings.availableNow}",
                 showBackButton = true,
                 onBackClick = onBackClick,
                 unreadCount = unreadNotifs,
@@ -109,7 +110,7 @@ fun DonorsDirectoryScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by city or donor name...", fontSize = 13.sp, color = appColors.textMuted) },
+                        placeholder = { Text(strings.searchDonorsPlaceholder, fontSize = 13.sp, color = appColors.textMuted) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = appColors.textPrimary,

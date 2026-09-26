@@ -31,6 +31,7 @@ import com.example.bloodsync_android.data.model.UserProfile
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodDropIcon
 import com.example.bloodsync_android.ui.components.BloodGroupSelector
+import com.example.bloodsync_android.ui.components.LanguageSelectionDialog
 import com.example.bloodsync_android.ui.theme.*
 import com.example.bloodsync_android.util.LanguageManager
 import com.example.bloodsync_android.util.ValidationHelper
@@ -58,11 +59,15 @@ fun AuthScreen(
     // Register fields
     var fullName by remember { mutableStateOf("") }
     var selectedBloodGroup by remember { mutableStateOf("O+") }
+    var selectedGender by remember { mutableStateOf("Male") }
+    var ageInput by remember { mutableStateOf("") }
+    var ageWarning by remember { mutableStateOf<String?>(null) }
     var phoneInput by remember { mutableStateOf("") }
     var cityInput by remember { mutableStateOf("") }
     var volunteerEmergency by remember { mutableStateOf(true) }
 
-    // State
+    // State & Locale Dialog
+    var showLanguagePopup by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -85,7 +90,7 @@ fun AuthScreen(
                 val displayName = account.displayName ?: account.givenName ?: "Google User"
                 val email = account.email ?: ""
                 repository.loginWithGoogleAccount(displayName, email)
-                onLoginSuccess()
+                showLanguagePopup = true
             } else {
                 errorMessage = "Google sign-in was not completed."
             }
@@ -126,26 +131,58 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // App Brand Header
+            // App Brand Header with Language Switcher
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                BloodDropIcon(size = 32.dp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = strings.appName,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = BloodRedPrimary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BloodDropIcon(size = 32.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.appName,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BloodRedPrimary
+                    )
+                }
+
+                // Quick Language Selector Chip
+                Surface(
+                    onClick = { showLanguagePopup = true },
+                    shape = RoundedCornerShape(50.dp),
+                    color = appColors.surfaceVariant,
+                    border = BorderStroke(1.dp, appColors.border)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Language",
+                            tint = BloodRedPrimary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = currentLanguage.nativeName,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = appColors.textPrimary
+                        )
+                    }
+                }
             }
 
             Text(
-                text = "Fast, reliable real-time blood donor network",
+                text = strings.donorNetworkSubtitle,
                 fontSize = 12.sp,
                 color = appColors.textSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 22.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 20.dp)
             )
 
             // Segmented Tab for Login / Register (Pill Shape)
@@ -255,6 +292,128 @@ fun AuthScreen(
                             selectedGroup = selectedBloodGroup,
                             onGroupSelected = { selectedBloodGroup = it }
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Gender Selector (Male / Female Pill Options)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = strings.gender,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = appColors.textPrimary,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                listOf("Male" to strings.genderMale, "Female" to strings.genderFemale).forEach { (genderKey, genderLabel) ->
+                                    val isSelected = selectedGender == genderKey
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(46.dp)
+                                            .clip(RoundedCornerShape(50.dp))
+                                            .clickable { selectedGender = genderKey },
+                                        shape = RoundedCornerShape(50.dp),
+                                        color = if (isSelected) appColors.redLight else appColors.inputBackground,
+                                        border = BorderStroke(
+                                            width = if (isSelected) 1.8.dp else 1.dp,
+                                            color = if (isSelected) BloodRedPrimary else appColors.border
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (genderKey == "Male") Icons.Default.Male else Icons.Default.Female,
+                                                contentDescription = null,
+                                                tint = if (isSelected) BloodRedPrimary else appColors.textMuted,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = genderLabel,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
+                                                fontSize = 13.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Age Input Field with Strict 15+ Age Restriction Validation
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = ageInput,
+                                onValueChange = { input ->
+                                    if (input.all { it.isDigit() } && input.length <= 3) {
+                                        ageInput = input
+                                        val num = input.toIntOrNull()
+                                        if (num != null && num < 15) {
+                                            ageWarning = strings.ageRestrictionError
+                                        } else {
+                                            ageWarning = null
+                                        }
+                                    }
+                                },
+                                label = { Text(strings.age) },
+                                placeholder = { Text(strings.agePlaceholder) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Cake, contentDescription = null, tint = BloodRedPrimary)
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = textFieldColors,
+                                shape = RoundedCornerShape(16.dp),
+                                supportingText = {
+                                    Text(
+                                        text = strings.minAgeHint,
+                                        fontSize = 11.sp,
+                                        color = if (ageWarning != null) StatusUrgentRed else appColors.textMuted
+                                    )
+                                },
+                                isError = ageWarning != null
+                            )
+
+                            // Inline Instant Age Restriction Notice
+                            AnimatedVisibility(visible = ageWarning != null) {
+                                Surface(
+                                    color = appColors.redLight,
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = StatusUrgentRed,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = ageWarning ?: "",
+                                            color = StatusUrgentRed,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -409,6 +568,22 @@ fun AuthScreen(
                                     return@Button
                                 }
 
+                                // Age Validation & Strict 15+ Age Restriction Check
+                                val cleanAge = ageInput.trim()
+                                val parsedAge = cleanAge.toIntOrNull()
+                                if (cleanAge.isBlank() || parsedAge == null) {
+                                    errorMessage = strings.invalidAgeError
+                                    return@Button
+                                }
+                                if (parsedAge < 15) {
+                                    errorMessage = strings.ageRestrictionError
+                                    return@Button
+                                }
+                                if (parsedAge > 100) {
+                                    errorMessage = strings.invalidAgeError
+                                    return@Button
+                                }
+
                                 errorMessage = null
                                 isLoading = true
                                 scope.launch {
@@ -419,13 +594,16 @@ fun AuthScreen(
                                         phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
                                         bloodGroup = selectedBloodGroup,
                                         city = ValidationHelper.sanitizeText(cityInput, 50),
+                                        gender = selectedGender,
+                                        age = parsedAge,
                                         isEmergencyVolunteer = volunteerEmergency
                                     )
                                     // Registers directly in Firebase Firestore and posts notification
                                     repository.registerDonor(newProfile)
                                     repository.setLoggedIn(true)
                                     isLoading = false
-                                    onLoginSuccess()
+                                    // Prompt user with Choose Your Language popup
+                                    showLanguagePopup = true
                                 }
                             } else {
                                 // SIGN IN: Check Email Extension STRICTLY
@@ -454,7 +632,8 @@ fun AuthScreen(
                                         bloodGroup = "O+"
                                     )
                                     isLoading = false
-                                    onLoginSuccess()
+                                    // Prompt user with Choose Your Language popup
+                                    showLanguagePopup = true
                                 }
                             }
                         },
@@ -564,6 +743,20 @@ fun AuthScreen(
                     color = appColors.textMuted
                 )
             }
+        }
+
+        // Post-Login & Post-Register Language Selection Modal Dialog
+        if (showLanguagePopup) {
+            LanguageSelectionDialog(
+                currentLanguage = currentLanguage,
+                onLanguageSelected = { selectedLang ->
+                    repository.setAppLanguage(selectedLang)
+                },
+                onDismiss = {
+                    showLanguagePopup = false
+                    onLoginSuccess()
+                }
+            )
         }
     }
 }

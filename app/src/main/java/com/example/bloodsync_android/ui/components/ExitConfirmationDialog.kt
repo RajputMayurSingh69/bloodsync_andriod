@@ -30,6 +30,7 @@ fun ExitConfirmationDialog(
     onDismiss: () -> Unit
 ) {
     val colors = BloodSyncTheme.colors
+    val strings = com.example.bloodsync_android.util.LocalAppStrings.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -57,7 +58,7 @@ fun ExitConfirmationDialog(
         },
         title = {
             Text(
-                text = "Exit BloodSync?",
+                text = strings.exitAppTitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary,
@@ -67,7 +68,7 @@ fun ExitConfirmationDialog(
         },
         text = {
             Text(
-                text = "Are you sure you want to close the app? You can stay to receive live blood donation and emergency alerts.",
+                text = strings.exitAppMessage,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 color = colors.textSecondary,
@@ -89,7 +90,7 @@ fun ExitConfirmationDialog(
                     .height(46.dp)
             ) {
                 Text(
-                    text = "Yes, Exit",
+                    text = strings.yesExit,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
                 )
@@ -108,7 +109,7 @@ fun ExitConfirmationDialog(
                     .height(46.dp)
             ) {
                 Text(
-                    text = "No, Stay",
+                    text = strings.noStay,
                     fontWeight = FontWeight.Medium,
                     fontSize = 15.sp,
                     color = colors.textPrimary

@@ -269,6 +269,8 @@ class FirebaseSyncService(private val context: Context) {
             "bloodGroup" to profile.bloodGroup,
             "city" to profile.city,
             "address" to profile.address,
+            "gender" to profile.gender,
+            "age" to profile.age,
             "totalDonations" to profile.totalDonations,
             "livesSaved" to profile.livesSaved,
             "isAvailableDonor" to profile.isAvailableDonor,
@@ -341,9 +343,11 @@ class FirebaseSyncService(private val context: Context) {
                 "bloodGroup" to profile.bloodGroup,
                 "city" to profile.city,
                 "address" to profile.address,
+                "gender" to profile.gender,
+                "age" to profile.age,
                 "isAvailableDonor" to profile.isAvailableDonor,
                 "registeredAt" to FieldValue.serverTimestamp(),
-                "alertMessage" to "New Voluntary Donor Registered: ${profile.name} (${profile.bloodGroup}), City: ${profile.city}, Contact: ${profile.phone}"
+                "alertMessage" to "New Voluntary Donor Registered: ${profile.name} (${profile.bloodGroup}), Age: ${profile.age}, Gender: ${profile.gender}, City: ${profile.city}, Contact: ${profile.phone}"
             )
             db.collection("donor_registrations").document(currentUserId)
                 .set(registrationLog, SetOptions.merge())

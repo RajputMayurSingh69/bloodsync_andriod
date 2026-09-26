@@ -33,6 +33,9 @@ import com.example.bloodsync_android.ui.screens.profile.ProfileScreen
 import com.example.bloodsync_android.ui.screens.settings.SettingsScreen
 import com.example.bloodsync_android.ui.screens.splash.SplashScreen
 import com.example.bloodsync_android.ui.theme.BloodSyncTheme
+import com.example.bloodsync_android.util.LanguageManager
+import com.example.bloodsync_android.util.LocalAppLanguage
+import com.example.bloodsync_android.util.LocalAppStrings
 
 sealed class Screen {
     object Splash : Screen()
@@ -52,9 +55,17 @@ fun BloodSyncApp(
 ) {
     val context = LocalContext.current
     val repository = repository ?: remember { BloodSyncRepository(context) }
+    val currentLanguage by repository.appLanguage
+    val currentStrings = remember(currentLanguage) { LanguageManager.getStrings(currentLanguage) }
+
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
     var currentNavDestination by remember { mutableStateOf(AppNavDestination.HOME) }
     var showExitDialog by remember { mutableStateOf(false) }
+
+    CompositionLocalProvider(
+        LocalAppLanguage provides currentLanguage,
+        LocalAppStrings provides currentStrings
+    ) {
 
     // Intercept hardware/gesture Back button
     // 1. In Splash screen: prevent accidental exit while loading
@@ -281,3 +292,5 @@ fun BloodSyncApp(
         }
     }
 }
+}
+

@@ -540,7 +540,9 @@ class BloodSyncRepository(private val context: Context) {
     // ==========================================
     fun updateUserProfile(profile: UserProfile) {
         _userProfile.value = profile
+        _healthRecord.value = _healthRecord.value.copy(age = profile.age, gender = profile.gender)
         saveProfileToPrefs()
+        saveHealthToPrefs()
         // Sync user profile and donor status to Firebase Cloud Server
         firebaseService.saveUserProfile(profile)
     }
@@ -651,6 +653,8 @@ class BloodSyncRepository(private val context: Context) {
             put("bloodGroup", p.bloodGroup)
             put("city", p.city)
             put("address", p.address)
+            put("gender", p.gender)
+            put("age", p.age)
             put("totalDonations", p.totalDonations)
             put("livesSaved", p.livesSaved)
             put("isAvailableDonor", p.isAvailableDonor)
@@ -821,6 +825,8 @@ class BloodSyncRepository(private val context: Context) {
                     bloodGroup = obj.optString("bloodGroup", "O+"),
                     city = obj.optString("city", ""),
                     address = obj.optString("address", ""),
+                    gender = obj.optString("gender", "Male"),
+                    age = obj.optInt("age", 18),
                     totalDonations = obj.optInt("totalDonations", 0),
                     livesSaved = obj.optInt("livesSaved", 0),
                     isAvailableDonor = obj.optBoolean("isAvailableDonor", true),

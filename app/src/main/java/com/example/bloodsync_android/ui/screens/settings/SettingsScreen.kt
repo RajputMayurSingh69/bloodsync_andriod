@@ -56,8 +56,8 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             BloodSyncTopBar(
-                title = "Settings",
-                subtitle = "Preferences & App Options",
+                title = strings.settingsTitle,
+                subtitle = strings.appearanceSection,
                 showBackButton = true,
                 onBackClick = onBackClick
             )
