@@ -1,9 +1,9 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** September 26, 2026  
-**Version:** v2.3.0 (Gender, Age 15+ Restriction, Post-Auth Language Popup & Universal Localization)  
+**Version:** v2.3.4 (Stable Working Build: Register First & Zero-Crash SharedPreferences Engine)  
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/Ha87y5dK](https://gofile.io/d/Ha87y5dK)  
+**Cloud Download Link:** [gofile.io/d/Lm5oe9Tg](https://gofile.io/d/Lm5oe9Tg)  
 
 ---
 
