@@ -20,25 +20,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.bloodsync_android.R
 import com.example.bloodsync_android.data.model.UserProfile
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodDropIcon
 import com.example.bloodsync_android.ui.components.BloodGroupSelector
-import com.example.bloodsync_android.ui.components.LanguageSelectionDialog
 import com.example.bloodsync_android.ui.theme.*
-import com.example.bloodsync_android.util.LanguageManager
+import com.example.bloodsync_android.util.LocalAppStrings
 import com.example.bloodsync_android.util.ValidationHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -53,8 +49,7 @@ fun AuthScreen(
 ) {
     val context = LocalContext.current
     val appColors = BloodSyncTheme.colors
-    val currentLanguage by repository.appLanguage
-    val strings = remember(currentLanguage) { LanguageManager.getStrings(currentLanguage) }
+    val strings = LocalAppStrings.current
 
     // Primary default mode is REGISTER FIRST as required by user
     var isRegisterMode by remember { mutableStateOf(true) }
@@ -72,8 +67,6 @@ fun AuthScreen(
     var cityInput by remember { mutableStateOf("") }
     var volunteerEmergency by remember { mutableStateOf(true) }
 
-    // State & Locale Dialog
-    var showLanguagePopup by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -100,7 +93,7 @@ fun AuthScreen(
                 val displayName = account.displayName ?: account.givenName ?: "Google User"
                 val email = account.email ?: ""
                 repository.loginWithGoogleAccount(displayName, email)
-                showLanguagePopup = true
+                onLoginSuccess()
             } else {
                 errorMessage = "Google sign-in was not completed."
             }
@@ -141,49 +134,19 @@ fun AuthScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // App Brand Header with Language Switcher
+            // App Brand Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BloodDropIcon(size = 32.dp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = strings.appName,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BloodRedPrimary
-                    )
-                }
-
-                // Quick Language Selector Chip
-                Surface(
-                    onClick = { showLanguagePopup = true },
-                    shape = RoundedCornerShape(50.dp),
-                    color = appColors.surfaceVariant,
-                    border = BorderStroke(1.dp, appColors.border)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Language,
-                            contentDescription = "Language",
-                            tint = BloodRedPrimary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = currentLanguage.nativeName,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = appColors.textPrimary
-                        )
-                    }
-                }
+                BloodDropIcon(size = 32.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = strings.appName,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BloodRedPrimary
+                )
             }
 
             Text(
@@ -614,8 +577,7 @@ fun AuthScreen(
                                     repository.registerDonor(newProfile)
                                     repository.setLoggedIn(true)
                                     isLoading = false
-                                    // Prompt user with Choose Your Language popup
-                                    showLanguagePopup = true
+                                    onLoginSuccess()
                                 }
                             } else {
                                 // SIGN IN: Check Email Extension STRICTLY
@@ -644,8 +606,7 @@ fun AuthScreen(
                                         bloodGroup = "O+"
                                     )
                                     isLoading = false
-                                    // Prompt user with Choose Your Language popup
-                                    showLanguagePopup = true
+                                    onLoginSuccess()
                                 }
                             }
                         },
@@ -717,64 +678,13 @@ fun AuthScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            // Real Google 4-color logo drawn with Canvas
-                            Canvas(
-                                modifier = Modifier.size(22.dp)
-                            ) {
-                                val strokeW = size.width * 0.13f
-                                val cx = size.width / 2f
-                                val cy = size.height / 2f
-                                val radius = size.width / 2f - strokeW / 2f
-                                val arcSize = Size(radius * 2, radius * 2)
-                                val arcTopLeft = Offset(cx - radius, cy - radius)
-
-                                // Blue arc (top → right, ~155° sweep from -230°)
-                                drawArc(
-                                    color = Color(0xFF4285F4),
-                                    startAngle = -230f,
-                                    sweepAngle = 155f,
-                                    useCenter = false,
-                                    topLeft = arcTopLeft,
-                                    size = arcSize,
-                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
-                                )
-                                // Red arc (top-left, ~90° sweep from -230°-90°)
-                                drawArc(
-                                    color = Color(0xFFEA4335),
-                                    startAngle = -320f,
-                                    sweepAngle = 90f,
-                                    useCenter = false,
-                                    topLeft = arcTopLeft,
-                                    size = arcSize,
-                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
-                                )
-                                // Yellow arc (bottom-right, ~75° sweep)
-                                drawArc(
-                                    color = Color(0xFFFBBC05),
-                                    startAngle = -75f,
-                                    sweepAngle = 75f,
-                                    useCenter = false,
-                                    topLeft = arcTopLeft,
-                                    size = arcSize,
-                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
-                                )
-                                // Green arc (bottom, ~75° sweep)
-                                drawArc(
-                                    color = Color(0xFF34A853),
-                                    startAngle = 0f,
-                                    sweepAngle = 75f,
-                                    useCenter = false,
-                                    topLeft = arcTopLeft,
-                                    size = arcSize,
-                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
-                                )
-                                // Blue horizontal bar (right side of G)
-                                drawRect(
-                                    color = Color(0xFF4285F4),
-                                    topLeft = Offset(cx, cy - strokeW * 0.7f),
-                                    size = Size(radius - strokeW / 2f, strokeW * 1.4f)
-                                )
-                            }
+                            // Official Google 4-color vector logo
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_google_logo),
+                                contentDescription = "Google",
+                                tint = Color.Unspecified,
+                                modifier = Modifier.size(20.dp)
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = strings.continueWithGoogle,
@@ -807,20 +717,6 @@ fun AuthScreen(
                     color = appColors.textMuted
                 )
             }
-        }
-
-        // Post-Login & Post-Register Language Selection Modal Dialog
-        if (showLanguagePopup) {
-            LanguageSelectionDialog(
-                currentLanguage = currentLanguage,
-                onLanguageSelected = { selectedLang ->
-                    repository.setAppLanguage(selectedLang)
-                },
-                onDismiss = {
-                    showLanguagePopup = false
-                    onLoginSuccess()
-                }
-            )
         }
     }
 }

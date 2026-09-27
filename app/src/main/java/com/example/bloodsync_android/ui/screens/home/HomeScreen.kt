@@ -59,7 +59,6 @@ fun HomeScreen(
     val appColors = BloodSyncTheme.colors
     val context = LocalContext.current
     val strings = com.example.bloodsync_android.util.LocalAppStrings.current
-    val currentLanguage = com.example.bloodsync_android.util.LocalAppLanguage.current
     val profile by repository.userProfile
     val healthRecord by repository.healthRecord
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
@@ -69,11 +68,7 @@ fun HomeScreen(
     val bloodBanks = repository.bloodBanks
 
     val firstName = profile.name.trim().split(" ").firstOrNull { it.isNotBlank() }
-    val greetingHello = when (currentLanguage) {
-        com.example.bloodsync_android.util.AppLanguage.HINDI -> "नमस्ते"
-        com.example.bloodsync_android.util.AppLanguage.GUJARATI -> "નમસ્તે"
-        com.example.bloodsync_android.util.AppLanguage.ENGLISH -> "Hello"
-    }
+    val greetingHello = "Hello"
     val greetingSubtitle = if (!firstName.isNullOrBlank()) {
         "$greetingHello, $firstName • ${profile.bloodGroup.ifBlank { strings.profile }}"
     } else {

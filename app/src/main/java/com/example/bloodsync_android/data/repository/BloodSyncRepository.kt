@@ -15,7 +15,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import com.example.bloodsync_android.util.AppLanguage
 
 enum class ThemeMode {
     SYSTEM, // Fallback
@@ -47,21 +46,6 @@ class BloodSyncRepository(private val context: Context) {
         prefs.edit().putString("theme_mode", mode.name).apply()
     }
 
-    // App Language state for dynamic English, Hindi, Gujarati switching
-    private val _appLanguage = mutableStateOf(
-        try {
-            val saved = prefs.getString("app_language", AppLanguage.ENGLISH.name) ?: AppLanguage.ENGLISH.name
-            AppLanguage.valueOf(saved)
-        } catch (_: Exception) {
-            AppLanguage.ENGLISH
-        }
-    )
-    val appLanguage: State<AppLanguage> = _appLanguage
-
-    fun setAppLanguage(language: AppLanguage) {
-        _appLanguage.value = language
-        prefs.edit().putString("app_language", language.name).apply()
-    }
 
     private val _userProfile = mutableStateOf(UserProfile())
     val userProfile: State<UserProfile> = _userProfile
