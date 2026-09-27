@@ -1,10 +1,10 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** September 27, 2026
-**Version:** v2.6.0 (Pure English UI & Official 4-Color Google Vector Asset)
+**Version:** v2.6.1 (Triple Gender Support: Male, Female & Others)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** [bloodsync-v2.6.0.apk — GoFile Download](https://gofile.io/d/6kEaANN7)
-**Previous Build:** [gofile.io/d/xSCOG3Cf](https://gofile.io/d/xSCOG3Cf) (v2.4.0)
+**Latest APK:** [bloodsync-v2.6.1.apk — GoFile Download](https://gofile.io/d/SMklD0XE)
+**Previous Build:** [gofile.io/d/6kEaANN7](https://gofile.io/d/6kEaANN7) (v2.6.0)
 
 ---
 
@@ -16,7 +16,17 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
 
 ## 🚀 Key Milestones Completed
 
-### 8. Pure English Interface & Official Google Vector Logo (v2.6.0) ← LATEST
+### 9. Triple Gender Option Support (Male, Female, Others) (v2.6.1) ← LATEST
+- **Triple Gender Selector:**
+  - Added "Others" pill option alongside "Male" and "Female" with official `Icons.Default.Transgender`
+  - Integrated in Registration (`AuthScreen.kt`) and Profile Edit Mode (`ProfileScreen.kt`)
+  - Profile View Mode displays custom icon and label for "Others"
+  - Clinical Health Tracker (`HealthTrackerScreen.kt`) updated to support M/F/O
+- **Build & Artifact:**
+  - `BUILD SUCCESSFUL in 18s` (zero compile errors)
+  - GoFile Download: [https://gofile.io/d/SMklD0XE](https://gofile.io/d/SMklD0XE) (28.9 MB)
+
+### 8. Pure English Interface & Official Google Vector Logo (v2.6.0)
 - **Multi-Language Completely Removed:**
   - Removed all multi-language modal popups (`LanguageSelectionDialog.kt` deleted)
   - Removed top-bar language selection chip in authentication header

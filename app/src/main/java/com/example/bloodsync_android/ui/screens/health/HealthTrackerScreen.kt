@@ -643,7 +643,7 @@ fun EditVitalsDialog(
                     OutlinedTextField(
                         value = selectedGender,
                         onValueChange = { selectedGender = it },
-                        label = { Text("Gender (M/F)") },
+                        label = { Text("Gender (M/F/O)") },
                         colors = textFieldColors,
                         modifier = Modifier.weight(1f)
                     )

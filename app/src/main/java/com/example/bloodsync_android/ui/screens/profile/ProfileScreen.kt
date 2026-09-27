@@ -313,9 +313,13 @@ fun ProfileScreen(
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf("Male" to strings.genderMale, "Female" to strings.genderFemale).forEach { (gKey, gLabel) ->
+                                listOf(
+                                    Triple("Male", strings.genderMale, Icons.Default.Male),
+                                    Triple("Female", strings.genderFemale, Icons.Default.Female),
+                                    Triple("Other", strings.genderOther, Icons.Default.Transgender)
+                                ).forEach { (gKey, gLabel, gIcon) ->
                                     val isSelected = genderInput == gKey
                                     Surface(
                                         modifier = Modifier
@@ -336,17 +340,18 @@ fun ProfileScreen(
                                             horizontalArrangement = Arrangement.Center
                                         ) {
                                             Icon(
-                                                imageVector = if (gKey == "Male") Icons.Default.Male else Icons.Default.Female,
+                                                imageVector = gIcon,
                                                 contentDescription = null,
                                                 tint = if (isSelected) BloodRedPrimary else appColors.textMuted,
                                                 modifier = Modifier.size(16.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 text = gLabel,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                                 color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
-                                                fontSize = 13.sp
+                                                fontSize = 12.sp,
+                                                maxLines = 1
                                             )
                                         }
                                     }
@@ -486,9 +491,17 @@ fun ProfileScreen(
                         HorizontalDivider(color = appColors.divider)
 
                         ProfileDetailRow(
-                            icon = if (profile.gender == "Female") Icons.Default.Female else Icons.Default.Male,
+                            icon = when (profile.gender) {
+                                "Female" -> Icons.Default.Female
+                                "Other", "Others" -> Icons.Default.Transgender
+                                else -> Icons.Default.Male
+                            },
                             label = strings.gender,
-                            value = if (profile.gender == "Female") strings.genderFemale else strings.genderMale,
+                            value = when (profile.gender) {
+                                "Female" -> strings.genderFemale
+                                "Other", "Others" -> strings.genderOther
+                                else -> strings.genderMale
+                            },
                             accentColor = StatusEligibleGreen,
                             textColor = appColors.textPrimary,
                             labelColor = appColors.textSecondary

@@ -281,9 +281,13 @@ fun AuthScreen(
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf("Male" to strings.genderMale, "Female" to strings.genderFemale).forEach { (genderKey, genderLabel) ->
+                                listOf(
+                                    Triple("Male", strings.genderMale, Icons.Default.Male),
+                                    Triple("Female", strings.genderFemale, Icons.Default.Female),
+                                    Triple("Other", strings.genderOther, Icons.Default.Transgender)
+                                ).forEach { (genderKey, genderLabel, genderIcon) ->
                                     val isSelected = selectedGender == genderKey
                                     Surface(
                                         modifier = Modifier
@@ -304,17 +308,18 @@ fun AuthScreen(
                                             horizontalArrangement = Arrangement.Center
                                         ) {
                                             Icon(
-                                                imageVector = if (genderKey == "Male") Icons.Default.Male else Icons.Default.Female,
+                                                imageVector = genderIcon,
                                                 contentDescription = null,
                                                 tint = if (isSelected) BloodRedPrimary else appColors.textMuted,
-                                                modifier = Modifier.size(18.dp)
+                                                modifier = Modifier.size(16.dp)
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 text = genderLabel,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                                 color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
-                                                fontSize = 13.sp
+                                                fontSize = 12.sp,
+                                                maxLines = 1
                                             )
                                         }
                                     }
