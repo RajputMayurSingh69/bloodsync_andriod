@@ -20,6 +20,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -712,18 +717,62 @@ fun AuthScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            // Google Circular Badge
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .background(Color.White, CircleShape),
-                                contentAlignment = Alignment.Center
+                            // Real Google 4-color logo drawn with Canvas
+                            Canvas(
+                                modifier = Modifier.size(22.dp)
                             ) {
-                                Text(
-                                    text = "G",
+                                val strokeW = size.width * 0.13f
+                                val cx = size.width / 2f
+                                val cy = size.height / 2f
+                                val radius = size.width / 2f - strokeW / 2f
+                                val arcSize = Size(radius * 2, radius * 2)
+                                val arcTopLeft = Offset(cx - radius, cy - radius)
+
+                                // Blue arc (top → right, ~155° sweep from -230°)
+                                drawArc(
                                     color = Color(0xFF4285F4),
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 16.sp
+                                    startAngle = -230f,
+                                    sweepAngle = 155f,
+                                    useCenter = false,
+                                    topLeft = arcTopLeft,
+                                    size = arcSize,
+                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
+                                )
+                                // Red arc (top-left, ~90° sweep from -230°-90°)
+                                drawArc(
+                                    color = Color(0xFFEA4335),
+                                    startAngle = -320f,
+                                    sweepAngle = 90f,
+                                    useCenter = false,
+                                    topLeft = arcTopLeft,
+                                    size = arcSize,
+                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
+                                )
+                                // Yellow arc (bottom-right, ~75° sweep)
+                                drawArc(
+                                    color = Color(0xFFFBBC05),
+                                    startAngle = -75f,
+                                    sweepAngle = 75f,
+                                    useCenter = false,
+                                    topLeft = arcTopLeft,
+                                    size = arcSize,
+                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
+                                )
+                                // Green arc (bottom, ~75° sweep)
+                                drawArc(
+                                    color = Color(0xFF34A853),
+                                    startAngle = 0f,
+                                    sweepAngle = 75f,
+                                    useCenter = false,
+                                    topLeft = arcTopLeft,
+                                    size = arcSize,
+                                    style = Stroke(width = strokeW, cap = StrokeCap.Butt)
+                                )
+                                // Blue horizontal bar (right side of G)
+                                drawRect(
+                                    color = Color(0xFF4285F4),
+                                    topLeft = Offset(cx, cy - strokeW * 0.7f),
+                                    size = Size(radius - strokeW / 2f, strokeW * 1.4f)
                                 )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
