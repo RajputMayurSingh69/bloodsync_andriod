@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloodSync — Management Dashboard</title>
+  <meta name="description" content="BloodSync Admin Dashboard — Manage blood inventory, donor registrations, emergency requests, and hospital connections in real time." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { jakarta: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            brand: {
+              50:  '#FFF1F1', 100: '#FFE0E0', 200: '#FFC5C5', 300: '#FF9999',
+              400: '#FF5959', 500: '#F52828', 600: '#C52828', 700: '#B91C1C',
+              800: '#991B1B', 900: '#7F1D1D',
+            },
+            cream: '#F6F5F2',
+          },
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { background-color: #F6F5F2; display: flex; overflow: hidden; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #C52828; }
+
+    /* Sidebar */
+    #sidebar { width: 256px; min-width: 256px; transition: width 0.3s, min-width 0.3s; }
+    .nav-link { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: all 0.18s ease; color: #4B5563; font-size: 0.875rem; text-decoration: none; }
+    .nav-link:hover { background: #FEF2F2; color: #B91C1C; }
+    .nav-link.active { background: #FEE2E2; color: #B91C1C; font-weight: 600; }
+
+    /* Card hover lift */
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(197,40,40,0.10); }
+
+    /* Pulse animations */
+    @keyframes ping-badge {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.5); opacity: 0.55; }
+    }
+    .badge-ping { animation: ping-badge 1.6s ease-in-out infinite; }
+
+    @keyframes feedIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .feed-item { animation: feedIn 0.35s ease-out; }
+
+    /* Status badges */
+    .status-active   { background:#DCFCE7; color:#15803D; }
+    .status-pending  { background:#FEF9C3; color:#A16207; }
+    .status-dispatch { background:#FEE2E2; color:#B91C1C; }
+    .status-cooldown { background:#F3F4F6; color:#6B7280; }
+
+    /* Blood group circular badge */
+    .bg-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 50%;
+      font-weight: 700; font-size: 0.68rem; letter-spacing: -0.02em; flex-shrink: 0;
+    }
+    .bg-Ap  { background:#FEE2E2; color:#B91C1C; border:2px solid #FECACA; }
+    .bg-Am  { background:#FECACA; color:#991B1B; border:2px solid #FCA5A5; }
+    .bg-Bp  { background:#EDE9FE; color:#6D28D9; border:2px solid #DDD6FE; }
+    .bg-Bm  { background:#DDD6FE; color:#5B21B6; border:2px solid #C4B5FD; }
+    .bg-ABp { background:#FFF7ED; color:#C2410C; border:2px solid #FED7AA; font-size:0.6rem; }
+    .bg-ABm { background:#FDBA74; color:#9A3412; border:2px solid #FB923C; font-size:0.6rem; }
+    .bg-Op  { background:#ECFDF5; color:#065F46; border:2px solid #A7F3D0; }
+    .bg-Om  { background:#A7F3D0; color:#064E3B; border:2px solid #6EE7B7; }
+
+    /* Stock bar */
+    .inv-bar  { height: 6px; border-radius: 9999px; background: #F3F4F6; overflow: hidden; }
+    .inv-fill { height: 100%; border-radius: 9999px; transition: width 1s ease; }
+
+    /* Table row hover */
+    .table-row { transition: background 0.15s ease; }
+    .table-row:hover { background: #FFF5F5; }
+
+    /* Tab active */
+    .tab-btn.tab-active { background: #FEE2E2; color: #B91C1C; border-color: #FECACA; font-weight: 600; }
+    .tab-btn { transition: all 0.18s; padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; border: 1px solid transparent; cursor: pointer; color: #6B7280; background: transparent; }
+    .tab-btn:not(.tab-active):hover { background: #F9FAFB; }
+
+    /* Search focus */
+    #search-input:focus { border-color: #C52828; box-shadow: 0 0 0 3px rgba(197,40,40,0.12); outline: none; }
+
+    /* Modal backdrop */
+    #request-modal:not(.hidden) { display: flex; }
+
+    /* KPI icon circles */
+    .kpi-icon-red    { background: #FFF1F1; }
+    .kpi-icon-green  { background: #F0FDF4; }
+    .kpi-icon-amber  { background: #FFFBEB; }
+    .kpi-icon-purple { background: #FAF5FF; }
+
+    /* Toast slide-up */
+    @keyframes toastIn {
+      from { opacity:0; transform: translateY(16px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    #toast:not(.hidden) { animation: toastIn 0.3s ease-out; }
+
+    /* Responsive sidebar */
+    @media (max-width: 1023px) {
+      #sidebar { position: fixed; left: 0; top: 0; z-index: 50; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 49; }
+      #sidebar.open ~ #sidebar-overlay { display: block; }
+    }
+    @media (max-width: 640px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<aside id="sidebar" class="bg-white border-r border-neutral-200 flex flex-col h-screen z-40 shadow-sm" aria-label="Sidebar Navigation">
+
+  <!-- Brand Header -->
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-neutral-100 flex-shrink-0">
+    <div class="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-800 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+      <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-white">
+        <path d="M12 3C12 3 5 10.5 5 14.5C5 18.09 8.13 21 12 21C15.87 21 19 18.09 19 14.5C19 10.5 12 3 12 3Z" fill="currentColor"/>
+        <path d="M9 14.5C9 14.5 10 16 12 16C14 16 15 14.5 15 14.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">BloodSync</h1>
+      <p class="text-[9px] text-gray-400 font-semibold uppercase tracking-widest">Admin Portal</p>
+    </div>
+  </div>
+
+  <!-- Navigation Links -->
+  <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+    <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-3 mb-2">Main Menu</p>
+
+    <a href="#" class="nav-link active" id="nav-dashboard" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </a>
+
+    <a href="#" class="nav-link" id="nav-inventory" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 6 9 6 13a6 6 0 0012 0C18 9 12 2 12 2z"/><path stroke-linecap="round" d="M9 13c0 1.657 1.343 3 3 3s3-1.343 3-3"/></svg>
+      <span>Blood Inventory</span>
+    </a>
+
+    <a href="#" class="nav-link" id="nav-donors" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>Donor Directory</span>
+    </a>
+
+    <a href="#" class="nav-link" id="nav-sos" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Emergency SOS</span>
+      <span class="ml-auto badge-ping inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-brand-600 text-white rounded-full">3</span>
+    </a>
+
+    <a href="#" class="nav-link" id="nav-hospitals" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M9 21V7.5l3-3 3 3V21M12 11v4M10 13h4"/></svg>
+      <span>Hospitals & Camps</span>
+    </a>
+
+    <div class="pt-4 pb-1">
+      <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-3 mb-2">System</p>
+    </div>
+
+    <a href="#" class="nav-link" id="nav-settings" onclick="setActive(this, event)">
+      <svg class="w-[18px] h-[18px] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+
+  <!-- User Profile Pill -->
+  <div class="px-4 py-4 border-t border-neutral-100 flex-shrink-0">
+    <div class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
+      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AD</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-gray-900 truncate">Admin User</p>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-brand-100 text-brand-700 uppercase tracking-wide">Super Admin</span>
+      </div>
+      <button onclick="showToast('👋','Logging out… Goodbye!')" title="Logout" class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 flex-shrink-0" aria-label="Logout">
+        <svg class="w-4 h-4 text-gray-400 hover:text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- Overlay for mobile sidebar -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ══════════════════════ MAIN CONTENT ══════════════════════ -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+  <!-- TOP NAV BAR -->
+  <header class="bg-white/90 backdrop-blur-sm border-b border-neutral-200 px-4 md:px-6 py-3.5 flex items-center gap-3 shadow-sm flex-shrink-0 z-30 sticky top-0">
+
+    <!-- Hamburger (mobile/tablet) -->
+    <button onclick="openSidebar()" class="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-600 flex-shrink-0" aria-label="Open sidebar">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+
+    <!-- Welcome -->
+    <div class="hidden md:block flex-shrink-0">
+      <p class="text-[15px] font-bold text-gray-900 leading-tight">Welcome back, <span class="text-brand-700">Administrator</span> 👋</p>
+      <p id="live-clock" class="text-[11px] text-gray-400 font-medium mt-0.5"></p>
+    </div>
+
+    <!-- Search -->
+    <div class="flex-1 max-w-sm mx-2 md:mx-4">
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="search-input" type="search" placeholder="Search donors, blood groups…" class="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl transition-all placeholder-gray-400" aria-label="Search" oninput="searchTable(this.value)" />
+      </div>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="flex items-center gap-2 ml-auto flex-shrink-0">
+      <!-- Notification Bell -->
+      <div class="relative">
+        <button id="notif-btn" onclick="toggleNotif(event)" class="relative p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors" aria-label="Notifications">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-brand-600 rounded-full border-2 border-white badge-ping"></span>
+        </button>
+        <!-- Notification Panel -->
+        <div id="notif-panel" class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden z-50">
+          <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <p class="font-bold text-sm text-gray-900">Notifications</p>
+            <span class="text-[10px] font-bold px-2 py-0.5 bg-brand-100 text-brand-700 rounded-full">5 New</span>
+          </div>
+          <div class="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+            <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer"><p class="text-sm font-medium text-gray-800">🚨 Urgent: O− needed at City Hospital</p><p class="text-xs text-gray-400 mt-0.5">2 minutes ago</p></div>
+            <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer"><p class="text-sm font-medium text-gray-800">✅ New donor registered: Priya M. (A+)</p><p class="text-xs text-gray-400 mt-0.5">8 minutes ago</p></div>
+            <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer"><p class="text-sm font-medium text-gray-800">⚠️ AB− stock critically low (2 units)</p><p class="text-xs text-gray-400 mt-0.5">34 minutes ago</p></div>
+            <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer"><p class="text-sm font-medium text-gray-800">🏥 MedCity Camp scheduled for tomorrow</p><p class="text-xs text-gray-400 mt-0.5">1 hour ago</p></div>
+            <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer"><p class="text-sm font-medium text-gray-800">📋 3 donor verifications pending review</p><p class="text-xs text-gray-400 mt-0.5">2 hours ago</p></div>
+          </div>
+          <div class="px-4 py-2.5 border-t border-gray-100 text-center">
+            <button class="text-xs font-semibold text-brand-600 hover:text-brand-800">View all notifications →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA Button -->
+      <button onclick="showRequestModal()" class="flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-sm font-bold rounded-xl shadow-md shadow-brand-200/50 transition-all" aria-label="New blood request">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span class="hidden sm:inline">New Request</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- SCROLLABLE PAGE BODY -->
+  <main class="flex-1 overflow-y-auto p-4 md:p-6" id="page-main">
+    <div class="flex gap-6 items-start">
+
+      <!-- LEFT / MAIN COLUMN -->
+      <div class="flex-1 min-w-0 space-y-6">
+
+        <!-- KPI CARDS -->
+        <section>
+          <div class="grid grid-cols-2 xl:grid-cols-4 gap-4" id="kpi-row">
+
+            <!-- Total Donors -->
+            <div class="card-hover bg-white rounded-2xl border border-neutral-200/80 p-5 shadow-sm relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-brand-600 opacity-[0.05] translate-x-6 -translate-y-6"></div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="kpi-icon-red w-10 h-10 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">▲ 12%</span>
+              </div>
+              <p id="kpi-donors" class="text-3xl font-bold text-gray-900 tabular-nums">0</p>
+              <p class="text-sm text-gray-500 mt-1">Total Donors</p>
+              <p class="text-xs text-emerald-600 font-semibold mt-2.5">+24 new this week</p>
+            </div>
+
+            <!-- Units in Stock -->
+            <div class="card-hover bg-white rounded-2xl border border-neutral-200/80 p-5 shadow-sm relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-emerald-500 opacity-[0.05] translate-x-6 -translate-y-6"></div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="kpi-icon-green w-10 h-10 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 6 9 6 13a6 6 0 0012 0C18 9 12 2 12 2z"/></svg>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded-full">8 Groups</span>
+              </div>
+              <p id="kpi-units" class="text-3xl font-bold text-gray-900 tabular-nums">0</p>
+              <p class="text-sm text-gray-500 mt-1">Units in Stock</p>
+              <p class="text-xs text-amber-600 font-semibold mt-2.5">⚠ AB− critically low</p>
+            </div>
+
+            <!-- Urgent SOS -->
+            <div class="card-hover bg-white rounded-2xl border border-neutral-200/80 p-5 shadow-sm relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-brand-600 opacity-[0.05] translate-x-6 -translate-y-6"></div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="kpi-icon-red w-10 h-10 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <span class="badge-ping text-[10px] font-bold px-2 py-1 bg-brand-600 text-white rounded-full">LIVE</span>
+              </div>
+              <p id="kpi-urgent" class="text-3xl font-bold text-brand-700 tabular-nums">0</p>
+              <p class="text-sm text-gray-500 mt-1">Urgent SOS Alerts</p>
+              <p class="text-xs text-brand-600 font-semibold mt-2.5">3 require immediate action</p>
+            </div>
+
+            <!-- Pending Verifications -->
+            <div class="card-hover bg-white rounded-2xl border border-neutral-200/80 p-5 shadow-sm relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-amber-500 opacity-[0.05] translate-x-6 -translate-y-6"></div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="kpi-icon-amber w-10 h-10 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-1 bg-amber-50 text-amber-700 rounded-full">Action Needed</span>
+              </div>
+              <p id="kpi-pending" class="text-3xl font-bold text-gray-900 tabular-nums">0</p>
+              <p class="text-sm text-gray-500 mt-1">Pending Reviews</p>
+              <p class="text-xs text-gray-400 font-medium mt-2.5">Last reviewed 2h ago</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- BLOOD INVENTORY MATRIX -->
+        <section>
+          <div class="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="text-[15px] font-bold text-gray-900">Blood Inventory Matrix</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Live stock levels across all 8 blood groups</p>
+              </div>
+              <button onclick="showToast('📦','Opening stock update form…')" class="text-xs font-semibold text-brand-600 hover:text-brand-800 px-3 py-1.5 border border-brand-200 hover:border-brand-400 rounded-lg hover:bg-brand-50 transition-all">+ Add Stock</button>
+            </div>
+            <div id="inventory-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+          </div>
+        </section>
+
+        <!-- DONOR ACTIVITY TABLE -->
+        <section>
+          <div class="bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden">
+            <!-- Table Header -->
+            <div class="px-5 pt-5 pb-0 border-b border-gray-100">
+              <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div>
+                  <h2 class="text-[15px] font-bold text-gray-900">Donor Registrations & Activity</h2>
+                  <p id="table-count" class="text-xs text-gray-400 mt-0.5">Showing all 12 records</p>
+                </div>
+                <button onclick="exportCSV()" class="flex items-center gap-1.5 text-xs font-semibold text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Export CSV
+                </button>
+              </div>
+              <!-- Filter Tabs -->
+              <div class="flex gap-1.5 flex-wrap pb-0.5" role="tablist">
+                <button id="tab-all"       onclick="filterTable('all')"       class="tab-btn tab-active" role="tab">All (12)</button>
+                <button id="tab-available" onclick="filterTable('available')" class="tab-btn" role="tab">Available (7)</button>
+                <button id="tab-cooldown"  onclick="filterTable('cooldown')"  class="tab-btn" role="tab">On Cooldown (3)</button>
+                <button id="tab-emergency" onclick="filterTable('emergency')" class="tab-btn" role="tab">Emergency Ready (2)</button>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm min-w-[600px]" aria-label="Donor registrations">
+                <thead>
+                  <tr class="bg-gray-50/80 text-[11px] text-gray-500 font-semibold uppercase tracking-wider">
+                    <th class="px-5 py-3 text-left">Donor</th>
+                    <th class="px-4 py-3 text-left">Group</th>
+                    <th class="px-4 py-3 text-left hidden md:table-cell">Contact</th>
+                    <th class="px-4 py-3 text-left hidden lg:table-cell">Location</th>
+                    <th class="px-4 py-3 text-left hidden lg:table-cell">Registered</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="donor-table-body" class="divide-y divide-gray-100/80"></tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-5 py-3.5 border-t border-gray-100 flex items-center justify-between">
+              <p class="text-xs text-gray-400" id="pagination-info">Page 1 of 1 — 12 records</p>
+              <div class="flex gap-1.5">
+                <button class="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-200 rounded-lg cursor-not-allowed" disabled>← Prev</button>
+                <button class="px-3 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-lg">1</button>
+                <button class="px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-200 rounded-lg cursor-not-allowed" disabled>Next →</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- END main col -->
+
+      <!-- RIGHT PANEL -->
+      <aside class="hidden xl:flex flex-col w-[296px] flex-shrink-0 space-y-4 sticky top-6">
+
+        <!-- SOS Banner -->
+        <div class="bg-gradient-to-br from-brand-600 to-brand-900 rounded-2xl p-5 text-white shadow-xl shadow-brand-300/40 relative overflow-hidden">
+          <div class="absolute inset-0 opacity-[0.08]" style="background: radial-gradient(circle at 80% 20%, white 0%, transparent 60%)"></div>
+          <div class="relative">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="badge-ping w-2 h-2 bg-yellow-300 rounded-full inline-block"></span>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-red-200">🚨 Live SOS Active</p>
+            </div>
+            <p class="text-base font-bold leading-tight">City General Hospital</p>
+            <p class="text-sm text-red-100 mt-1">Needs 4 units of <strong class="text-white font-black">O−</strong> urgently</p>
+            <p class="text-xs text-red-300 mt-1 flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+              Downtown Medical District
+            </p>
+            <div class="mt-4 flex gap-2">
+              <button onclick="showToast('🚀','Dispatch team notified!')" class="flex-1 bg-white text-brand-700 font-bold text-xs py-2.5 rounded-xl hover:bg-red-50 transition-colors">Dispatch Now →</button>
+              <button onclick="showToast('❌','SOS marked as handled')" class="px-3 bg-white/10 hover:bg-white/20 text-white text-xs py-2.5 rounded-xl transition-colors">Ignore</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Activity Feed -->
+        <div class="bg-white rounded-2xl border border-neutral-200/80 shadow-sm overflow-hidden flex flex-col">
+          <div class="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="badge-ping w-2 h-2 bg-emerald-500 rounded-full inline-block"></span>
+              <p class="text-sm font-bold text-gray-900">Live Activity</p>
+            </div>
+            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Auto-updating</p>
+          </div>
+          <div id="live-feed" class="overflow-y-auto max-h-64 divide-y divide-gray-50"></div>
+        </div>
+
+        <!-- Today's Summary -->
+        <div class="bg-white rounded-2xl border border-neutral-200/80 shadow-sm p-4">
+          <p class="text-sm font-bold text-gray-900 mb-4">Today's Summary</p>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-500 flex items-center gap-2"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span>Donations completed</span>
+              <span class="text-sm font-bold text-gray-900">18</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-500 flex items-center gap-2"><span class="w-2 h-2 bg-brand-500 rounded-full"></span>New registrations</span>
+              <span class="text-sm font-bold text-gray-900">7</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-500 flex items-center gap-2"><span class="w-2 h-2 bg-amber-400 rounded-full"></span>SOS dispatched</span>
+              <span class="text-sm font-bold text-gray-900">4</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-500 flex items-center gap-2"><span class="w-2 h-2 bg-violet-400 rounded-full"></span>Active camps</span>
+              <span class="text-sm font-bold text-gray-900">2</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="text-gray-400 font-medium">Monthly donation goal</span>
+              <span class="font-bold text-brand-600">68%</span>
+            </div>
+            <div class="inv-bar">
+              <div class="inv-fill bg-gradient-to-r from-brand-400 to-brand-700" style="width:68%"></div>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-1.5">340 / 500 donations this month</p>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════ MODAL ══════════════════════ -->
+<div id="request-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="closeModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style="animation: toastIn 0.3s ease-out">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center">
+          <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        </div>
+        <h3 id="modal-title" class="text-[15px] font-bold text-gray-900">New Blood Request</h3>
+      </div>
+      <button onclick="closeModal()" class="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide" for="m-hospital">Hospital / Requester</label>
+        <input id="m-hospital" type="text" placeholder="e.g. City General Hospital" class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide" for="m-group">Blood Group</label>
+          <select id="m-group" class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all bg-white">
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide" for="m-units">Units Needed</label>
+          <input id="m-units" type="number" min="1" max="50" value="2" class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide" for="m-priority">Priority Level</label>
+        <select id="m-priority" class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all bg-white">
+          <option>🔴 Critical / Emergency</option>
+          <option>🟠 High Priority</option>
+          <option>🟡 Moderate</option>
+          <option>🟢 Routine</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide" for="m-notes">Notes (optional)</label>
+        <textarea id="m-notes" rows="2" placeholder="Additional info or patient details…" class="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all resize-none"></textarea>
+      </div>
+      <button onclick="submitRequest()" class="w-full bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-brand-200/50">
+        🩸 Submit Blood Request
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-2xl text-sm font-medium max-w-xs" role="alert" aria-live="polite">
+  <span id="toast-icon" class="text-base">✅</span>
+  <span id="toast-msg">Action completed</span>
+</div>
+
+<!-- ══════════════════════ JAVASCRIPT ══════════════════════ -->
+<script>
+'use strict';
+
+/* ─── DATA ──────────────────────────────────────────────── */
+const DONORS = [
+  { id:'D-1042', name:'Aisha Patel',      group:'A+',  phone:'+91 98765 43210', city:'Mumbai',     date:'27 Sep 2026', time:'09:14 AM', status:'available',  emergency:false },
+  { id:'D-1041', name:'Rajesh Kumar',     group:'O-',  phone:'+91 87654 32109', city:'Delhi',      date:'26 Sep 2026', time:'04:52 PM', status:'available',  emergency:true  },
+  { id:'D-1040', name:'Meera Nair',       group:'B+',  phone:'+91 76543 21098', city:'Kochi',      date:'26 Sep 2026', time:'11:30 AM', status:'cooldown',   emergency:false },
+  { id:'D-1039', name:'Arjun Singh',      group:'AB+', phone:'+91 65432 10987', city:'Bangalore',  date:'25 Sep 2026', time:'02:18 PM', status:'available',  emergency:false },
+  { id:'D-1038', name:'Priya Sharma',     group:'A-',  phone:'+91 54321 09876', city:'Pune',       date:'24 Sep 2026', time:'10:05 AM', status:'pending',    emergency:false },
+  { id:'D-1037', name:'Vikram Rao',       group:'O+',  phone:'+91 43210 98765', city:'Chennai',    date:'23 Sep 2026', time:'03:40 PM', status:'available',  emergency:true  },
+  { id:'D-1036', name:'Sneha Gupta',      group:'B-',  phone:'+91 32109 87654', city:'Hyderabad',  date:'22 Sep 2026', time:'01:22 PM', status:'cooldown',   emergency:false },
+  { id:'D-1035', name:'Karan Mehta',      group:'AB-', phone:'+91 21098 76543', city:'Ahmedabad',  date:'21 Sep 2026', time:'08:55 AM', status:'available',  emergency:false },
+  { id:'D-1034', name:'Deepa Iyer',       group:'A+',  phone:'+91 10987 65432', city:'Mumbai',     date:'20 Sep 2026', time:'05:30 PM', status:'dispatched', emergency:false },
+  { id:'D-1033', name:'Aman Verma',       group:'O-',  phone:'+91 90876 54321', city:'Jaipur',     date:'19 Sep 2026', time:'12:15 PM', status:'available',  emergency:false },
+  { id:'D-1032', name:'Kavitha Reddy',    group:'B+',  phone:'+91 89765 43210', city:'Nagpur',     date:'18 Sep 2026', time:'09:48 AM', status:'cooldown',   emergency:false },
+  { id:'D-1031', name:'Suresh Pillai',    group:'O+',  phone:'+91 78654 32109', city:'Trivandrum', date:'17 Sep 2026', time:'04:10 PM', status:'available',  emergency:false },
+];
+
+const INVENTORY = [
+  { group:'A+',  units:287, max:400 },
+  { group:'A-',  units:48,  max:100 },
+  { group:'B+',  units:193, max:300 },
+  { group:'B-',  units:29,  max:80  },
+  { group:'AB+', units:112, max:150 },
+  { group:'AB-', units:8,   max:60  },
+  { group:'O+',  units:334, max:450 },
+  { group:'O-',  units:53,  max:120 },
+];
+
+let FEED = [
+  { icon:'🩸', text:'Rahul S. (B+) just registered as a donor',  time:'Just now',  type:'success' },
+  { icon:'🚨', text:'SOS: City Hospital needs 3 units O−',        time:'2 min ago', type:'alert'   },
+  { icon:'✅', text:'Aisha P. verified — ready to donate',        time:'5 min ago', type:'success' },
+  { icon:'📦', text:'Stock updated: +50 units A+ from camp',      time:'12 min ago',type:'info'    },
+  { icon:'⚠️', text:'AB− stock below threshold (8 units)',        time:'18 min ago',type:'warning' },
+  { icon:'🏥', text:'MedCity Hospital joined as partner',         time:'34 min ago',type:'info'    },
+  { icon:'👤', text:'Priya M. completed 5th donation milestone',  time:'1 hr ago',  type:'success' },
+  { icon:'📋', text:'Camp at Gandhi Nagar confirmed tomorrow',    time:'2 hrs ago', type:'info'    },
+];
+
+const NEW_FEEDS = [
+  { icon:'🩸', text:'Neha T. (A-) registered from Nagpur',      type:'success' },
+  { icon:'🚨', text:'Emergency: Apollo Hospital needs AB+',      type:'alert'   },
+  { icon:'✅', text:'Vikram R. donation verified & logged',      type:'success' },
+  { icon:'📦', text:'15 units O+ dispatched to Sunrise Clinic',  type:'info'    },
+  { icon:'⚠️', text:'O− stock running low — 53 units remain',   type:'warning' },
+  { icon:'🩸', text:'Sanjay K. (B-) signed up via mobile app',  type:'success' },
+];
+
+const BG_CLASS = { 'A+':'bg-Ap','A-':'bg-Am','B+':'bg-Bp','B-':'bg-Bm','AB+':'bg-ABp','AB-':'bg-ABm','O+':'bg-Op','O-':'bg-Om' };
+const STATUS_CLS = { available:'status-active', pending:'status-pending', dispatched:'status-dispatch', cooldown:'status-cooldown' };
+const STATUS_LBL = { available:'● Available', pending:'◌ Pending', dispatched:'▶ Dispatched', cooldown:'⏸ Cooldown' };
+
+let currentFilter = 'all';
+let currentSearch = '';
+let feedIdx = 0;
+
+/* ─── CLOCK ─────────────────────────────────────────────── */
+function updateClock() {
+  const el = document.getElementById('live-clock');
+  if (!el) return;
+  el.textContent = new Date().toLocaleString('en-IN', {
+    weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ─── KPI COUNTER ANIMATION ─────────────────────────────── */
+function animateCounter(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const step = target / 45;
+  let v = 0;
+  const t = setInterval(() => {
+    v = Math.min(v + step, target);
+    el.textContent = Math.round(v).toLocaleString();
+    if (v >= target) clearInterval(t);
+  }, 25);
+}
+
+/* ─── INVENTORY GRID ─────────────────────────────────────── */
+function renderInventory() {
+  const grid = document.getElementById('inventory-grid');
+  grid.innerHTML = INVENTORY.map(item => {
+    const pct = Math.min(Math.round((item.units / item.max) * 100), 100);
+    const low = pct <= 35;
+    const barColor = low ? 'from-red-400 to-brand-600' : pct > 65 ? 'from-emerald-400 to-emerald-600' : 'from-amber-400 to-amber-500';
+    const cardBg   = low ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-gray-50/30';
+    return `
+      <div class="card-hover rounded-xl border ${cardBg} p-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="bg-badge ${BG_CLASS[item.group]}">${item.group}</span>
+          ${low ? '<span class="text-[9px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-1.5 py-0.5 rounded-full">LOW</span>' : `<span class="text-[9px] font-semibold text-gray-400">${pct}%</span>`}
+        </div>
+        <p class="text-2xl font-bold text-gray-900 tabular-nums">${item.units}</p>
+        <p class="text-[10px] text-gray-400 mb-2.5">of ${item.max} units max</p>
+        <div class="inv-bar">
+          <div class="inv-fill bg-gradient-to-r ${barColor}" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ─── DONOR TABLE ─────────────────────────────────────────── */
+function getFiltered() {
+  return DONORS.filter(d => {
+    const fOk =
+      currentFilter === 'all' ||
+      (currentFilter === 'available'  && d.status === 'available' && !d.emergency) ||
+      (currentFilter === 'cooldown'   && d.status === 'cooldown') ||
+      (currentFilter === 'emergency'  && d.emergency);
+    const q  = currentSearch.toLowerCase();
+    const sOk = !q || [d.name, d.group, d.city, d.id, d.phone].some(s => s.toLowerCase().includes(q));
+    return fOk && sOk;
+  });
+}
+
+function renderTable() {
+  const tbody    = document.getElementById('donor-table-body');
+  const filtered = getFiltered();
+  const cnt      = filtered.length;
+  document.getElementById('table-count').textContent  = `Showing ${cnt} record${cnt !== 1 ? 's' : ''}`;
+  document.getElementById('pagination-info').textContent = `Page 1 of 1 — ${cnt} record${cnt !== 1 ? 's' : ''}`;
+
+  if (!cnt) {
+    tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">No matching donors found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(d => {
+    const initials = d.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    return `
+      <tr class="table-row">
+        <td class="px-5 py-3.5">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">${initials}</div>
+            <div>
+              <p class="font-semibold text-gray-900 text-sm leading-tight">${d.name}</p>
+              <p class="text-[10px] text-gray-400 font-mono">${d.id}</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-3.5"><span class="bg-badge ${BG_CLASS[d.group]}">${d.group}</span></td>
+        <td class="px-4 py-3.5 hidden md:table-cell text-sm text-gray-500">${d.phone}</td>
+        <td class="px-4 py-3.5 hidden lg:table-cell">
+          <span class="text-sm text-gray-500 flex items-center gap-1">
+            <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+            ${d.city}
+          </span>
+        </td>
+        <td class="px-4 py-3.5 hidden lg:table-cell">
+          <p class="text-sm text-gray-700">${d.date}</p>
+          <p class="text-[10px] text-gray-400">${d.time}</p>
+        </td>
+        <td class="px-4 py-3.5">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${STATUS_CLS[d.status]}">${STATUS_LBL[d.status]}</span>
+        </td>
+        <td class="px-4 py-3.5">
+          <div class="flex items-center gap-0.5">
+            <button onclick="showToast('👁️','Opening profile for ${d.id}…')" title="View" class="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+            <button onclick="showToast('📞','Calling ${d.phone}…')" title="Call" class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>
+            ${d.status === 'pending' ? `<button onclick="verifyDonor('${d.id}')" title="Verify" class="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/* ─── LIVE FEED ──────────────────────────────────────────── */
+function renderFeed() {
+  const BORDER = { alert:'border-brand-500', warning:'border-amber-400', success:'border-emerald-400', info:'border-blue-400' };
+  const feed = document.getElementById('live-feed');
+  feed.innerHTML = FEED.map(e => `
+    <div class="feed-item px-4 py-3 hover:bg-gray-50 cursor-pointer border-l-2 ${BORDER[e.type]}">
+      <div class="flex items-start gap-2">
+        <span class="text-sm flex-shrink-0 mt-0.5">${e.icon}</span>
+        <div class="min-w-0">
+          <p class="text-xs text-gray-700 font-medium leading-snug">${e.text}</p>
+          <p class="text-[10px] text-gray-400 mt-0.5">${e.time}</p>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function simulateFeed() {
+  const ev = { ...NEW_FEEDS[feedIdx % NEW_FEEDS.length], time: 'Just now' };
+  feedIdx++;
+  FEED = [ev, ...FEED.slice(0, 7)].map((e, i) => {
+    if (i === 0) return e;
+    const m = i * 3;
+    return { ...e, time: m < 60 ? `${m} min ago` : `${Math.round(m / 60)} hr ago` };
+  });
+  renderFeed();
+  // Occasionally bump donors KPI
+  if (Math.random() > 0.6) {
+    const el = document.getElementById('kpi-donors');
+    if (el) el.textContent = (parseInt(el.textContent.replace(/,/g, '')) + 1).toLocaleString();
+  }
+}
+
+/* ─── ACTIONS ─────────────────────────────────────────────── */
+function setActive(el, e) {
+  if (e) e.preventDefault();
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+  closeSidebar();
+}
+
+function filterTable(f) {
+  currentFilter = f;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+  document.getElementById('tab-' + f).classList.add('tab-active');
+  renderTable();
+}
+
+function searchTable(val) {
+  currentSearch = val;
+  renderTable();
+}
+
+function verifyDonor(id) {
+  const d = DONORS.find(x => x.id === id);
+  if (!d) return;
+  d.status = 'available';
+  const el = document.getElementById('kpi-pending');
+  if (el) { const v = parseInt(el.textContent); if (v > 0) el.textContent = (v - 1).toString(); }
+  renderTable();
+  showToast('✅', `${d.name} verified successfully!`);
+}
+
+function showRequestModal() { document.getElementById('request-modal').classList.remove('hidden'); }
+function closeModal()        { document.getElementById('request-modal').classList.add('hidden'); }
+
+function submitRequest() {
+  const hospital = document.getElementById('m-hospital').value.trim();
+  const group    = document.getElementById('m-group').value;
+  const units    = document.getElementById('m-units').value;
+  if (!hospital) { showToast('⚠️', 'Please enter the hospital name'); return; }
+  closeModal();
+  showToast('🚨', `Request for ${units} units of ${group} submitted`);
+  FEED.unshift({ icon:'🚨', text:`New SOS: ${hospital} needs ${units} units ${group}`, time:'Just now', type:'alert' });
+  FEED = FEED.slice(0, 8);
+  renderFeed();
+  const el = document.getElementById('kpi-urgent');
+  if (el) el.textContent = (parseInt(el.textContent) + 1).toString();
+}
+
+function exportCSV() {
+  const rows = [['ID','Name','Blood Group','Phone','City','Status','Registered']];
+  getFiltered().forEach(d => rows.push([d.id, d.name, d.group, d.phone, d.city, d.status, `${d.date} ${d.time}`]));
+  const blob = new Blob([rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')], { type:'text/csv' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download:'bloodsync-donors.csv' });
+  a.click();
+  showToast('📥', 'CSV exported successfully!');
+}
+
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); }
+
+let _toastTimer;
+function showToast(icon, msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-msg').textContent  = msg;
+  t.classList.remove('hidden');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+function toggleNotif(e) {
+  e.stopPropagation();
+  const p = document.getElementById('notif-panel');
+  p.classList.toggle('hidden');
+}
+document.addEventListener('click', e => {
+  const p = document.getElementById('notif-panel');
+  const btn = document.getElementById('notif-btn');
+  if (!p.contains(e.target) && !btn.contains(e.target)) p.classList.add('hidden');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ─── INIT ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  renderInventory();
+  renderTable();
+  renderFeed();
+  // Animated counters
+  animateCounter('kpi-donors', 2847);
+  animateCounter('kpi-units',  1204);
+  animateCounter('kpi-urgent', 7);
+  animateCounter('kpi-pending',38);
+  // Live feed simulation
+  setInterval(simulateFeed, 7000);
+});
+</script>
+</body>
+</html>

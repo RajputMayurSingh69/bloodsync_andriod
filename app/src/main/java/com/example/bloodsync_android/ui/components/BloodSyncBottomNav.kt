@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.example.bloodsync_android.ui.theme.*
 
 enum class AppNavDestination(val title: String, val icon: ImageVector) {
+    DASHBOARD("Dashboard", Icons.Default.Dashboard),
     HOME("Home", Icons.Default.Home),
     HISTORY("History", Icons.Default.DateRange),
     HEALTH("Safety", Icons.Default.Favorite),
@@ -74,6 +75,7 @@ fun BloodSyncBottomNav(
                 AppNavDestination.entries.forEach { destination ->
                     val isSelected = destination == currentDestination
                     val label = when (destination) {
+                        AppNavDestination.DASHBOARD -> "Panel"
                         AppNavDestination.HOME -> strings.navHome
                         AppNavDestination.HISTORY -> strings.navHistory
                         AppNavDestination.HEALTH -> strings.navSafety

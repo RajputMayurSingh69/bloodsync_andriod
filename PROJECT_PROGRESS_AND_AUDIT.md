@@ -1,9 +1,10 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** September 26, 2026  
-**Version:** v2.3.4 (Stable Working Build: Register First & Zero-Crash SharedPreferences Engine)  
-**Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)  
-**Cloud Download Link:** [gofile.io/d/Lm5oe9Tg](https://gofile.io/d/Lm5oe9Tg)  
+**Date:** September 27, 2026
+**Version:** v2.4.0 (Admin Dashboard Panel — Management Screen)
+**Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
+**Latest APK:** [bloodsync-v2.4.0-admin-dashboard.apk — GoFile Download](https://gofile.io/d/xSCOG3Cf)
+**Previous Stable:** [gofile.io/d/Lm5oe9Tg](https://gofile.io/d/Lm5oe9Tg) (v2.3.4)
 
 ---
 
@@ -14,6 +15,20 @@ Over the course of the day, **BloodSync Android** was transformed from an initia
 ---
 
 ## 🚀 Key Milestones Completed
+
+### 7. Admin Dashboard Panel (v2.4.0) ← LATEST
+- **New Screen:** `AdminDashboardScreen.kt` created in `ui/screens/dashboard/`
+- **Bottom Nav:** Added `DASHBOARD` (📊 Panel) as the first tab in `BloodSyncBottomNav.kt`
+- **Navigation:** Wired into `BloodSyncApp.kt` with full back-press handling
+- **Features implemented:**
+  - 4 KPI Cards: Total Donors, Units in Stock, Urgent SOS (pulsing), Pending Reviews
+  - Blood Inventory Matrix: All 8 blood groups with animated stock bars + LOW badge
+  - Live Activity Feed: 6 real-time style events with color-coded accent bars
+  - Active SOS Dispatch Banner (shown only when active emergencies exist)
+  - Donor Activity List: 8 entries with status pills (Available/Pending/Cooldown/Dispatched)
+  - Today's Summary card with monthly goal progress bar
+  - Top bar with live clock + notification bell + SOS quick-action button
+- **Build:** `BUILD SUCCESSFUL` — zero compile errors
 
 ### 1. Theme System Refinement
 - **Removed "System Default"**: App now exclusively offers clean **Light** and **Dark** modes.

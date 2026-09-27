@@ -31,6 +31,7 @@ import com.example.bloodsync_android.ui.screens.home.HomeScreen
 import com.example.bloodsync_android.ui.screens.notifications.NotificationCenterScreen
 import com.example.bloodsync_android.ui.screens.profile.ProfileScreen
 import com.example.bloodsync_android.ui.screens.settings.SettingsScreen
+import com.example.bloodsync_android.ui.screens.dashboard.AdminDashboardScreen
 import com.example.bloodsync_android.ui.screens.splash.SplashScreen
 import com.example.bloodsync_android.ui.theme.BloodSyncTheme
 import com.example.bloodsync_android.util.LanguageManager
@@ -80,16 +81,20 @@ fun BloodSyncApp(
         currentScreen = Screen.Main
     }
 
-    // 3. Inside Main screen: If on non-HOME tab (History, Health, Appointments, Profile), navigate back to HOME tab
+    // 3. Inside Main screen: If on non-HOME/non-DASHBOARD tab, navigate back to HOME tab
     BackHandler(
-        enabled = currentScreen is Screen.Main && currentNavDestination != AppNavDestination.HOME
+        enabled = currentScreen is Screen.Main
+            && currentNavDestination != AppNavDestination.HOME
+            && currentNavDestination != AppNavDestination.DASHBOARD
     ) {
         currentNavDestination = AppNavDestination.HOME
     }
 
-    // 4. Root screens: On HOME tab of Main screen, or on Auth screen -> Prompt Exit Confirmation
+    // 4. Root screens: On HOME or DASHBOARD tab of Main screen, or on Auth screen -> Prompt Exit Confirmation
     BackHandler(
-        enabled = (currentScreen is Screen.Main && currentNavDestination == AppNavDestination.HOME) || (currentScreen is Screen.Auth)
+        enabled = (currentScreen is Screen.Main
+            && (currentNavDestination == AppNavDestination.HOME || currentNavDestination == AppNavDestination.DASHBOARD))
+            || (currentScreen is Screen.Auth)
     ) {
         showExitDialog = true
     }
@@ -153,6 +158,14 @@ fun BloodSyncApp(
                             .padding(innerPadding)
                     ) {
                         when (currentNavDestination) {
+                            AppNavDestination.DASHBOARD -> {
+                                AdminDashboardScreen(
+                                    repository = repository,
+                                    onNavigateToEmergency = { currentScreen = Screen.EmergencyRequest },
+                                    onNavigateToNotifications = { currentScreen = Screen.Notifications }
+                                )
+                            }
+
                             AppNavDestination.HOME -> {
                                 HomeScreen(
                                     repository = repository,
