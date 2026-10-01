@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,9 +47,21 @@ fun EmergencyLiveTrackingScreen(
     val appColors = BloodSyncTheme.colors
     val emergencyRequests = repository.emergencyRequests
     val unreadNotifs by repository.unreadNotificationCount
+    var showEditDialog by remember { mutableStateOf(false) }
 
     val request = remember(emergencyRequests, requestId) {
-        emergencyRequests.find { it.id == requestId } ?: emergencyRequests.firstOrNull()
+        if (requestId.isNotBlank()) {
+            emergencyRequests.find { it.id == requestId }
+        } else {
+            emergencyRequests.firstOrNull { 
+                it.status == EmergencyStatus.BROADCASTING &&
+                !it.patientName.contains("Jane Doe", ignoreCase = true) &&
+                !it.hospitalName.contains("Metro General", ignoreCase = true) &&
+                !it.patientName.equals("any one", ignoreCase = true) &&
+                !it.hospitalName.equals("no one", ignoreCase = true) &&
+                !it.id.startsWith("emg_dummy")
+            }
+        }
     }
 
     Scaffold(
@@ -68,17 +82,73 @@ fun EmergencyLiveTrackingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(innerPadding)
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Emergency request not found.")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .background(appColors.redLight, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = BloodRedPrimary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        Text(
+                            text = "No Active Emergency",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 20.sp,
+                            color = appColors.textPrimary
+                        )
+                        Text(
+                            text = "There is currently no active emergency SOS broadcast. When a blood emergency is requested, live matching donor statuses will appear here in real time.",
+                            fontSize = 13.sp,
+                            color = appColors.textSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 18.sp
+                        )
+                        Button(
+                            onClick = onBackClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                            shape = RoundedCornerShape(50.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Back to Home", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         } else {
+            val listState = rememberLazyListState()
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+                    .padding(top = innerPadding.calculateTopPadding()),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 140.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Live Radar Pulse Header Card
@@ -173,12 +243,44 @@ fun EmergencyLiveTrackingScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = "Emergency Details",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = appColors.textPrimary
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Emergency Details",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = appColors.textPrimary
+                                )
+
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50.dp))
+                                        .clickable { showEditDialog = true },
+                                    color = appColors.redLight
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Details",
+                                            tint = BloodRedPrimary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = "Edit",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = BloodRedPrimary
+                                        )
+                                    }
+                                }
+                            }
                             HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
 
                             Row(
@@ -312,6 +414,24 @@ fun EmergencyLiveTrackingScreen(
                     }
                 }
             }
+
+            if (showEditDialog && request != null) {
+                EditEmergencyDetailsDialog(
+                    request = request,
+                    onDismiss = { showEditDialog = false },
+                    onSave = { pName, hName, hLoc, phone, note ->
+                        repository.updateEmergencyRequestDetails(
+                            id = request.id,
+                            patientName = pName,
+                            hospitalName = hName,
+                            hospitalAddress = hLoc,
+                            contactPhone = phone,
+                            notes = note
+                        )
+                        showEditDialog = false
+                    }
+                )
+            }
         }
     }
 }
@@ -356,12 +476,16 @@ fun LiveRadarStatusCard(request: EmergencyRequest) {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(90.dp)
             ) {
-                // Expanding radar circle
+                // Expanding radar circle (RenderThread GPU animation - zero recomposition)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .scale(waveScale)
-                        .background(StatusUrgentRed.copy(alpha = waveAlpha), CircleShape)
+                        .graphicsLayer {
+                            scaleX = waveScale
+                            scaleY = waveScale
+                            alpha = waveAlpha
+                        }
+                        .background(StatusUrgentRed, CircleShape)
                 )
 
                 // Center red hub
@@ -531,3 +655,107 @@ private fun callPhone(context: Context, phoneNumber: String) {
     }
     context.startActivity(intent)
 }
+
+@Composable
+fun EditEmergencyDetailsDialog(
+    request: EmergencyRequest,
+    onDismiss: () -> Unit,
+    onSave: (patientName: String, hospitalName: String, hospitalAddress: String, contactPhone: String, notes: String) -> Unit
+) {
+    var patientName by remember { mutableStateOf(request.patientName) }
+    var hospitalName by remember { mutableStateOf(request.hospitalName) }
+    var hospitalAddress by remember { mutableStateOf(request.hospitalAddress) }
+    var contactPhone by remember { mutableStateOf(request.contactPhone) }
+    var notes by remember { mutableStateOf(request.additionalNotes) }
+    val appColors = BloodSyncTheme.colors
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = BloodRedPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Edit Emergency Details",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = appColors.textPrimary
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = patientName,
+                    onValueChange = { patientName = it },
+                    label = { Text("Patient Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = hospitalName,
+                    onValueChange = { hospitalName = it },
+                    label = { Text("Hospital Name *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = hospitalAddress,
+                    onValueChange = { hospitalAddress = it },
+                    label = { Text("Location / Address") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = contactPhone,
+                    onValueChange = { contactPhone = it },
+                    label = { Text("Emergency Contact Phone *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Clinical Note / Additional Info") },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (hospitalName.isNotBlank() && contactPhone.isNotBlank()) {
+                        onSave(patientName, hospitalName, hospitalAddress, contactPhone, notes)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                shape = RoundedCornerShape(50.dp)
+            ) {
+                Text("Save Changes", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = appColors.textSecondary)
+            }
+        },
+        containerColor = appColors.cardBackground,
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+

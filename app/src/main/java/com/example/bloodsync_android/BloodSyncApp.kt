@@ -154,6 +154,9 @@ fun BloodSyncApp(
                                 HomeScreen(
                                     repository = repository,
                                     onNavigateToEmergency = { currentScreen = Screen.EmergencyRequest },
+                                    onNavigateToLiveTracking = { requestId ->
+                                        currentScreen = Screen.EmergencyLiveTracking(requestId)
+                                    },
                                     onNavigateToHistory = { currentNavDestination = AppNavDestination.HISTORY },
                                     onNavigateToCertificates = { currentScreen = Screen.CertificateView(null) },
                                     onNavigateToHealth = { currentNavDestination = AppNavDestination.HEALTH },

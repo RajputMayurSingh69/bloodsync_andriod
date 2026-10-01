@@ -2,10 +2,13 @@ package com.example.bloodsync_android.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.example.bloodsync_android.data.firebase.FirebaseSyncService
 import com.example.bloodsync_android.data.model.*
 import com.example.bloodsync_android.data.notification.NotificationHelper
@@ -24,8 +27,22 @@ enum class ThemeMode {
 
 class BloodSyncRepository(private val context: Context) {
 
-    // 100% reliable, zero-crash private SharedPreferences across all Android devices and OEM ROMs
-    private val prefs: SharedPreferences = context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
+    // Hardware-backed EncryptedSharedPreferences (AES256-GCM / AES256-SIV) with graceful fallback
+    private val prefs: SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "bloodsync_secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        Log.e("BloodSyncSecurity", "Failed to initialize hardware-backed EncryptedSharedPreferences; falling back to private SharedPreferences", e)
+        context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
+    }
 
     // Firebase Cloud Sync Service
     val firebaseService: FirebaseSyncService = FirebaseSyncService(context)
@@ -90,6 +107,12 @@ class BloodSyncRepository(private val context: Context) {
             prefs.edit().clear().putBoolean("has_cleared_dummy_data_v2", true).apply()
         }
 
+        // Purge any stale pre-filled emergency requests for clean user experience (v2.6.8)
+        val hasPurgedStaleEmergencies = prefs.getBoolean("has_purged_stale_emergencies_v2_6_8", false)
+        if (!hasPurgedStaleEmergencies) {
+            prefs.edit().remove("emergency_json").putBoolean("has_purged_stale_emergencies_v2_6_8", true).apply()
+        }
+
         // Load persisted local data
         loadFromPrefs()
         seedCommunityDataIfEmpty()
@@ -102,6 +125,16 @@ class BloodSyncRepository(private val context: Context) {
     private fun seedCommunityDataIfEmpty() {
         // Purge any lingering dummy/mock donors
         _donors.removeAll { it.id.startsWith("dn_") }
+
+        // Purge dummy/mock emergencies so user starts completely clean and fills details themselves
+        _emergencyRequests.removeAll { 
+            it.patientName.contains("Jane Doe", ignoreCase = true) ||
+            it.hospitalName.contains("Metro General", ignoreCase = true) ||
+            it.patientName.equals("any one", ignoreCase = true) || 
+            it.hospitalName.equals("no one", ignoreCase = true) ||
+            it.id.startsWith("emg_dummy")
+        }
+        saveEmergencyToPrefs()
 
         // Certified Indian Blood Banks fallback for offline emergencies
         if (_bloodBanks.isEmpty()) {
@@ -118,11 +151,16 @@ class BloodSyncRepository(private val context: Context) {
     private fun setupFirebaseSync() {
         // Listen to live Emergency SOS broadcasts from Firebase
         firebaseService.listenToEmergencyRequests { realList ->
-            if (realList.isNotEmpty()) {
-                _emergencyRequests.clear()
-                _emergencyRequests.addAll(realList)
-                saveEmergencyToPrefs()
+            val cleanList = realList.filterNot {
+                it.patientName.contains("Jane Doe", ignoreCase = true) ||
+                it.hospitalName.contains("Metro General", ignoreCase = true) ||
+                it.patientName.equals("any one", ignoreCase = true) ||
+                it.hospitalName.equals("no one", ignoreCase = true) ||
+                it.id.startsWith("emg_dummy")
             }
+            _emergencyRequests.clear()
+            _emergencyRequests.addAll(cleanList)
+            saveEmergencyToPrefs()
         }
 
         // Listen to real Blood Banks from server
@@ -138,6 +176,34 @@ class BloodSyncRepository(private val context: Context) {
             if (realDonors.isNotEmpty()) {
                 _donors.clear()
                 _donors.addAll(realDonors)
+            }
+        }
+
+        // Listen to user's booked appointments from cloud
+        val currentUid = firebaseService.getFirebaseAuth()?.currentUser?.uid ?: _userProfile.value.id
+        if (currentUid.isNotBlank()) {
+            firebaseService.listenToAppointments(currentUid) { realAppointments ->
+                if (realAppointments.isNotEmpty()) {
+                    _appointments.clear()
+                    _appointments.addAll(realAppointments)
+                    saveAppointmentsToPrefs()
+                }
+            }
+
+            firebaseService.listenToUserDonations(currentUid) { realDonations ->
+                if (realDonations.isNotEmpty()) {
+                    _donationHistory.clear()
+                    _donationHistory.addAll(realDonations)
+                    saveHistoryToPrefs()
+                }
+            }
+
+            firebaseService.listenToUserCertificates(currentUid) { realCerts ->
+                if (realCerts.isNotEmpty()) {
+                    _certificates.clear()
+                    _certificates.addAll(realCerts)
+                    saveCertificatesToPrefs()
+                }
             }
         }
     }
@@ -292,6 +358,13 @@ class BloodSyncRepository(private val context: Context) {
 
         saveAllToPrefs()
 
+        // Sync donation record and certificate to Firebase Cloud
+        val uid = firebaseService.getFirebaseAuth()?.currentUser?.uid ?: _userProfile.value.id
+        if (uid.isNotBlank()) {
+            firebaseService.saveDonationRecord(uid, record)
+            firebaseService.saveCertificate(uid, newCert)
+        }
+
         postNotification(
             title = "🎉 Donation Verified & Logged",
             message = "Thank you! Your donation of $units unit(s) at $hospitalName has been recorded.",
@@ -401,6 +474,41 @@ class BloodSyncRepository(private val context: Context) {
             _emergencyRequests[index] = updated
             saveEmergencyToPrefs()
             firebaseService.publishEmergencyRequest(updated)
+        }
+    }
+
+    fun deleteEmergencyRequest(id: String) {
+        _emergencyRequests.removeAll { it.id == id }
+        saveEmergencyToPrefs()
+        firebaseService.deleteEmergencyRequest(id)
+    }
+
+    fun updateEmergencyRequestDetails(
+        id: String,
+        patientName: String,
+        hospitalName: String,
+        hospitalAddress: String,
+        contactPhone: String,
+        notes: String
+    ) {
+        val index = _emergencyRequests.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val updated = _emergencyRequests[index].copy(
+                patientName = patientName,
+                hospitalName = hospitalName,
+                hospitalAddress = hospitalAddress,
+                contactPhone = contactPhone,
+                additionalNotes = notes
+            )
+            _emergencyRequests[index] = updated
+            saveEmergencyToPrefs()
+            firebaseService.publishEmergencyRequest(updated)
+
+            postNotification(
+                title = "✏️ Emergency Details Updated",
+                message = "Details for emergency at $hospitalName have been updated.",
+                type = NotificationType.SYSTEM
+            )
         }
     }
 
@@ -538,6 +646,131 @@ class BloodSyncRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Authenticates with Firebase Auth using email and password, preventing unverified password bypass.
+     */
+    fun signInWithEmailAndPassword(
+        email: String,
+        pass: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val auth = firebaseService.getFirebaseAuth()
+        if (auth != null) {
+            try {
+                val cleanEmail = email.trim()
+                val cleanPass = pass.trim()
+                if (cleanEmail.isBlank()) {
+                    onFailure("Please enter your email address.")
+                    return
+                }
+                if (cleanPass.length < 6) {
+                    onFailure("Password must be at least 6 characters.")
+                    return
+                }
+                auth.signInWithEmailAndPassword(cleanEmail, cleanPass)
+                    .addOnSuccessListener { authResult ->
+                        val uid = authResult.user?.uid ?: ""
+                        _isUserLoggedIn.value = true
+                        prefs.edit().putBoolean("is_logged_in", true).apply()
+                        // Restore complete user profile from Firebase Cloud
+                        firebaseService.fetchUserProfile(uid) { cloudProfile ->
+                            if (cloudProfile != null) {
+                                _userProfile.value = cloudProfile
+                                saveProfileToPrefs()
+                            } else if (_userProfile.value.email.isBlank() || _userProfile.value.email != cleanEmail) {
+                                _userProfile.value = _userProfile.value.copy(
+                                    id = uid.ifBlank { _userProfile.value.id },
+                                    email = cleanEmail,
+                                    name = _userProfile.value.name.ifBlank { cleanEmail.substringBefore("@").replace(".", " ") }
+                                )
+                                saveProfileToPrefs()
+                            }
+                        }
+                        attachCloudListeners()
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("BloodSyncAuth", "Sign in failure: ${e.message}")
+                        val userFriendlyError = when {
+                            e.message?.contains("password", ignoreCase = true) == true -> "Incorrect password. Please try again."
+                            e.message?.contains("user-not-found", ignoreCase = true) == true -> "No donor account found with this email. Please register."
+                            e.message?.contains("network", ignoreCase = true) == true -> "Network connection error. Please check your internet."
+                            else -> e.localizedMessage ?: "Authentication failed. Please check credentials."
+                        }
+                        onFailure(userFriendlyError)
+                    }
+            } catch (e: Throwable) {
+                Log.e("BloodSyncAuth", "Unexpected error in signInWithEmailAndPassword", e)
+                onFailure(e.localizedMessage ?: "Failed to sign in. Please check your email and password.")
+            }
+        } else {
+            onFailure("Firebase Authentication service is initializing. Please try again.")
+        }
+    }
+
+    /**
+     * Registers a new donor account with Firebase Auth credentials.
+     */
+    fun registerDonorWithCredentials(
+        profile: UserProfile,
+        pass: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val auth = firebaseService.getFirebaseAuth()
+        if (auth != null && profile.email.isNotBlank()) {
+            try {
+                val cleanEmail = profile.email.trim()
+                val cleanPass = pass.trim()
+                if (cleanPass.length < 6) {
+                    onFailure("Password must be at least 6 characters.")
+                    return
+                }
+                auth.createUserWithEmailAndPassword(cleanEmail, cleanPass)
+                    .addOnSuccessListener { result ->
+                        val uid = result.user?.uid ?: profile.id
+                        val updatedProfile = profile.copy(id = uid)
+                        registerDonor(updatedProfile)
+                        _isUserLoggedIn.value = true
+                        prefs.edit().putBoolean("is_logged_in", true).apply()
+                        attachCloudListeners()
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("BloodSyncAuth", "User registration notice: ${e.message}")
+                        if (e.message?.contains("email-already-in-use", ignoreCase = true) == true) {
+                            try {
+                                auth.signInWithEmailAndPassword(cleanEmail, cleanPass)
+                                    .addOnSuccessListener {
+                                        registerDonor(profile)
+                                        _isUserLoggedIn.value = true
+                                        prefs.edit().putBoolean("is_logged_in", true).apply()
+                                        attachCloudListeners()
+                                        onSuccess()
+                                    }
+                                    .addOnFailureListener {
+                                        onFailure("This email is already registered. Please sign in with your password.")
+                                    }
+                            } catch (signInErr: Throwable) {
+                                onFailure("This email is already registered. Please sign in with your password.")
+                            }
+                        } else {
+                            onFailure(e.localizedMessage ?: "Failed to create donor account.")
+                        }
+                    }
+            } catch (e: Throwable) {
+                Log.e("BloodSyncAuth", "Unexpected error in registerDonorWithCredentials", e)
+                onFailure(e.localizedMessage ?: "Failed to create donor account.")
+            }
+        } else {
+            registerDonor(profile)
+            _isUserLoggedIn.value = true
+            prefs.edit().putBoolean("is_logged_in", true).apply()
+            onSuccess()
+        }
+    }
+
     fun loginUser(name: String, email: String, phone: String, bloodGroup: String) {
         val id = "usr_" + UUID.randomUUID().toString().take(8)
         val profile = UserProfile(
@@ -591,11 +824,78 @@ class BloodSyncRepository(private val context: Context) {
     fun setLoggedIn(loggedIn: Boolean) {
         _isUserLoggedIn.value = loggedIn
         prefs.edit().putBoolean("is_logged_in", loggedIn).apply()
+        if (loggedIn) {
+            attachCloudListeners()
+        }
     }
 
     fun logoutUser() {
         _isUserLoggedIn.value = false
         prefs.edit().putBoolean("is_logged_in", false).apply()
+        detachCloudListeners()
+        try {
+            firebaseService.getFirebaseAuth()?.signOut()
+        } catch (_: Exception) {}
+        _userProfile.value = UserProfile()
+        _healthRecord.value = HealthRecord()
+        _appointments.clear()
+        _certificates.clear()
+        _donationHistory.clear()
+    }
+
+    /**
+     * Send password reset email via Firebase Auth.
+     */
+    fun sendPasswordResetEmail(
+        email: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val auth = firebaseService.getFirebaseAuth()
+        if (auth != null) {
+            val cleanEmail = email.trim()
+            if (cleanEmail.isBlank()) {
+                onFailure("Please enter your registered email address.")
+                return
+            }
+            try {
+                auth.sendPasswordResetEmail(cleanEmail)
+                    .addOnSuccessListener {
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        val userFriendlyError = when {
+                            e.message?.contains("user-not-found", ignoreCase = true) == true -> "No account found with this email."
+                            e.message?.contains("network", ignoreCase = true) == true -> "Network connection error. Please check your internet."
+                            else -> e.localizedMessage ?: "Failed to send reset email."
+                        }
+                        onFailure(userFriendlyError)
+                    }
+            } catch (e: Throwable) {
+                onFailure(e.localizedMessage ?: "Failed to send password reset email.")
+            }
+        } else {
+            onFailure("Firebase Authentication service is initializing. Please try again.")
+        }
+    }
+
+    /**
+     * Attaches or re-attaches real-time Firebase Firestore snapshot listeners.
+     */
+    fun attachCloudListeners() {
+        setupFirebaseSync()
+    }
+
+    /**
+     * Detaches all active Firebase Cloud listeners to prevent memory & read quota leaks.
+     */
+    fun detachCloudListeners() {
+        try {
+            firebaseService.cleanup()
+            Log.d("BloodSyncRepository", "All Firebase Cloud listeners detached cleanly.")
+        } catch (e: Exception) {
+            Log.w("BloodSyncRepository", "Notice during listener detachment: ${e.message}")
+        }
     }
 
     // ==========================================
@@ -904,20 +1204,31 @@ class BloodSyncRepository(private val context: Context) {
                 _emergencyRequests.clear()
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
+                    val patient = obj.optString("patientName", "")
+                    val hospital = obj.optString("hospitalName", "")
+                    val emgId = obj.optString("id", "")
+                    if (patient.contains("Jane Doe", ignoreCase = true) ||
+                        hospital.contains("Metro General", ignoreCase = true) ||
+                        patient.equals("any one", ignoreCase = true) ||
+                        hospital.equals("no one", ignoreCase = true) ||
+                        emgId.startsWith("emg_dummy")
+                    ) {
+                        continue
+                    }
                     _emergencyRequests.add(
                         EmergencyRequest(
-                            id = obj.getString("id"),
-                            patientName = obj.getString("patientName"),
+                            id = emgId,
+                            patientName = patient,
                             bloodGroupNeeded = obj.getString("bloodGroupNeeded"),
                             unitsRequired = obj.getInt("unitsRequired"),
-                            hospitalName = obj.getString("hospitalName"),
+                            hospitalName = hospital,
                             hospitalAddress = obj.getString("hospitalAddress"),
                             contactPhone = obj.getString("contactPhone"),
                             urgencyLevel = UrgencyLevel.valueOf(obj.optString("urgencyLevel", "IMMEDIATE")),
                             additionalNotes = obj.optString("additionalNotes", ""),
                             requestedAt = obj.optString("requestedAt", "Recent"),
                             status = EmergencyStatus.valueOf(obj.optString("status", "BROADCASTING")),
-                            donorsNotifiedCount = obj.optInt("donorsNotifiedCount", 10),
+                            donorsNotifiedCount = obj.optInt("donorsNotifiedCount", 1),
                             responders = emptyList()
                         )
                     )

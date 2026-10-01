@@ -2,44 +2,85 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Authenticated helper
+    // Helper: Verify user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Owner helper
+    // Helper: Verify authenticated user owns the target document ID
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Public donor directory: Read-only for authenticated users, owner write
+    // Helper: Verify standard ABO/Rh blood groups
+    function isValidBloodGroup(group) {
+      return group in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    }
+
+    // Helper: Validate user profile payload schema on write
+    function isValidUserPayload() {
+      return (request.resource.data.name is string && request.resource.data.name.size() <= 60) &&
+             (request.resource.data.phone is string && request.resource.data.phone.size() <= 15) &&
+             isValidBloodGroup(request.resource.data.bloodGroup);
+    }
+
+    // 1. Private User Profile: Owner-only read/write with strict payload schema validation
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUserPayload();
+      allow delete: if isOwner(userId);
+
+      // User's private subcollections (donations, certificates, etc.)
+      match /{subcollection=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // 2. Public Donor Directory: Authenticated users can browse; owner can update/delete with validated schema
     match /donors/{donorId} {
       allow read: if isAuthenticated();
+      allow create, update: if isOwner(donorId) &&
+        (request.resource.data.name is string && request.resource.data.name.size() <= 60) &&
+        isValidBloodGroup(request.resource.data.bloodGroup);
+      allow delete: if isOwner(donorId);
+    }
+
+    // 3. Donor Registration Logs: Logged on donor registration; restricted to the registering user
+    match /donor_registrations/{donorId} {
+      allow read: if isOwner(donorId);
       allow write: if isOwner(donorId);
     }
 
-    // User profiles: Only the profile owner can read or write
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Appointments: Only the owner can view or edit
+    // 4. Appointments: Users can create and manage only their own appointments
     match /appointments/{appointmentId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
-      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Emergency SOS requests: Authenticated users can view and create
+    // 5. Emergency Requests: Authenticated users can view broadcasts; creator must match auth and pass bounds checking
     match /emergency_requests/{requestId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        isValidBloodGroup(request.resource.data.bloodGroupNeeded) &&
+        (request.resource.data.unitsRequired is int &&
+         request.resource.data.unitsRequired >= 1 &&
+         request.resource.data.unitsRequired <= 10) &&
+        (request.resource.data.patientName is string &&
+         request.resource.data.patientName.size() <= 60);
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // Certified Blood Banks Directory: Read-only for all users, write restricted
+    // 6. Blood Banks Directory: Read-only for authenticated clients; block all client-side writes
     match /blood_banks/{bankId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if false;
+    }
+
+    // 7. Default deny for all other collections
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
+

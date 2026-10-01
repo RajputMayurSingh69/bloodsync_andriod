@@ -48,7 +48,7 @@ fun BloodSyncBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -67,7 +67,7 @@ fun BloodSyncBottomNav(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp, horizontal = 6.dp),
+                    .padding(vertical = 5.dp, horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -104,18 +104,18 @@ fun BloodSyncBottomNav(
                                 color = if (isSelected) appColors.redLight else Color.Transparent,
                                 shape = RoundedCornerShape(50.dp)
                             )
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Icon(
                             imageVector = destination.icon,
                             contentDescription = label,
                             tint = iconTint,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = label,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) BloodRedPrimary else appColors.textSecondary
                         )

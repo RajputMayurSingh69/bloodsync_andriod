@@ -150,14 +150,14 @@ fun SplashScreen(
                     drawContext.canvas.clipPath(dropPath)
 
                     // Background unfilled droplet (soft tint)
-                    drawRect(color = Color(0xFFFFEBEE))
+                    drawRect(color = BloodRedLight)
 
                     // Rising liquid fill level
                     val fillHeight = h * fillProgress.value
                     val fillTopY = h - fillHeight
 
                     val gradientBrush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFFE53935), BloodRedDark),
+                        colors = listOf(BloodRedPrimary, BloodRedDark),
                         startY = fillTopY,
                         endY = h
                     )

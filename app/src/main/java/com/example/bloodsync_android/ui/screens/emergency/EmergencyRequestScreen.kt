@@ -4,10 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,6 +31,8 @@ import com.example.bloodsync_android.util.ValidationHelper
  * Super Simple, Fast Emergency Request Screen.
  * Strict Palette: RED, GREEN, WHITE, YELLOW ONLY.
  * Designed for immediate SOS submission without confusion during emergencies.
+ * Converted to LazyColumn for smooth 120 FPS full scrolling to the broadcast button.
+ * Default states are completely empty so user fills everything themselves.
  */
 @Composable
 fun EmergencyRequestScreen(
@@ -41,9 +43,10 @@ fun EmergencyRequestScreen(
 ) {
     val unreadNotifs by repository.unreadNotificationCount
 
-    var selectedGroup by remember { mutableStateOf("O+") }
-    var unitsRequired by remember { mutableIntStateOf(2) }
-    var urgencyLevel by remember { mutableStateOf(UrgencyLevel.IMMEDIATE) }
+    // Empty by default - User selects details themselves!
+    var selectedGroup by remember { mutableStateOf("") }
+    var unitsRequired by remember { mutableIntStateOf(1) }
+    var urgencyLevel by remember { mutableStateOf<UrgencyLevel?>(null) }
 
     var patientName by remember { mutableStateOf("") }
     var hospitalName by remember { mutableStateOf("") }
@@ -54,6 +57,7 @@ fun EmergencyRequestScreen(
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
     val appColors = BloodSyncTheme.colors
+    val listState = rememberLazyListState()
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = appColors.textPrimary,
@@ -81,115 +85,129 @@ fun EmergencyRequestScreen(
         contentWindowInsets = WindowInsets.systemBars,
         containerColor = appColors.background
     ) { innerPadding ->
-        Column(
+        LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 32.dp),
+                .padding(top = innerPadding.calculateTopPadding()),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 14.dp,
+                bottom = innerPadding.calculateBottomPadding() + 160.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Urgent Red Alert Header
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = BloodRedPrimary)
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = BloodRedPrimary)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "🚨 LIVE EMERGENCY BROADCAST",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 14.sp,
-                            color = Color.White
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
                         )
-                        Text(
-                            text = "This form alerts all verified donors within 10km immediately.",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "🚨 LIVE EMERGENCY BROADCAST",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 14.sp,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "This form alerts all verified donors within 10km immediately.",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
                     }
                 }
             }
 
             // Step 1: Blood Group & Units (Most Critical Information)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    BloodGroupSelector(
-                        selectedGroup = selectedGroup,
-                        onGroupSelected = { selectedGroup = it }
-                    )
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        BloodGroupSelector(
+                            selectedGroup = selectedGroup,
+                            onGroupSelected = { 
+                                selectedGroup = it 
+                                if (validationError?.contains("blood group", ignoreCase = true) == true) {
+                                    validationError = null
+                                }
+                            }
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Units Required",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = appColors.textPrimary
-                            )
-                            Text(
-                                text = "Whole blood bags needed",
-                                fontSize = 11.sp,
-                                color = appColors.textSecondary
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FilledTonalIconButton(
-                                onClick = { if (unitsRequired > 1) unitsRequired-- },
-                                enabled = unitsRequired > 1,
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = appColors.redLight,
-                                    contentColor = BloodRedPrimary
+                            Column {
+                                Text(
+                                    text = "Units Required",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = appColors.textPrimary
                                 )
-                            ) {
-                                Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                                Text(
+                                    text = "Whole blood bags needed",
+                                    fontSize = 11.sp,
+                                    color = appColors.textSecondary
+                                )
                             }
 
-                            Text(
-                                text = "$unitsRequired",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Black,
-                                color = BloodRedPrimary,
-                                modifier = Modifier.padding(horizontal = 10.dp)
-                            )
-
-                            FilledTonalIconButton(
-                                onClick = { if (unitsRequired < 10) unitsRequired++ },
-                                enabled = unitsRequired < 10,
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = appColors.redLight,
-                                    contentColor = BloodRedPrimary
-                                )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Increase")
+                                FilledTonalIconButton(
+                                    onClick = { if (unitsRequired > 1) unitsRequired-- },
+                                    enabled = unitsRequired > 1,
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = appColors.redLight,
+                                        contentColor = BloodRedPrimary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                                }
+
+                                Text(
+                                    text = "$unitsRequired",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = BloodRedPrimary,
+                                    modifier = Modifier.padding(horizontal = 10.dp)
+                                )
+
+                                FilledTonalIconButton(
+                                    onClick = { if (unitsRequired < 10) unitsRequired++ },
+                                    enabled = unitsRequired < 10,
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = appColors.redLight,
+                                        contentColor = BloodRedPrimary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Increase")
+                                }
                             }
                         }
                     }
@@ -197,68 +215,75 @@ fun EmergencyRequestScreen(
             }
 
             // Step 2: Urgency Selection (Strict Red / Yellow / Green)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Urgency Level",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = appColors.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Urgency Level",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = appColors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        UrgencyLevel.entries.forEach { level ->
-                            val isSelected = urgencyLevel == level
-                            val activeColor = when (level) {
-                                UrgencyLevel.IMMEDIATE -> BloodRedPrimary
-                                UrgencyLevel.URGENT -> StatusWarningAmber
-                                UrgencyLevel.WITHIN_24_HOURS -> StatusEligibleGreen
-                            }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            UrgencyLevel.entries.forEach { level ->
+                                val isSelected = urgencyLevel == level
+                                val activeColor = when (level) {
+                                    UrgencyLevel.IMMEDIATE -> BloodRedPrimary
+                                    UrgencyLevel.URGENT -> StatusWarningAmber
+                                    UrgencyLevel.WITHIN_24_HOURS -> StatusEligibleGreen
+                                }
 
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .clickable { urgencyLevel = level }
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) activeColor else appColors.border,
-                                        shape = RoundedCornerShape(50.dp)
-                                    ),
-                                color = if (isSelected) activeColor else appColors.cardBackground
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(50.dp))
+                                        .clickable { 
+                                            urgencyLevel = level
+                                            if (validationError?.contains("urgency", ignoreCase = true) == true) {
+                                                validationError = null
+                                            }
+                                        }
+                                        .border(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) activeColor else appColors.border,
+                                            shape = RoundedCornerShape(50.dp)
+                                        ),
+                                    color = if (isSelected) activeColor else appColors.cardBackground
                                 ) {
-                                    Text(
-                                        text = when (level) {
-                                            UrgencyLevel.IMMEDIATE -> "Immediate"
-                                            UrgencyLevel.URGENT -> "Urgent"
-                                            UrgencyLevel.WITHIN_24_HOURS -> "24 Hours"
-                                        },
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color.White else appColors.textPrimary
-                                    )
-                                    Text(
-                                        text = when (level) {
-                                            UrgencyLevel.IMMEDIATE -> "< 1 hr"
-                                            UrgencyLevel.URGENT -> "< 3 hrs"
-                                            UrgencyLevel.WITHIN_24_HOURS -> "< 24 hrs"
-                                        },
-                                        fontSize = 10.sp,
-                                        color = if (isSelected) Color.White.copy(alpha = 0.9f) else appColors.textSecondary
-                                    )
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = when (level) {
+                                                UrgencyLevel.IMMEDIATE -> "Immediate"
+                                                UrgencyLevel.URGENT -> "Urgent"
+                                                UrgencyLevel.WITHIN_24_HOURS -> "24 Hours"
+                                            },
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else appColors.textPrimary
+                                        )
+                                        Text(
+                                            text = when (level) {
+                                                UrgencyLevel.IMMEDIATE -> "< 1 hr"
+                                                UrgencyLevel.URGENT -> "< 3 hrs"
+                                                UrgencyLevel.WITHIN_24_HOURS -> "< 24 hrs"
+                                            },
+                                            fontSize = 10.sp,
+                                            color = if (isSelected) Color.White.copy(alpha = 0.9f) else appColors.textSecondary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -267,150 +292,175 @@ fun EmergencyRequestScreen(
             }
 
             // Step 3: Hospital & Contact Info
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
                 ) {
-                    Text(
-                        text = "Hospital & Contact Details",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = appColors.textPrimary
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Hospital & Contact Details",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = appColors.textPrimary
+                        )
 
-                    OutlinedTextField(
-                        value = hospitalName,
-                        onValueChange = { hospitalName = it },
-                        label = { Text("Hospital Name *") },
-                        placeholder = { Text("e.g. City General Hospital", color = appColors.textMuted) },
-                        leadingIcon = {
-                            Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
-                        },
-                        singleLine = true,
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        OutlinedTextField(
+                            value = hospitalName,
+                            onValueChange = { hospitalName = it },
+                            label = { Text("Hospital Name *") },
+                            placeholder = { Text("e.g. City General Hospital", color = appColors.textMuted) },
+                            leadingIcon = {
+                                Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    OutlinedTextField(
-                        value = contactPhone,
-                        onValueChange = { contactPhone = it },
-                        label = { Text("Emergency Contact Phone *") },
-                        placeholder = { Text("e.g. 9876543210", color = appColors.textMuted) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = StatusEligibleGreen)
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        singleLine = true,
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        OutlinedTextField(
+                            value = contactPhone,
+                            onValueChange = { contactPhone = it },
+                            label = { Text("Emergency Contact Phone *") },
+                            placeholder = { Text("e.g. 9876543210", color = appColors.textMuted) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = StatusEligibleGreen)
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            singleLine = true,
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    OutlinedTextField(
-                        value = hospitalAddress,
-                        onValueChange = { hospitalAddress = it },
-                        label = { Text("Hospital Address / Ward (Optional)") },
-                        placeholder = { Text("e.g. Ward 4, Ring Road", color = appColors.textMuted) },
-                        singleLine = true,
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        OutlinedTextField(
+                            value = hospitalAddress,
+                            onValueChange = { hospitalAddress = it },
+                            label = { Text("Hospital Address / Ward (Optional)") },
+                            placeholder = { Text("e.g. Ward 4, Ring Road", color = appColors.textMuted) },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    OutlinedTextField(
-                        value = patientName,
-                        onValueChange = { patientName = it },
-                        label = { Text("Patient Name (Optional)") },
-                        placeholder = { Text("e.g. Amit Kumar", color = appColors.textMuted) },
-                        singleLine = true,
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        OutlinedTextField(
+                            value = patientName,
+                            onValueChange = { patientName = it },
+                            label = { Text("Patient Name (Optional)") },
+                            placeholder = { Text("e.g. Amit Kumar", color = appColors.textMuted) },
+                            singleLine = true,
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = additionalNotes,
+                            onValueChange = { additionalNotes = it },
+                            label = { Text("Clinical Note / Reason (Optional)") },
+                            placeholder = { Text("e.g. Urgent surgery in 45 mins", color = appColors.textMuted) },
+                            singleLine = false,
+                            maxLines = 3,
+                            colors = textFieldColors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
             // Validation Error Alert (Red)
             if (validationError != null) {
-                Surface(
-                    color = appColors.redLight,
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = validationError ?: "",
-                        color = BloodRedPrimary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(12.dp)
-                    )
+                item {
+                    Surface(
+                        color = appColors.redLight,
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = validationError ?: "",
+                            color = BloodRedPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
             }
 
             // Big Bold Broadcast Button (Red with White text)
-            Button(
-                onClick = {
-                    val hospitalValidation = ValidationHelper.validateHospitalName(hospitalName)
-                    if (!hospitalValidation.isValid) {
-                        validationError = hospitalValidation.errorMessage
-                        return@Button
+            item {
+                Button(
+                    onClick = {
+                        if (selectedGroup.isBlank()) {
+                            validationError = "Please select the blood group needed."
+                            return@Button
+                        }
+                        if (urgencyLevel == null) {
+                            validationError = "Please select the urgency level (Immediate, Urgent, or 24 Hours)."
+                            return@Button
+                        }
+                        val hospitalValidation = ValidationHelper.validateHospitalName(hospitalName)
+                        if (!hospitalValidation.isValid) {
+                            validationError = hospitalValidation.errorMessage
+                            return@Button
+                        }
+                        val phoneValidation = ValidationHelper.validatePhone(contactPhone)
+                        if (!phoneValidation.isValid) {
+                            validationError = phoneValidation.errorMessage
+                            return@Button
+                        }
+                        val unitsValidation = ValidationHelper.validateUnits(unitsRequired)
+                        if (!unitsValidation.isValid) {
+                            validationError = unitsValidation.errorMessage
+                            return@Button
+                        }
+
+                        validationError = null
+                        isSubmitting = true
+
+                        val cleanPatientName = if (patientName.isNotBlank()) ValidationHelper.sanitizeText(patientName, 60) else "Emergency Patient"
+                        val cleanHospitalName = ValidationHelper.sanitizeText(hospitalName, 100)
+                        val cleanAddress = ValidationHelper.sanitizeText(hospitalAddress, 150)
+                        val cleanPhone = contactPhone.filter { it.isDigit() || it == '+' }.take(15)
+                        val cleanNotes = ValidationHelper.sanitizeText(additionalNotes, 300)
+
+                        val newRequest = repository.createEmergencyRequest(
+                            patientName = cleanPatientName,
+                            bloodGroup = selectedGroup,
+                            units = unitsRequired,
+                            hospitalName = cleanHospitalName,
+                            hospitalAddress = cleanAddress,
+                            contactPhone = cleanPhone,
+                            urgencyLevel = urgencyLevel!!,
+                            notes = cleanNotes
+                        )
+
+                        isSubmitting = false
+                        onRequestCreated(newRequest.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp),
+                    enabled = !isSubmitting
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🚨 BROADCAST EMERGENCY SOS NOW",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
                     }
-                    val phoneValidation = ValidationHelper.validatePhone(contactPhone)
-                    if (!phoneValidation.isValid) {
-                        validationError = phoneValidation.errorMessage
-                        return@Button
-                    }
-                    val unitsValidation = ValidationHelper.validateUnits(unitsRequired)
-                    if (!unitsValidation.isValid) {
-                        validationError = unitsValidation.errorMessage
-                        return@Button
-                    }
-
-                    validationError = null
-                    isSubmitting = true
-
-                    val cleanPatientName = if (patientName.isNotBlank()) ValidationHelper.sanitizeText(patientName, 60) else "Emergency Patient"
-                    val cleanHospitalName = ValidationHelper.sanitizeText(hospitalName, 100)
-                    val cleanAddress = ValidationHelper.sanitizeText(hospitalAddress, 150)
-                    val cleanPhone = contactPhone.filter { it.isDigit() || it == '+' }.take(15)
-                    val cleanNotes = ValidationHelper.sanitizeText(additionalNotes, 300)
-
-                    val newRequest = repository.createEmergencyRequest(
-                        patientName = cleanPatientName,
-                        bloodGroup = selectedGroup,
-                        units = unitsRequired,
-                        hospitalName = cleanHospitalName,
-                        hospitalAddress = cleanAddress,
-                        contactPhone = cleanPhone,
-                        urgencyLevel = urgencyLevel,
-                        notes = cleanNotes
-                    )
-
-                    isSubmitting = false
-                    onRequestCreated(newRequest.id)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(50.dp),
-                enabled = !isSubmitting
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "🚨 BROADCAST EMERGENCY SOS NOW",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
-                    )
                 }
             }
         }

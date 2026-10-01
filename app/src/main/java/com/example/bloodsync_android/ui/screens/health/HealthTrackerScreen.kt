@@ -1,6 +1,5 @@
 package com.example.bloodsync_android.ui.screens.health
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,7 +23,6 @@ import com.example.bloodsync_android.data.model.EligibilityStatus
 import com.example.bloodsync_android.data.model.HealthRecord
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
-import com.example.bloodsync_android.ui.components.StatusBadge
 import com.example.bloodsync_android.ui.theme.*
 
 @Composable
@@ -37,46 +35,7 @@ fun HealthTrackerScreen(
     val healthRecord by repository.healthRecord
     val unreadNotifs by repository.unreadNotificationCount
 
-    // Local state for editing health vitals
-    var age by remember { mutableIntStateOf(healthRecord.age) }
-    var gender by remember { mutableStateOf(healthRecord.gender) }
-    var weightKg by remember { mutableDoubleStateOf(healthRecord.weightKg) }
-    var lastDonationDateString by remember { mutableStateOf(healthRecord.lastDonationDateString) }
-    var hemoglobinGPerDl by remember { mutableDoubleStateOf(healthRecord.hemoglobinGPerDl) }
-    var systolicBp by remember { mutableIntStateOf(healthRecord.systolicBp) }
-    var diastolicBp by remember { mutableIntStateOf(healthRecord.diastolicBp) }
-    var pulseBpm by remember { mutableIntStateOf(healthRecord.pulseBpm) }
-
-    var hasTattooRecent by remember { mutableStateOf(healthRecord.hasTattooRecent) }
-    var hasColdFeverRecent by remember { mutableStateOf(healthRecord.hasColdFeverRecent) }
-    var hasAntibioticsRecent by remember { mutableStateOf(healthRecord.hasAntibioticsRecent) }
-    var isPregnant by remember { mutableStateOf(healthRecord.isPregnant) }
-
-    var showEditSheet by remember { mutableStateOf(false) }
-
-    // Live computed eligibility
-    val currentRecord = remember(
-        age, gender, weightKg, lastDonationDateString,
-        hemoglobinGPerDl, systolicBp, diastolicBp, pulseBpm,
-        hasTattooRecent, hasColdFeverRecent, hasAntibioticsRecent, isPregnant
-    ) {
-        HealthRecord(
-            age = age,
-            gender = gender,
-            weightKg = weightKg,
-            lastDonationDateString = lastDonationDateString,
-            hemoglobinGPerDl = hemoglobinGPerDl,
-            systolicBp = systolicBp,
-            diastolicBp = diastolicBp,
-            pulseBpm = pulseBpm,
-            hasTattooRecent = hasTattooRecent,
-            hasColdFeverRecent = hasColdFeverRecent,
-            hasAntibioticsRecent = hasAntibioticsRecent,
-            isPregnant = isPregnant
-        )
-    }
-
-    val eligibilityResult = remember(currentRecord) { currentRecord.calculateEligibility() }
+    val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
     val appColors = BloodSyncTheme.colors
 
     Scaffold(
@@ -87,16 +46,7 @@ fun HealthTrackerScreen(
                 showBackButton = true,
                 onBackClick = onBackClick,
                 unreadCount = unreadNotifs,
-                onNotificationClick = onNotificationClick,
-                actions = {
-                    IconButton(onClick = { showEditSheet = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Vitals",
-                            tint = BloodRedPrimary
-                        )
-                    }
-                }
+                onNotificationClick = onNotificationClick
             )
         },
         contentWindowInsets = WindowInsets.statusBars,
@@ -113,109 +63,12 @@ fun HealthTrackerScreen(
             item {
                 EligibilityStatusBanner(
                     result = eligibilityResult,
-                    lastDonationDate = lastDonationDateString,
+                    lastDonationDate = healthRecord.lastDonationDateString,
                     onBookAppointment = onBookAppointment
                 )
             }
 
-            // 2. Clinical Vitals Overview Card
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Current Donor Vitals",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = appColors.textPrimary
-                            )
-                            Surface(
-                                color = appColors.redLight,
-                                shape = RoundedCornerShape(50.dp),
-                                modifier = Modifier.clickable { showEditSheet = true }
-                            ) {
-                                Text(
-                                    text = "Update",
-                                    color = BloodRedPrimary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            VitalItem(
-                                title = "Hemoglobin",
-                                value = "$hemoglobinGPerDl g/dL",
-                                status = if (hemoglobinGPerDl >= 12.5) "Normal" else "Low",
-                                isNormal = hemoglobinGPerDl >= 12.5,
-                                modifier = Modifier.weight(1f)
-                            )
-                            VitalItem(
-                                title = "Weight",
-                                value = "$weightKg kg",
-                                status = if (weightKg >= 50.0) "Pass" else "Below min",
-                                isNormal = weightKg >= 50.0,
-                                modifier = Modifier.weight(1f)
-                            )
-                            VitalItem(
-                                title = "Blood Press.",
-                                value = "$systolicBp/$diastolicBp",
-                                status = if (systolicBp in 90..140 && diastolicBp in 60..90) "Normal" else "Abnormal",
-                                isNormal = systolicBp in 90..140 && diastolicBp in 60..90,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            VitalItem(
-                                title = "Age",
-                                value = "$age yrs",
-                                status = if (age in 18..65) "Eligible" else "Ineligible",
-                                isNormal = age in 18..65,
-                                modifier = Modifier.weight(1f)
-                            )
-                            VitalItem(
-                                title = "Pulse",
-                                value = "$pulseBpm bpm",
-                                status = if (pulseBpm in 50..100) "Normal" else "Check",
-                                isNormal = pulseBpm in 50..100,
-                                modifier = Modifier.weight(1f)
-                            )
-                            VitalItem(
-                                title = "Last Donation",
-                                value = lastDonationDateString,
-                                status = "90d Rule",
-                                isNormal = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 3. Medical Checklist & Deferral Screen
+            // 2. Medical Checklist & Deferral Screen
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -242,38 +95,34 @@ fun HealthTrackerScreen(
 
                         ChecklistRow(
                             label = "Tattoo or body piercing in last 6 months",
-                            isChecked = hasTattooRecent,
+                            isChecked = healthRecord.hasTattooRecent,
                             onToggle = {
-                                hasTattooRecent = it
-                                repository.updateHealthRecord(currentRecord.copy(hasTattooRecent = it))
+                                repository.updateHealthRecord(healthRecord.copy(hasTattooRecent = it))
                             }
                         )
 
                         ChecklistRow(
                             label = "Active cold, flu, sore throat, or fever in last 14 days",
-                            isChecked = hasColdFeverRecent,
+                            isChecked = healthRecord.hasColdFeverRecent,
                             onToggle = {
-                                hasColdFeverRecent = it
-                                repository.updateHealthRecord(currentRecord.copy(hasColdFeverRecent = it))
+                                repository.updateHealthRecord(healthRecord.copy(hasColdFeverRecent = it))
                             }
                         )
 
                         ChecklistRow(
                             label = "Antibiotics taken within the past 7 days",
-                            isChecked = hasAntibioticsRecent,
+                            isChecked = healthRecord.hasAntibioticsRecent,
                             onToggle = {
-                                hasAntibioticsRecent = it
-                                repository.updateHealthRecord(currentRecord.copy(hasAntibioticsRecent = it))
+                                repository.updateHealthRecord(healthRecord.copy(hasAntibioticsRecent = it))
                             }
                         )
 
-                        if (gender.equals("Female", ignoreCase = true)) {
+                        if (healthRecord.gender.equals("Female", ignoreCase = true)) {
                             ChecklistRow(
                                 label = "Currently pregnant or within 6 months postpartum",
-                                isChecked = isPregnant,
+                                isChecked = healthRecord.isPregnant,
                                 onToggle = {
-                                    isPregnant = it
-                                    repository.updateHealthRecord(currentRecord.copy(isPregnant = it))
+                                    repository.updateHealthRecord(healthRecord.copy(isPregnant = it))
                                 }
                             )
                         }
@@ -281,7 +130,7 @@ fun HealthTrackerScreen(
                 }
             }
 
-            // 4. Pre-Donation Clinical Health Tips
+            // 3. Pre-Donation Clinical Health Tips
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -317,26 +166,6 @@ fun HealthTrackerScreen(
                 }
             }
         }
-    }
-
-    // Modal to Edit Vitals
-    if (showEditSheet) {
-        EditVitalsDialog(
-            record = currentRecord,
-            onDismiss = { showEditSheet = false },
-            onSave = { updated ->
-                age = updated.age
-                gender = updated.gender
-                weightKg = updated.weightKg
-                lastDonationDateString = updated.lastDonationDateString
-                hemoglobinGPerDl = updated.hemoglobinGPerDl
-                systolicBp = updated.systolicBp
-                diastolicBp = updated.diastolicBp
-                pulseBpm = updated.pulseBpm
-                repository.updateHealthRecord(updated)
-                showEditSheet = false
-            }
-        )
     }
 }
 
@@ -502,37 +331,6 @@ fun EligibilityStatusBanner(
 }
 
 @Composable
-fun VitalItem(
-    title: String,
-    value: String,
-    status: String,
-    isNormal: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val appColors = BloodSyncTheme.colors
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = appColors.surfaceVariant,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, appColors.border)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(title, fontSize = 11.sp, color = appColors.textSecondary)
-            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = appColors.textPrimary)
-            Text(
-                text = status,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isNormal) StatusEligibleGreen else StatusUrgentRed
-            )
-        }
-    }
-}
-
-@Composable
 fun ChecklistRow(
     label: String,
     isChecked: Boolean,
@@ -572,138 +370,3 @@ fun HealthTipItem(title: String, description: String) {
     }
 }
 
-@Composable
-fun EditVitalsDialog(
-    record: HealthRecord,
-    onDismiss: () -> Unit,
-    onSave: (HealthRecord) -> Unit
-) {
-    val appColors = BloodSyncTheme.colors
-    var ageText by remember { mutableStateOf("${record.age}") }
-    var weightText by remember { mutableStateOf("${record.weightKg}") }
-    var hbText by remember { mutableStateOf("${record.hemoglobinGPerDl}") }
-    var systolicText by remember { mutableStateOf("${record.systolicBp}") }
-    var diastolicText by remember { mutableStateOf("${record.diastolicBp}") }
-    var lastDonationText by remember { mutableStateOf(record.lastDonationDateString) }
-    var selectedGender by remember { mutableStateOf(record.gender) }
-
-    val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = appColors.textPrimary,
-        unfocusedTextColor = appColors.textPrimary,
-        focusedContainerColor = appColors.inputBackground,
-        unfocusedContainerColor = appColors.inputBackground,
-        focusedBorderColor = BloodRedPrimary,
-        unfocusedBorderColor = appColors.border,
-        focusedLabelColor = BloodRedPrimary,
-        unfocusedLabelColor = appColors.textMuted,
-        cursorColor = BloodRedPrimary
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Update Donor Vitals", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = appColors.textPrimary)
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = ageText,
-                        onValueChange = { ageText = it },
-                        label = { Text("Age (18-65)") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = weightText,
-                        onValueChange = { weightText = it },
-                        label = { Text("Weight (kg)") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = hbText,
-                        onValueChange = { hbText = it },
-                        label = { Text("Hemoglobin (g/dL)") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = selectedGender,
-                        onValueChange = { selectedGender = it },
-                        label = { Text("Gender (M/F/O)") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = systolicText,
-                        onValueChange = { systolicText = it },
-                        label = { Text("Systolic BP") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = diastolicText,
-                        onValueChange = { diastolicText = it },
-                        label = { Text("Diastolic BP") },
-                        colors = textFieldColors,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                OutlinedTextField(
-                    value = lastDonationText,
-                    onValueChange = { lastDonationText = it },
-                    label = { Text("Last Donation (YYYY-MM-DD)") },
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val updated = record.copy(
-                        age = ageText.toIntOrNull() ?: record.age,
-                        weightKg = weightText.toDoubleOrNull() ?: record.weightKg,
-                        hemoglobinGPerDl = hbText.toDoubleOrNull() ?: record.hemoglobinGPerDl,
-                        systolicBp = systolicText.toIntOrNull() ?: record.systolicBp,
-                        diastolicBp = diastolicText.toIntOrNull() ?: record.diastolicBp,
-                        lastDonationDateString = lastDonationText,
-                        gender = selectedGender
-                    )
-                    onSave(updated)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(50.dp)
-            ) {
-                Text("Recalculate Eligibility", fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = appColors.textSecondary)
-            }
-        },
-        shape = RoundedCornerShape(26.dp),
-        containerColor = appColors.cardBackground
-    )
-}

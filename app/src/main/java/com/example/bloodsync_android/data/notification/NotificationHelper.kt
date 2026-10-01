@@ -133,8 +133,8 @@ object NotificationHelper {
 
         try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-        } catch (_: SecurityException) {
-            // Handled gracefully
+        } catch (e: Exception) {
+            android.util.Log.w("BloodSyncNotif", "Notice when posting system notification: ${e.message}")
         }
     }
 }

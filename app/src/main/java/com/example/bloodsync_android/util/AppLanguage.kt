@@ -78,8 +78,6 @@ data class TranslationStrings(
     val selectLanguageSubtitle: String,
     val continueButton: String,
     val englishLabel: String,
-    val hindiLabel: String,
-    val gujaratiLabel: String,
 
     // Donors Directory
     val donorsDirectoryTitle: String,
@@ -202,8 +200,6 @@ val EnglishTranslations = TranslationStrings(
     selectLanguageSubtitle = "Select your preferred language for BloodSync",
     continueButton = "Continue",
     englishLabel = "English",
-    hindiLabel = "English",
-    gujaratiLabel = "English",
 
     donorsDirectoryTitle = "Voluntary Donors Directory",
     searchDonorsPlaceholder = "Search donors by name, city, or blood group...",
@@ -227,7 +223,7 @@ val EnglishTranslations = TranslationStrings(
     clinicalSafetySection = "Clinical Safety",
     dataManagementSection = "Data Management",
     clearCacheButton = "Clear Local Cache & Reset",
-    appVersion = "BloodSync v2.6.0 • Production Build",
+    appVersion = "BloodSync v2.6.2 • Production Build",
 
     donorProfileTitle = "Donor Profile",
     editProfile = "Edit Profile",

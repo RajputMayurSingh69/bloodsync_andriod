@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.bloodsync_android.data.model.EligibilityStatus
 import com.example.bloodsync_android.data.model.EmergencyRequest
+import com.example.bloodsync_android.data.model.EmergencyStatus
 import com.example.bloodsync_android.data.model.UserProfile
 import com.example.bloodsync_android.data.repository.BloodSyncRepository
 import com.example.bloodsync_android.ui.components.BloodDropIcon
@@ -48,6 +50,7 @@ import com.example.bloodsync_android.util.ShareHelper
 fun HomeScreen(
     repository: BloodSyncRepository,
     onNavigateToEmergency: () -> Unit,
+    onNavigateToLiveTracking: (String) -> Unit = {},
     onNavigateToHistory: () -> Unit,
     onNavigateToCertificates: () -> Unit,
     onNavigateToHealth: () -> Unit,
@@ -63,7 +66,14 @@ fun HomeScreen(
     val healthRecord by repository.healthRecord
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
     val unreadNotifs by repository.unreadNotificationCount
-    val activeEmergencies = repository.emergencyRequests.filter { it.status.name != "CANCELLED" }
+    val activeEmergencies = repository.emergencyRequests.filter { 
+        it.status == EmergencyStatus.BROADCASTING &&
+        !it.patientName.contains("Jane Doe", ignoreCase = true) &&
+        !it.hospitalName.contains("Metro General", ignoreCase = true) &&
+        !it.patientName.equals("any one", ignoreCase = true) &&
+        !it.hospitalName.equals("no one", ignoreCase = true) &&
+        !it.id.startsWith("emg_dummy")
+    }
     val donors = repository.donors
     val bloodBanks = repository.bloodBanks
 
@@ -92,7 +102,7 @@ fun HomeScreen(
         // Main Clean Dashboard
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .weight(1f),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -105,7 +115,7 @@ fun HomeScreen(
                     val latestEmg = activeEmergencies.first()
                     ActiveEmergencyPillCard(
                         emergency = latestEmg,
-                        onViewDetails = onNavigateToEmergency,
+                        onViewDetails = { onNavigateToLiveTracking(latestEmg.id) },
                         onShareWhatsApp = { ShareHelper.shareEmergencySos(context, latestEmg) }
                     )
                 } else {
@@ -253,12 +263,15 @@ private fun EmergencySosPillCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Pulse circle glow on top right
+            // Pulse circle glow on top right (GPU RenderThread animation)
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .offset(x = 28.dp, y = (-28).dp)
-                    .scale(pulseScale)
+                    .graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
+                    }
                     .background(Color.White.copy(alpha = 0.1f), CircleShape)
                     .align(Alignment.TopEnd)
             )
@@ -356,7 +369,7 @@ private fun EmergencySosPillCard(
 }
 
 // =======================================================================
-// COMPONENT 2: ACTIVE EMERGENCY HERO PILL CARD
+// COMPONENT 2: ACTIVE EMERGENCY HERO PILL CARD (MATCHES PHOTO 1 AESTHETIC)
 // =======================================================================
 @Composable
 private fun ActiveEmergencyPillCard(
@@ -364,92 +377,126 @@ private fun ActiveEmergencyPillCard(
     onViewDetails: () -> Unit,
     onShareWhatsApp: () -> Unit
 ) {
-    val appColors = BloodSyncTheme.colors
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
             .clickable(onClick = onViewDetails),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = appColors.redLight),
-        border = androidx.compose.foundation.BorderStroke(2.dp, BloodRedPrimary)
+        colors = CardDefaults.cardColors(containerColor = BloodRedPrimary),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(BloodRedPrimary, CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "LIVE SOS BROADCAST ACTIVE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = BloodRedPrimary
-                    )
-                }
-
-                StatusBadge(
-                    text = emergency.bloodGroupNeeded,
-                    textColor = Color.White,
-                    backgroundColor = BloodRedPrimary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "${emergency.unitsRequired} Unit(s) Needed at ${emergency.hospitalName}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp,
-                color = appColors.textPrimary
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Pulse circle glow on top right
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .offset(x = 28.dp, y = (-28).dp)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
+                    .align(Alignment.TopEnd)
             )
 
-            if (emergency.hospitalAddress.isNotBlank()) {
-                Text(
-                    text = emergency.hospitalAddress,
-                    fontSize = 12.sp,
-                    color = appColors.textSecondary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(22.dp)
             ) {
-                Button(
-                    onClick = onViewDetails,
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(50.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("View & Track", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    Surface(
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(50.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color.White, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "24/7 ACTIVE RADAR",
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(50.dp)
+                    ) {
+                        Text(
+                            text = "${emergency.bloodGroupNeeded} NEEDED",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
-                Button(
-                    onClick = onShareWhatsApp,
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
-                    shape = RoundedCornerShape(50.dp),
-                    modifier = Modifier.height(46.dp)
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "🚨 Live SOS Broadcast Active",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black
+                )
+
+                Text(
+                    text = "${emergency.unitsRequired} Unit(s) of ${emergency.bloodGroupNeeded} needed at ${emergency.hospitalName}. Voluntary donors alerted.",
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Button(
+                        onClick = onViewDetails,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(50.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "VIEW & TRACK LIVE STATUS",
+                            color = BloodRedPrimary,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = onShareWhatsApp,
+                        colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
+                        shape = RoundedCornerShape(50.dp),
+                        modifier = Modifier.height(50.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }

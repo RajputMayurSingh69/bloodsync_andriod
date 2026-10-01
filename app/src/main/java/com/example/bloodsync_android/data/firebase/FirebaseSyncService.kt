@@ -27,6 +27,9 @@ class FirebaseSyncService(private val context: Context) {
     private var emergencyListener: ListenerRegistration? = null
     private var bloodBankListener: ListenerRegistration? = null
     private var donorListener: ListenerRegistration? = null
+    private var appointmentListener: ListenerRegistration? = null
+    private var donationListener: ListenerRegistration? = null
+    private var certificateListener: ListenerRegistration? = null
 
     init {
         initializeFirebase()
@@ -69,6 +72,8 @@ class FirebaseSyncService(private val context: Context) {
             Log.w(tag, "Firebase init notice: ${e.message}")
         }
     }
+
+    fun getFirebaseAuth(): FirebaseAuth? = auth
 
     /**
      * Publish Emergency Blood Request to Firebase Firestore in real-time.
@@ -116,6 +121,18 @@ class FirebaseSyncService(private val context: Context) {
             }
     }
 
+    fun deleteEmergencyRequest(id: String) {
+        val db = firestore ?: return
+        try {
+            db.collection("emergency_requests").document(id).delete()
+                .addOnSuccessListener {
+                    Log.d(tag, "Emergency request $id deleted from Firestore")
+                }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to delete emergency request from Firestore", e)
+        }
+    }
+
     /**
      * Listen for real-time Emergency Requests from Firebase.
      */
@@ -132,12 +149,27 @@ class FirebaseSyncService(private val context: Context) {
                     if (snapshot != null) {
                         val list = snapshot.documents.mapNotNull { doc ->
                             try {
+                                val patient = doc.getString("patientName") ?: ""
+                                val hospital = doc.getString("hospitalName") ?: ""
+                                val id = doc.getString("id") ?: doc.id
+
+                                // If this is a legacy dummy/seed test document, purge it from Firestore permanently
+                                if (patient.contains("Jane Doe", ignoreCase = true) ||
+                                    hospital.contains("Metro General", ignoreCase = true) ||
+                                    patient.equals("any one", ignoreCase = true) ||
+                                    hospital.equals("no one", ignoreCase = true) ||
+                                    id.startsWith("emg_dummy")
+                                ) {
+                                    doc.reference.delete()
+                                    return@mapNotNull null
+                                }
+
                                 EmergencyRequest(
-                                    id = doc.getString("id") ?: doc.id,
-                                    patientName = doc.getString("patientName") ?: "Unknown Patient",
+                                    id = id,
+                                    patientName = patient.ifBlank { "Emergency Patient" },
                                     bloodGroupNeeded = doc.getString("bloodGroupNeeded") ?: "O+",
                                     unitsRequired = (doc.getLong("unitsRequired") ?: 1L).toInt(),
-                                    hospitalName = doc.getString("hospitalName") ?: "Medical Center",
+                                    hospitalName = hospital.ifBlank { "Medical Center" },
                                     hospitalAddress = doc.getString("hospitalAddress") ?: "Hospital Ward",
                                     contactPhone = doc.getString("contactPhone") ?: "",
                                     urgencyLevel = try {
@@ -152,16 +184,15 @@ class FirebaseSyncService(private val context: Context) {
                                     },
                                     additionalNotes = doc.getString("additionalNotes") ?: "",
                                     requestedAt = doc.getString("requestedAt") ?: "Just now",
-                                    donorsNotifiedCount = (doc.getLong("donorsNotifiedCount") ?: 10L).toInt(),
+                                    donorsNotifiedCount = (doc.getLong("donorsNotifiedCount") ?: 1L).toInt(),
                                     responders = emptyList()
                                 )
                             } catch (e: Exception) {
                                 null
                             }
                         }
-                        if (list.isNotEmpty()) {
-                            onUpdate(list)
-                        }
+                        // Always deliver the updated list so when collection is clean/empty, local state clears
+                        onUpdate(list)
                     }
                 }
         } catch (e: Exception) {
@@ -228,11 +259,13 @@ class FirebaseSyncService(private val context: Context) {
                                 UserProfile(
                                     id = doc.getString("id") ?: doc.id,
                                     name = doc.getString("displayName") ?: doc.getString("name") ?: "Volunteer Donor",
-                                    email = "", // Sanitized - private to owner
-                                    phone = "", // Sanitized - private to owner
+                                    email = doc.getString("email") ?: "", 
+                                    phone = doc.getString("phone") ?: "", 
                                     bloodGroup = doc.getString("bloodGroup") ?: "O+",
                                     city = doc.getString("city") ?: "",
-                                    address = "", // Sanitized - private to owner
+                                    address = doc.getString("address") ?: "", 
+                                    gender = doc.getString("gender") ?: "Male",
+                                    age = (doc.getLong("age") ?: 18L).toInt(),
                                     totalDonations = (doc.getLong("totalDonations") ?: 0L).toInt(),
                                     livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
                                     isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true
@@ -282,9 +315,15 @@ class FirebaseSyncService(private val context: Context) {
         if (profile.isAvailableDonor) {
             val sanitizedPublicData = hashMapOf(
                 "id" to currentUserId,
-                "displayName" to if (profile.name.isNotBlank()) profile.name.take(1).uppercase() + "***" else "Volunteer Donor",
+                "displayName" to profile.name.ifBlank { "Volunteer Donor" },
+                "name" to profile.name,
+                "phone" to profile.phone,
+                "email" to profile.email,
                 "bloodGroup" to profile.bloodGroup,
                 "city" to profile.city,
+                "address" to profile.address,
+                "gender" to profile.gender,
+                "age" to profile.age,
                 "totalDonations" to profile.totalDonations,
                 "livesSaved" to profile.livesSaved,
                 "isAvailableDonor" to true,
@@ -364,9 +403,245 @@ class FirebaseSyncService(private val context: Context) {
         }
     }
 
+    /**
+     * Listen for real-time booked appointments for the current user from Firebase Firestore.
+     */
+    fun listenToAppointments(userId: String, onUpdate: (List<Appointment>) -> Unit) {
+        val db = firestore ?: return
+        val currentUserId = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (currentUserId.isBlank()) return
+        try {
+            appointmentListener?.remove()
+            appointmentListener = db.collection("appointments")
+                .whereEqualTo("userId", currentUserId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.w(tag, "Appointments listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val list = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                Appointment(
+                                    id = doc.getString("id") ?: doc.id,
+                                    bloodBankId = doc.getString("bloodBankId") ?: "",
+                                    bloodBankName = doc.getString("bloodBankName") ?: "Blood Bank",
+                                    bloodBankAddress = doc.getString("bloodBankAddress") ?: "",
+                                    date = doc.getString("date") ?: "",
+                                    timeSlot = doc.getString("timeSlot") ?: "",
+                                    donationType = doc.getString("donationType") ?: "Whole Blood",
+                                    status = try {
+                                        AppointmentStatus.valueOf(doc.getString("status") ?: "UPCOMING")
+                                    } catch (_: Exception) {
+                                        AppointmentStatus.UPCOMING
+                                    },
+                                    referenceCode = doc.getString("referenceCode") ?: "",
+                                    reminderEnabled = doc.getBoolean("reminderEnabled") ?: true,
+                                    bookedAt = doc.getString("bookedAt") ?: ""
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        if (list.isNotEmpty()) {
+                            onUpdate(list)
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to set up appointments listener", e)
+        }
+    }
+
+    /**
+     * Save completed donation record to user's private subcollection in Firestore.
+     */
+    fun saveDonationRecord(userId: String, record: DonationRecord) {
+        val db = firestore ?: return
+        val currentUserId = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (currentUserId.isBlank()) return
+        val data = hashMapOf(
+            "id" to record.id,
+            "date" to record.date,
+            "hospitalName" to record.hospitalName,
+            "location" to record.location,
+            "bloodGroup" to record.bloodGroup,
+            "unitsDonated" to record.unitsDonated,
+            "donationType" to record.donationType,
+            "status" to record.status.name,
+            "certificateId" to (record.certificateId ?: ""),
+            "hemoglobinRecorded" to record.hemoglobinRecorded,
+            "bloodPressure" to record.bloodPressure,
+            "pulseRate" to record.pulseRate,
+            "doctorOrPhlebotomist" to record.doctorOrPhlebotomist,
+            "notes" to record.notes,
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+        db.collection("users").document(currentUserId)
+            .collection("donations").document(record.id)
+            .set(data, SetOptions.merge())
+    }
+
+    /**
+     * Save issued certificate to user's private subcollection in Firestore.
+     */
+    fun saveCertificate(userId: String, cert: Certificate) {
+        val db = firestore ?: return
+        val currentUserId = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (currentUserId.isBlank()) return
+        val data = hashMapOf(
+            "id" to cert.id,
+            "certificateCode" to cert.certificateCode,
+            "donorName" to cert.donorName,
+            "bloodGroup" to cert.bloodGroup,
+            "donationDate" to cert.donationDate,
+            "donationCount" to cert.donationCount,
+            "donationMilestone" to cert.donationMilestone,
+            "hospitalName" to cert.hospitalName,
+            "units" to cert.units,
+            "verifiedBy" to cert.verifiedBy,
+            "issueDate" to cert.issueDate,
+            "qrVerificationCode" to cert.qrVerificationCode,
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+        db.collection("users").document(currentUserId)
+            .collection("certificates").document(cert.id)
+            .set(data, SetOptions.merge())
+    }
+
+    /**
+     * Fetch user profile from Firestore /users/{userId} on sign-in to restore all cloud data.
+     */
+    fun fetchUserProfile(userId: String, onResult: (UserProfile?) -> Unit) {
+        val db = firestore ?: return onResult(null)
+        val uid = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return onResult(null))
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                if (doc != null && doc.exists()) {
+                    try {
+                        val profile = UserProfile(
+                            id = doc.getString("id") ?: doc.id,
+                            name = doc.getString("name") ?: "",
+                            email = doc.getString("email") ?: "",
+                            phone = doc.getString("phone") ?: "",
+                            bloodGroup = doc.getString("bloodGroup") ?: "O+",
+                            city = doc.getString("city") ?: "",
+                            address = doc.getString("address") ?: "",
+                            gender = doc.getString("gender") ?: "Male",
+                            age = (doc.getLong("age") ?: 18L).toInt(),
+                            totalDonations = (doc.getLong("totalDonations") ?: 0L).toInt(),
+                            livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
+                            isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true
+                        )
+                        onResult(profile)
+                    } catch (_: Exception) {
+                        onResult(null)
+                    }
+                } else {
+                    onResult(null)
+                }
+            }
+            .addOnFailureListener {
+                onResult(null)
+            }
+    }
+
+    /**
+     * Listen for real-time completed donations for current user from Firestore.
+     */
+    fun listenToUserDonations(userId: String, onUpdate: (List<DonationRecord>) -> Unit) {
+        val db = firestore ?: return
+        val uid = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (uid.isBlank()) return
+        try {
+            donationListener?.remove()
+            donationListener = db.collection("users").document(uid)
+                .collection("donations")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null) return@addSnapshotListener
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            DonationRecord(
+                                id = doc.getString("id") ?: doc.id,
+                                date = doc.getString("date") ?: "",
+                                hospitalName = doc.getString("hospitalName") ?: "",
+                                location = doc.getString("location") ?: "",
+                                bloodGroup = doc.getString("bloodGroup") ?: "",
+                                unitsDonated = (doc.getLong("unitsDonated") ?: 1L).toInt(),
+                                donationType = doc.getString("donationType") ?: "Whole Blood",
+                                status = try {
+                                    DonationStatus.valueOf(doc.getString("status") ?: "VERIFIED")
+                                } catch (_: Exception) {
+                                    DonationStatus.VERIFIED
+                                },
+                                certificateId = doc.getString("certificateId")?.takeIf { it.isNotEmpty() },
+                                hemoglobinRecorded = doc.getDouble("hemoglobinRecorded") ?: 14.0,
+                                bloodPressure = doc.getString("bloodPressure") ?: "120/80 mmHg",
+                                pulseRate = (doc.getLong("pulseRate") ?: 72L).toInt(),
+                                doctorOrPhlebotomist = doc.getString("doctorOrPhlebotomist") ?: "Medical Officer",
+                                notes = doc.getString("notes") ?: ""
+                            )
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    if (list.isNotEmpty()) {
+                        onUpdate(list)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to set up donations listener", e)
+        }
+    }
+
+    /**
+     * Listen for real-time appreciation certificates for current user from Firestore.
+     */
+    fun listenToUserCertificates(userId: String, onUpdate: (List<Certificate>) -> Unit) {
+        val db = firestore ?: return
+        val uid = if (userId.isNotBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (uid.isBlank()) return
+        try {
+            certificateListener?.remove()
+            certificateListener = db.collection("users").document(uid)
+                .collection("certificates")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null) return@addSnapshotListener
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            Certificate(
+                                id = doc.getString("id") ?: doc.id,
+                                certificateCode = doc.getString("certificateCode") ?: "",
+                                donorName = doc.getString("donorName") ?: "",
+                                bloodGroup = doc.getString("bloodGroup") ?: "",
+                                donationDate = doc.getString("donationDate") ?: "",
+                                donationCount = (doc.getLong("donationCount") ?: 1L).toInt(),
+                                donationMilestone = doc.getString("donationMilestone") ?: "",
+                                hospitalName = doc.getString("hospitalName") ?: "",
+                                units = (doc.getLong("units") ?: 1L).toInt(),
+                                verifiedBy = doc.getString("verifiedBy") ?: "",
+                                issueDate = doc.getString("issueDate") ?: "",
+                                qrVerificationCode = doc.getString("qrVerificationCode") ?: ""
+                            )
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    if (list.isNotEmpty()) {
+                        onUpdate(list)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to set up certificates listener", e)
+        }
+    }
+
     fun cleanup() {
         emergencyListener?.remove()
         bloodBankListener?.remove()
         donorListener?.remove()
+        appointmentListener?.remove()
+        donationListener?.remove()
+        certificateListener?.remove()
     }
 }

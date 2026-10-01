@@ -671,7 +671,7 @@ fun ProfileScreen(
             // ==============================================================
             OutlinedButton(
                 onClick = {
-                    repository.setLoggedIn(false)
+                    repository.logoutUser()
                     onLogout()
                 },
                 modifier = Modifier

@@ -276,9 +276,9 @@ fun ShimmerSkeleton(
     )
 
     val shimmerColors = listOf(
-        Color(0xFFE5E7EB),
-        Color(0xFFF3F4F6),
-        Color(0xFFE5E7EB)
+        MedicalBorder,
+        MedicalSurfaceVariant,
+        MedicalBorder
     )
 
     val brush = Brush.linearGradient(

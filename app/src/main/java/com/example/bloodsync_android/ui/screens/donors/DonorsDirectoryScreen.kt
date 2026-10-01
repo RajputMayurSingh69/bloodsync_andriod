@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import com.example.bloodsync_android.ui.components.BloodDropIcon
 import com.example.bloodsync_android.ui.components.BloodSyncTopBar
 import com.example.bloodsync_android.ui.components.StatusBadge
 import com.example.bloodsync_android.ui.theme.*
+import com.example.bloodsync_android.util.BloodCompatibilityHelper
 import com.example.bloodsync_android.util.ShareHelper
 
 /**
@@ -51,11 +53,16 @@ fun DonorsDirectoryScreen(
 
     var selectedGroup by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
+    var matchCompatibleOnly by remember { mutableStateOf(true) }
     val appColors = BloodSyncTheme.colors
 
-    val filteredDonors = remember(donors, selectedGroup, searchQuery) {
+    val filteredDonors = remember(donors, selectedGroup, searchQuery, matchCompatibleOnly) {
         donors.filter { donor ->
-            val matchesGroup = if (selectedGroup == "All") true else donor.bloodGroup.equals(selectedGroup, ignoreCase = true)
+            val matchesGroup = when {
+                selectedGroup == "All" -> true
+                matchCompatibleOnly -> BloodCompatibilityHelper.isDonorCompatible(donor.bloodGroup, selectedGroup)
+                else -> donor.bloodGroup.trim().equals(selectedGroup.trim(), ignoreCase = true)
+            }
             val matchesSearch = if (searchQuery.isBlank()) true else {
                 donor.name.contains(searchQuery, ignoreCase = true) ||
                 donor.city.contains(searchQuery, ignoreCase = true) ||
@@ -178,6 +185,55 @@ fun DonorsDirectoryScreen(
                 }
             }
 
+            // Results count & Compatibility Mode Controls
+            if (selectedGroup != "All") {
+                val compatibleList = BloodCompatibilityHelper.getCompatibleDonorGroups(selectedGroup).joinToString(", ")
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (matchCompatibleOnly) appColors.redLight else appColors.cardBackground,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = if (matchCompatibleOnly) BloodRedPrimary.copy(alpha = 0.4f) else appColors.border
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clickable { matchCompatibleOnly = !matchCompatibleOnly }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (matchCompatibleOnly) Icons.Default.CheckCircle else Icons.Default.FilterList,
+                                contentDescription = null,
+                                tint = if (matchCompatibleOnly) BloodRedPrimary else appColors.textMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (matchCompatibleOnly) "Patient $selectedGroup Matches ($compatibleList)" else "Exact $selectedGroup Donors Only",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (matchCompatibleOnly) BloodRedPrimary else appColors.textPrimary
+                            )
+                        }
+                        Text(
+                            text = if (matchCompatibleOnly) "Show Exact" else "Show Compatible",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BloodRedPrimary
+                        )
+                    }
+                }
+            }
+
             // Results count badge
             Row(
                 modifier = Modifier
@@ -193,7 +249,11 @@ fun DonorsDirectoryScreen(
                     color = appColors.textSecondary
                 )
                 StatusBadge(
-                    text = if (selectedGroup == "All") "All Groups" else "$selectedGroup Group",
+                    text = when {
+                        selectedGroup == "All" -> "All Groups"
+                        matchCompatibleOnly -> "Compatible with $selectedGroup"
+                        else -> "Exact $selectedGroup"
+                    },
                     textColor = BloodRedPrimary,
                     backgroundColor = appColors.redLight
                 )
@@ -255,9 +315,13 @@ fun DonorsDirectoryScreen(
                     }
                 }
             } else {
+                val listState = rememberLazyListState()
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredDonors, key = { it.id }) { donor ->
@@ -286,16 +350,6 @@ private fun DonorPillCard(
     onRequestClick: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    val infiniteTransition = rememberInfiniteTransition(label = "beacon")
-    val beaconAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "beaconAlpha"
-    )
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -353,11 +407,11 @@ private fun DonorPillCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(top = 3.dp)
                     ) {
-                        // Pulsing Green Active Beacon
+                        // Crisp Green Active Beacon
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
-                                .background(StatusEligibleGreen.copy(alpha = beaconAlpha), CircleShape)
+                                .background(StatusEligibleGreen, CircleShape)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(

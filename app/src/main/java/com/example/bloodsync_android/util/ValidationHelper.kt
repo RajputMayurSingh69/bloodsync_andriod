@@ -99,6 +99,22 @@ object ValidationHelper {
             else -> ValidationResult(true)
         }
     }
+
+    /**
+     * Validates donor age according to WHO & national clinical safety standards (15 - 65 years).
+     */
+    fun isValidAge(ageString: String, minAge: Int = 15, maxAge: Int = 65): Pair<Boolean, String?> {
+        val clean = ageString.trim()
+        if (clean.isBlank()) {
+            return Pair(false, "Age is required.")
+        }
+        val age = clean.toIntOrNull() ?: return Pair(false, "Please enter a valid numeric age.")
+        return when {
+            age < minAge -> Pair(false, "⚠️ Age Restriction: Minimum age required to register is $minAge years old.")
+            age > maxAge -> Pair(false, "Clinical Safety Notice: Upper eligible age limit for voluntary donation is $maxAge years.")
+            else -> Pair(true, null)
+        }
+    }
 }
 
 data class ValidationResult(

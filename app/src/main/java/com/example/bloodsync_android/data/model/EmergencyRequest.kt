@@ -20,7 +20,7 @@ data class EmergencyResponder(
     val distanceKm: Double,
     val etaMinutes: Int,
     val status: String = "On the way",
-    val phone: String = "+1 (555) 019-2834"
+    val phone: String = ""
 )
 
 data class EmergencyRequest(
@@ -35,6 +35,6 @@ data class EmergencyRequest(
     val additionalNotes: String,
     val requestedAt: String,
     val status: EmergencyStatus = EmergencyStatus.BROADCASTING,
-    val donorsNotifiedCount: Int = 42,
+    val donorsNotifiedCount: Int = 1,
     val responders: List<EmergencyResponder> = emptyList()
 )

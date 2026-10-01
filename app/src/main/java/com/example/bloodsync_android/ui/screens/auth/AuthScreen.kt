@@ -59,7 +59,7 @@ fun AuthScreen(
 
     // Register fields
     var fullName by remember { mutableStateOf("") }
-    var selectedBloodGroup by remember { mutableStateOf("O+") }
+    var selectedBloodGroup by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf("Male") }
     var ageInput by remember { mutableStateOf("") }
     var ageWarning by remember { mutableStateOf<String?>(null) }
@@ -69,6 +69,10 @@ fun AuthScreen(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var resetEmailInput by remember { mutableStateOf("") }
+    var resetMessage by remember { mutableStateOf<String?>(null) }
+    var isSendingReset by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // Google Sign-In Client & Activity Result Launcher
@@ -96,6 +100,14 @@ fun AuthScreen(
                 onLoginSuccess()
             } else {
                 errorMessage = "Google sign-in was not completed."
+            }
+        } catch (e: ApiException) {
+            when (e.statusCode) {
+                10 -> errorMessage = "Developer Error (Code 10): SHA-1 fingerprint Firebase Console me register nahi hai."
+                12500 -> errorMessage = "Sign-in failed (Code 12500): Firebase Console me SHA-1 add karke google-services.json update karein."
+                12501, 16 -> { /* User cancelled picker, silent or soft notice */ }
+                7 -> errorMessage = "Network error (Code 7): Internet connection check karein."
+                else -> errorMessage = "Google Sign-In error (${e.statusCode}): ${e.localizedMessage ?: "Failed"}"
             }
         } catch (e: Exception) {
             val errorDetail = e.localizedMessage ?: "Sign-in cancelled"
@@ -263,6 +275,41 @@ fun AuthScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // Password Field in Registration
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text(strings.password) },
+                            placeholder = { Text("Minimum 6 characters") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = appColors.textMuted
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(16.dp),
+                            supportingText = {
+                                Text(
+                                    text = "Password must be at least 6 characters",
+                                    fontSize = 11.sp,
+                                    color = appColors.textMuted
+                                )
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         BloodGroupSelector(
                             selectedGroup = selectedBloodGroup,
                             onGroupSelected = { selectedBloodGroup = it }
@@ -336,9 +383,9 @@ fun AuthScreen(
                                 onValueChange = { input ->
                                     if (input.all { it.isDigit() } && input.length <= 3) {
                                         ageInput = input
-                                        val num = input.toIntOrNull()
-                                        if (num != null && num < 15) {
-                                            ageWarning = strings.ageRestrictionError
+                                        if (input.isNotBlank()) {
+                                            val (isValid, errorMsg) = ValidationHelper.isValidAge(input, minAge = 15, maxAge = 65)
+                                            ageWarning = if (!isValid) errorMsg else null
                                         } else {
                                             ageWarning = null
                                         }
@@ -487,6 +534,25 @@ fun AuthScreen(
                             colors = textFieldColors,
                             shape = RoundedCornerShape(16.dp)
                         )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "Forgot Password?",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = BloodRedPrimary,
+                                modifier = Modifier.clickable {
+                                    resetEmailInput = emailInput.trim()
+                                    resetMessage = null
+                                    showForgotPasswordDialog = true
+                                }
+                            )
+                        }
                     }
 
                     // Error Message Banner
@@ -537,6 +603,11 @@ fun AuthScreen(
                                     return@Button
                                 }
 
+                                if (password.length < 6) {
+                                    errorMessage = strings.passwordMinLengthError
+                                    return@Button
+                                }
+
                                 val phoneValidation = ValidationHelper.validatePhone(phoneInput)
                                 if (!phoneValidation.isValid) {
                                     errorMessage = strings.invalidPhoneError
@@ -548,42 +619,38 @@ fun AuthScreen(
                                     return@Button
                                 }
 
-                                // Age Validation & Strict 15+ Age Restriction Check
-                                val cleanAge = ageInput.trim()
-                                val parsedAge = cleanAge.toIntOrNull()
-                                if (cleanAge.isBlank() || parsedAge == null) {
-                                    errorMessage = strings.invalidAgeError
+                                // Age Validation & Strict 15+ Age Restriction Check using centralized ValidationHelper
+                                val (isAgeValid, ageErrorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
+                                if (!isAgeValid) {
+                                    errorMessage = ageErrorMsg ?: strings.invalidAgeError
                                     return@Button
                                 }
-                                if (parsedAge < 15) {
-                                    errorMessage = strings.ageRestrictionError
-                                    return@Button
-                                }
-                                if (parsedAge > 100) {
-                                    errorMessage = strings.invalidAgeError
-                                    return@Button
-                                }
+                                val parsedAge = ageInput.trim().toInt()
 
                                 errorMessage = null
                                 isLoading = true
-                                scope.launch {
-                                    delay(500)
-                                    val newProfile = UserProfile(
-                                        name = ValidationHelper.sanitizeText(fullName, 60),
-                                        email = cleanEmail,
-                                        phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
-                                        bloodGroup = selectedBloodGroup,
-                                        city = ValidationHelper.sanitizeText(cityInput, 50),
-                                        gender = selectedGender,
-                                        age = parsedAge,
-                                        isEmergencyVolunteer = volunteerEmergency
-                                    )
-                                    // Registers directly in Firebase Firestore and posts notification
-                                    repository.registerDonor(newProfile)
-                                    repository.setLoggedIn(true)
-                                    isLoading = false
-                                    onLoginSuccess()
-                                }
+                                val newProfile = UserProfile(
+                                    name = ValidationHelper.sanitizeText(fullName, 60),
+                                    email = cleanEmail,
+                                    phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
+                                    bloodGroup = selectedBloodGroup,
+                                    city = ValidationHelper.sanitizeText(cityInput, 50),
+                                    gender = selectedGender,
+                                    age = parsedAge,
+                                    isEmergencyVolunteer = volunteerEmergency
+                                )
+                                repository.registerDonorWithCredentials(
+                                    profile = newProfile,
+                                    pass = password,
+                                    onSuccess = {
+                                        isLoading = false
+                                        onLoginSuccess()
+                                    },
+                                    onFailure = { error ->
+                                        isLoading = false
+                                        errorMessage = error
+                                    }
+                                )
                             } else {
                                 // SIGN IN: Check Email Extension STRICTLY
                                 val cleanEmail = emailInput.trim()
@@ -602,17 +669,18 @@ fun AuthScreen(
 
                                 errorMessage = null
                                 isLoading = true
-                                scope.launch {
-                                    delay(400)
-                                    repository.loginUser(
-                                        name = cleanEmail.substringBefore("@").replace(".", " ").capitalize(),
-                                        email = cleanEmail,
-                                        phone = "",
-                                        bloodGroup = "O+"
-                                    )
-                                    isLoading = false
-                                    onLoginSuccess()
-                                }
+                                repository.signInWithEmailAndPassword(
+                                    email = cleanEmail,
+                                    pass = password,
+                                    onSuccess = {
+                                        isLoading = false
+                                        onLoginSuccess()
+                                    },
+                                    onFailure = { error ->
+                                        isLoading = false
+                                        errorMessage = error
+                                    }
+                                )
                             }
                         },
                         modifier = Modifier
@@ -723,5 +791,86 @@ fun AuthScreen(
                 )
             }
         }
+    }
+
+    if (showForgotPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isSendingReset) showForgotPasswordDialog = false
+            },
+            title = {
+                Text(text = "Reset Password", fontWeight = FontWeight.Bold, color = appColors.textPrimary)
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter your registered email address. We will send a secure password reset link to your inbox.",
+                        fontSize = 13.sp,
+                        color = appColors.textSecondary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = resetEmailInput,
+                        onValueChange = { resetEmailInput = it },
+                        label = { Text(strings.emailAddress) },
+                        placeholder = { Text("e.g. yourname@gmail.com") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (resetMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = resetMessage ?: "",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen else StatusUrgentRed
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val clean = resetEmailInput.trim()
+                        if (clean.isBlank()) {
+                            resetMessage = "Please enter your email."
+                            return@Button
+                        }
+                        isSendingReset = true
+                        resetMessage = null
+                        repository.sendPasswordResetEmail(
+                            email = clean,
+                            onSuccess = {
+                                isSendingReset = false
+                                resetMessage = "Password reset email sent! Check your inbox."
+                            },
+                            onFailure = { err ->
+                                isSendingReset = false
+                                resetMessage = err
+                            }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    shape = RoundedCornerShape(50.dp),
+                    enabled = !isSendingReset
+                ) {
+                    if (isSendingReset) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Send Reset Link", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                    Text("Close", color = appColors.textSecondary)
+                }
+            },
+            containerColor = appColors.cardBackground,
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 }
