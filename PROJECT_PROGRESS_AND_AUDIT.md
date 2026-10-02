@@ -1,11 +1,12 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** October 2, 2026
-**Version:** v2.7.3 (Package Name & Namespace Migration to com.bloodsync, Firebase 1:1 Parity)
+**Version:** v2.7.4 (Case-Sensitive ApplicationId Com.bloodsync for Google OAuth Parity)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `BloodSync-v2.7.3-Firebase-com.bloodsync.apk` (Project Root)
-**Latest GoFile Download:** [https://gofile.io/d/R1BtwLYo](https://gofile.io/d/R1BtwLYo) (v2.7.3)
+**Latest APK:** `BloodSync-v2.7.4-Com.bloodsync-SHA1-Fixed.apk` (Project Root)
+**Latest GoFile Download:** [https://gofile.io/d/VYqEHAFh](https://gofile.io/d/VYqEHAFh) (v2.7.4)
 **Previous Builds:** 
+- [BloodSync-v2.7.3-Firebase-com.bloodsync.apk](https://gofile.io/d/R1BtwLYo) (v2.7.3)
 - [BloodSync-v2.7.2-WebClientID-Configured.apk](https://gofile.io/d/DJb9eBIq) (v2.7.2)
 - [BloodSync-v2.7.1-GoogleAuth-Fixed.apk](https://gofile.io/d/1PjOigDC) (v2.7.1)
 - [BloodSync-v2.7.0-No-Clinical-Note.apk](https://gofile.io/d/EWHp2x62) (v2.7.0)
@@ -27,7 +28,18 @@ Over the course of development, **BloodSync Android** was transformed from an in
 
 ## 🚀 Key Milestones Completed
 
-### 22. Package Name & Namespace Migration to `com.bloodsync` (v2.7.3) ← LATEST
+### 23. Case-Sensitive ApplicationId `Com.bloodsync` for Google OAuth Parity (v2.7.4) ← LATEST
+- **Root Cause Resolution for ApiException (Code 10):**
+  - Identified case-sensitivity mismatch: Google Cloud Console OAuth 2.0 Client was registered with package name `"Com.bloodsync"` (Capital `C`) and SHA-1 `75:94:8F:B0:A5:67:66:4B:DE:46:92:23:A9:F9:E7:06:A7:DE:60:86`.
+  - Android application was running with `applicationId = "com.bloodsync"` (lowercase `c`), causing Google Play Services OAuth backend to return `DEVELOPER_ERROR (Status code 10)` due to package string mismatch.
+- **ApplicationId Fix:**
+  - Updated `applicationId = "Com.bloodsync"` in [build.gradle.kts](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/build.gradle.kts), perfectly aligning runtime package name with the Google Cloud registered OAuth client.
+- **Build & Artifact Verification:**
+  - Tested and verified with `assembleDebug` (BUILD SUCCESSFUL).
+  - Released APK: `BloodSync-v2.7.4-Com.bloodsync-SHA1-Fixed.apk` (24.6 MB) at project root.
+  - Uploaded to GoFile: [https://gofile.io/d/VYqEHAFh](https://gofile.io/d/VYqEHAFh) (v2.7.4).
+
+### 22. Package Name & Namespace Migration to `com.bloodsync` (v2.7.3)
 - **Namespace & ApplicationId Synchronization:**
   - Synchronized Android Gradle configuration ([build.gradle.kts](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/build.gradle.kts)) `namespace = "com.bloodsync"` and `applicationId = "com.bloodsync"` to align 1:1 with Firebase project and [google-services.json](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/google-services.json).
 - **Clean Architecture & Kotlin Codebase Refactor:**

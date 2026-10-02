@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.bloodsync"
+        applicationId = "Com.bloodsync"
         minSdk = 24
         targetSdk = 37
         versionCode = 5
