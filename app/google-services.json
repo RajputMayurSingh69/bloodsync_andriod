@@ -12,7 +12,20 @@
           "package_name": "Com.bloodsync"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1044746314963-lhm256487tet9e0a9q6q02tfpe379k56.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "Com.bloodsync",
+            "certificate_hash": "75948fb0a567664bde469223a9f9e706a7de6086"
+          }
+        },
+        {
+          "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +49,20 @@
           "package_name": "com.bloodsync"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1044746314963-lhm256487tet9e0a9q6q02tfpe379k56.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "Com.bloodsync",
+            "certificate_hash": "75948fb0a567664bde469223a9f9e706a7de6086"
+          }
+        },
+        {
+          "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
@@ -39,7 +70,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -50,7 +86,20 @@
           "package_name": "com.example.bloodsync_android"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1044746314963-lhm256487tet9e0a9q6q02tfpe379k56.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "Com.bloodsync",
+            "certificate_hash": "75948fb0a567664bde469223a9f9e706a7de6086"
+          }
+        },
+        {
+          "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU"
@@ -58,7 +107,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

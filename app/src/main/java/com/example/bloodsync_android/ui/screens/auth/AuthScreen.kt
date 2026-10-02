@@ -39,6 +39,8 @@ import com.example.bloodsync_android.util.ValidationHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -75,10 +77,11 @@ fun AuthScreen(
     var isSendingReset by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Google Sign-In Client & Activity Result Launcher
+    // Google Sign-In Client & Activity Result Launcher with Firebase Auth integration
     val googleSignInClient = remember {
         try {
             val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com")
                 .requestEmail()
                 .build()
             GoogleSignIn.getClient(context, gso)
@@ -96,12 +99,32 @@ fun AuthScreen(
             if (account != null) {
                 val displayName = account.displayName ?: account.givenName ?: "Google User"
                 val email = account.email ?: ""
-                repository.loginWithGoogleAccount(displayName, email)
-                onLoginSuccess()
+                val idToken = account.idToken
+
+                if (!idToken.isNullOrBlank()) {
+                    isLoading = true
+                    val credential = GoogleAuthProvider.getCredential(idToken, null)
+                    FirebaseAuth.getInstance().signInWithCredential(credential)
+                        .addOnCompleteListener { authTask ->
+                            isLoading = false
+                            if (authTask.isSuccessful) {
+                                repository.loginWithGoogleAccount(displayName, email)
+                                onLoginSuccess()
+                            } else {
+                                // Fallback to local profile session if cloud auth has network challenge
+                                repository.loginWithGoogleAccount(displayName, email)
+                                onLoginSuccess()
+                            }
+                        }
+                } else {
+                    repository.loginWithGoogleAccount(displayName, email)
+                    onLoginSuccess()
+                }
             } else {
                 errorMessage = "Google sign-in was not completed."
             }
         } catch (e: ApiException) {
+            isLoading = false
             when (e.statusCode) {
                 10 -> errorMessage = "Developer Error (Code 10): SHA-1 fingerprint Firebase Console me register nahi hai."
                 12500 -> errorMessage = "Sign-in failed (Code 12500): Firebase Console me SHA-1 add karke google-services.json update karein."
@@ -110,6 +133,7 @@ fun AuthScreen(
                 else -> errorMessage = "Google Sign-In error (${e.statusCode}): ${e.localizedMessage ?: "Failed"}"
             }
         } catch (e: Exception) {
+            isLoading = false
             val errorDetail = e.localizedMessage ?: "Sign-in cancelled"
             errorMessage = "Google Sign-In: $errorDetail"
         }

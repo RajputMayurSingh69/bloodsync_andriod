@@ -52,7 +52,6 @@ fun EmergencyRequestScreen(
     var hospitalName by remember { mutableStateOf("") }
     var hospitalAddress by remember { mutableStateOf("") }
     var contactPhone by remember { mutableStateOf("") }
-    var additionalNotes by remember { mutableStateOf("") }
 
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -356,17 +355,6 @@ fun EmergencyRequestScreen(
                             colors = textFieldColors,
                             modifier = Modifier.fillMaxWidth()
                         )
-
-                        OutlinedTextField(
-                            value = additionalNotes,
-                            onValueChange = { additionalNotes = it },
-                            label = { Text("Clinical Note / Reason (Optional)") },
-                            placeholder = { Text("e.g. Urgent surgery in 45 mins", color = appColors.textMuted) },
-                            singleLine = false,
-                            maxLines = 3,
-                            colors = textFieldColors,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
             }
@@ -426,7 +414,6 @@ fun EmergencyRequestScreen(
                         val cleanHospitalName = ValidationHelper.sanitizeText(hospitalName, 100)
                         val cleanAddress = ValidationHelper.sanitizeText(hospitalAddress, 150)
                         val cleanPhone = contactPhone.filter { it.isDigit() || it == '+' }.take(15)
-                        val cleanNotes = ValidationHelper.sanitizeText(additionalNotes, 300)
 
                         val newRequest = repository.createEmergencyRequest(
                             patientName = cleanPatientName,
@@ -436,7 +423,7 @@ fun EmergencyRequestScreen(
                             hospitalAddress = cleanAddress,
                             contactPhone = cleanPhone,
                             urgencyLevel = urgencyLevel!!,
-                            notes = cleanNotes
+                            notes = ""
                         )
 
                         isSubmitting = false

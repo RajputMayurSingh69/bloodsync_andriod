@@ -797,7 +797,8 @@ class BloodSyncRepository(private val context: Context) {
     }
 
     fun loginWithGoogleAccount(displayName: String, email: String) {
-        val id = "usr_" + UUID.randomUUID().toString().take(8)
+        val currentFirebaseUid = firebaseService.getFirebaseAuth()?.currentUser?.uid
+        val id = currentFirebaseUid ?: ("usr_" + UUID.randomUUID().toString().take(8))
         val profile = UserProfile(
             id = id,
             name = displayName.ifBlank { "Google Donor" },

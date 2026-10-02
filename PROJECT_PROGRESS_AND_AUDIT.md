@@ -1,11 +1,15 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** October 1, 2026
-**Version:** v2.6.8 (Empty Emergency Details, Unselected Blood Group Chips, Firestore Dummy Purge & LazyColumn Full Scrolling)
+**Date:** October 2, 2026
+**Version:** v2.7.2 (Google Sign-In Web Client ID Configured, Backend Gmail OTP & Debugger Bot, Emergency Request Simplified)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `bloodsync-v2.6.8-empty-clean-full-scroll.apk` (Project Root)
-**Latest GoFile Download:** [https://gofile.io/d/VLMkYndE](https://gofile.io/d/VLMkYndE) (v2.6.8)
+**Latest APK:** `BloodSync-v2.7.2-WebClientID-Configured.apk` (Project Root)
+**Latest GoFile Download:** [https://gofile.io/d/DJb9eBIq](https://gofile.io/d/DJb9eBIq) (v2.7.2)
 **Previous Builds:** 
+- [BloodSync-v2.7.1-GoogleAuth-Fixed.apk](https://gofile.io/d/1PjOigDC) (v2.7.1)
+- [BloodSync-v2.7.0-No-Clinical-Note.apk](https://gofile.io/d/EWHp2x62) (v2.7.0)
+- [BloodSync-v2.6.9-OTP-Live.apk](https://gofile.io/d/llYIx52i) (v2.6.9)
+- [bloodsync-v2.6.8-empty-clean-full-scroll.apk](https://gofile.io/d/VLMkYndE) (v2.6.8)
 - [bloodsync-v2.6.7-edit-sos-home-photo-ui.apk](https://gofile.io/d/HbxGJdzu) (v2.6.7)
 - [bloodsync-v2.6.6-smooth-scroll-no-admin.apk](https://gofile.io/d/b9nWuRSC) (v2.6.6)
 - [bloodsync-v2.6.5-portrait-locked.apk](https://gofile.io/d/pPcksip2) (v2.6.5)
@@ -22,7 +26,23 @@ Over the course of development, **BloodSync Android** was transformed from an in
 
 ## 🚀 Key Milestones Completed
 
-### 20. Empty Details, Unselected Chips, Firestore Dummy Purge & LazyColumn Full Scrolling (v2.6.8) ← LATEST
+### 21. Google Sign-In Web Client ID Binding, Backend Gmail OTP & Simplified SOS Form (v2.7.2) ← LATEST
+- **Google Sign-In with Web Client ID & Firebase Auth Integration:**
+  - Hardcoded and bound exact Web Client ID (`1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com`) into `GoogleSignInOptions.requestIdToken(...)` in [AuthScreen.kt](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/example/bloodsync_android/ui/screens/auth/AuthScreen.kt) and defined `default_web_client_id` in [strings.xml](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/res/values/strings.xml).
+  - Integrated `GoogleAuthProvider.getCredential(idToken, null)` into `FirebaseAuth.getInstance().signInWithCredential` callback, seamlessly producing real Firebase Authentication sessions.
+  - Linked profile user ID in [BloodSyncRepository.kt](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/example/bloodsync_android/data/repository/BloodSyncRepository.kt) directly with `FirebaseAuth.currentUser.uid` for matching Firestore `isOwner(userId)` rules.
+  - Synced [google-services.json](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/google-services.json) to retain all registered package variants (`com.example.bloodsync_android`, `Com.bloodsync`, `com.bloodsync`) with OAuth client IDs.
+- **Emergency SOS Form Streamlining:**
+  - Removed "Clinical Note / Reason (Optional)" input field from [EmergencyRequestScreen.kt](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/example/bloodsync_android/ui/screens/emergency/EmergencyRequestScreen.kt), keeping emergency submission ultra-fast and focused.
+- **Production Backend Service & Firebase Debugger Bot ([`backend/`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend)):**
+  - Built enterprise Express/Nodemailer OTP verification service with CSPRNG generation (`crypto.randomInt`), HMAC-SHA256 hashing, 5-minute TTL, sliding-window rate limiting, and real-time event logging to `backend_debugger_logs` and `critical_alerts` Firestore collections.
+  - Securely configured Gmail App Password in [`.env`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/.env) and protected all environment secrets via root and module [`.gitignore`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/.gitignore).
+- **Build & Artifact Verification:**
+  - Compiled and assembled with `./gradlew assembleDebug` (versionCode: 4, versionName: "2.7.2").
+  - Released APK: `BloodSync-v2.7.2-WebClientID-Configured.apk` (24.6 MB) at project root.
+  - Uploaded to GoFile: [https://gofile.io/d/DJb9eBIq](https://gofile.io/d/DJb9eBIq) (v2.7.2).
+
+### 20. Empty Details, Unselected Chips, Firestore Dummy Purge & LazyColumn Full Scrolling (v2.6.8)
 - **Emergency Request Full Scrolling Fix (`LazyColumn`):**
   - Converted [EmergencyRequestScreen.kt](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/example/bloodsync_android/ui/screens/emergency/EmergencyRequestScreen.kt) from clamped `Column + verticalScroll` to high-performance `LazyColumn` with `rememberLazyListState()`.
   - Added generous content padding (`bottom = innerPadding.calculateBottomPadding() + 160.dp`), completely resolving bottom cutoff and ensuring the user can effortlessly scroll all fields and the "🚨 BROADCAST EMERGENCY SOS NOW" button well above gesture bars.

@@ -9,3 +9,11 @@
 .cxx
 local.properties
 *.apk
+.env
+.env.*
+!.env.example
+!backend/.env.example
+node_modules/
+backend/node_modules/
+backend/.env
+backend/config/*.json
