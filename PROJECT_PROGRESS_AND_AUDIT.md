@@ -36,6 +36,7 @@ Over the course of development, **BloodSync Android** was transformed from an in
 - **Build & Artifact Verification:**
   - Released APK: `BloodSync-v2.7.5-OfficialFirebase-Fresh.apk` (24.6 MB) at project root.
   - Uploaded to GoFile: [https://gofile.io/d/Wj7YXBL7](https://gofile.io/d/Wj7YXBL7) (v2.7.5).
+  - **Live Verification:** 100% verified working on real device — Google Sign-In successfully logs in, authenticates with Firebase, and creates/syncs donor profile seamlessly without Developer Error (Code 10).
 
 ### 23. Case-Sensitive ApplicationId `Com.bloodsync` for Google OAuth Parity (v2.7.4)
 - **Root Cause Resolution for ApiException (Code 10):**
