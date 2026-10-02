@@ -1,11 +1,12 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** October 2, 2026
-**Version:** v2.7.4 (Case-Sensitive ApplicationId Com.bloodsync for Google OAuth Parity)
+**Version:** v2.7.5 (Fresh Official Google-Services Clean Build, Firebase OAuth Parity)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `BloodSync-v2.7.4-Com.bloodsync-SHA1-Fixed.apk` (Project Root)
-**Latest GoFile Download:** [https://gofile.io/d/VYqEHAFh](https://gofile.io/d/VYqEHAFh) (v2.7.4)
+**Latest APK:** `BloodSync-v2.7.5-OfficialFirebase-Fresh.apk` (Project Root)
+**Latest GoFile Download:** [https://gofile.io/d/Wj7YXBL7](https://gofile.io/d/Wj7YXBL7) (v2.7.5)
 **Previous Builds:** 
+- [BloodSync-v2.7.4-Com.bloodsync-SHA1-Fixed.apk](https://gofile.io/d/VYqEHAFh) (v2.7.4)
 - [BloodSync-v2.7.3-Firebase-com.bloodsync.apk](https://gofile.io/d/R1BtwLYo) (v2.7.3)
 - [BloodSync-v2.7.2-WebClientID-Configured.apk](https://gofile.io/d/DJb9eBIq) (v2.7.2)
 - [BloodSync-v2.7.1-GoogleAuth-Fixed.apk](https://gofile.io/d/1PjOigDC) (v2.7.1)
@@ -28,7 +29,15 @@ Over the course of development, **BloodSync Android** was transformed from an in
 
 ## 🚀 Key Milestones Completed
 
-### 23. Case-Sensitive ApplicationId `Com.bloodsync` for Google OAuth Parity (v2.7.4) ← LATEST
+### 24. Clean Rebuild with Fresh Downloaded `google-services.json` (v2.7.5) ← LATEST
+- **Official Firebase Configuration Sync:**
+  - Integrated the fresh, official [google-services.json](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/google-services.json) downloaded directly from the Firebase Console (single-app clean registration for `Com.bloodsync` with SHA-1 `75:94:8F:B0:A5:67:66:4B:DE:46:92:23:A9:F9:E7:06:A7:DE:60:86` and Web Client ID `1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com`).
+  - Executed full `clean assembleDebug` wiping any previous incremental build artifacts or cached configuration.
+- **Build & Artifact Verification:**
+  - Released APK: `BloodSync-v2.7.5-OfficialFirebase-Fresh.apk` (24.6 MB) at project root.
+  - Uploaded to GoFile: [https://gofile.io/d/Wj7YXBL7](https://gofile.io/d/Wj7YXBL7) (v2.7.5).
+
+### 23. Case-Sensitive ApplicationId `Com.bloodsync` for Google OAuth Parity (v2.7.4)
 - **Root Cause Resolution for ApiException (Code 10):**
   - Identified case-sensitivity mismatch: Google Cloud Console OAuth 2.0 Client was registered with package name `"Com.bloodsync"` (Capital `C`) and SHA-1 `75:94:8F:B0:A5:67:66:4B:DE:46:92:23:A9:F9:E7:06:A7:DE:60:86`.
   - Android application was running with `applicationId = "com.bloodsync"` (lowercase `c`), causing Google Play Services OAuth backend to return `DEVELOPER_ERROR (Status code 10)` due to package string mismatch.
