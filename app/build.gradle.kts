@@ -14,8 +14,8 @@ android {
         applicationId = "com.bloodsync"
         minSdk = 24
         targetSdk = 37
-        versionCode = 4
-        versionName = "2.7.2"
+        versionCode = 5
+        versionName = "2.7.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

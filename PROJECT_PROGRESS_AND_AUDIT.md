@@ -3,9 +3,10 @@
 **Date:** October 2, 2026
 **Version:** v2.7.3 (Package Name & Namespace Migration to com.bloodsync, Firebase 1:1 Parity)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `BloodSync-v2.7.2-WebClientID-Configured.apk` (Project Root)
-**Latest GoFile Download:** [https://gofile.io/d/DJb9eBIq](https://gofile.io/d/DJb9eBIq) (v2.7.2)
+**Latest APK:** `BloodSync-v2.7.3-Firebase-com.bloodsync.apk` (Project Root)
+**Latest GoFile Download:** [https://gofile.io/d/R1BtwLYo](https://gofile.io/d/R1BtwLYo) (v2.7.3)
 **Previous Builds:** 
+- [BloodSync-v2.7.2-WebClientID-Configured.apk](https://gofile.io/d/DJb9eBIq) (v2.7.2)
 - [BloodSync-v2.7.1-GoogleAuth-Fixed.apk](https://gofile.io/d/1PjOigDC) (v2.7.1)
 - [BloodSync-v2.7.0-No-Clinical-Note.apk](https://gofile.io/d/EWHp2x62) (v2.7.0)
 - [BloodSync-v2.6.9-OTP-Live.apk](https://gofile.io/d/llYIx52i) (v2.6.9)
@@ -35,7 +36,10 @@ Over the course of development, **BloodSync Android** was transformed from an in
   - Updated [proguard-rules.pro](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/proguard-rules.pro) rules for reflection serialization on `com.bloodsync.data.model.**`.
   - Validated [AndroidManifest.xml](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/AndroidManifest.xml) `.MainActivity` resolution under new namespace.
 - **Build & Verification:**
+  - Bumped version in [build.gradle.kts](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/build.gradle.kts) to `versionCode = 5`, `versionName = "2.7.3"`.
   - Gradle `compileDebugKotlin` and `assembleDebug` fully verified (BUILD SUCCESSFUL, zero compilation or packaging errors).
+  - Released APK: `BloodSync-v2.7.3-Firebase-com.bloodsync.apk` (24.6 MB) at project root.
+  - Uploaded to GoFile: [https://gofile.io/d/R1BtwLYo](https://gofile.io/d/R1BtwLYo) (v2.7.3).
 
 ### 21. Google Sign-In Web Client ID Binding, Backend Gmail OTP & Simplified SOS Form (v2.7.2)
 - **Google Sign-In with Web Client ID & Firebase Auth Integration:**
