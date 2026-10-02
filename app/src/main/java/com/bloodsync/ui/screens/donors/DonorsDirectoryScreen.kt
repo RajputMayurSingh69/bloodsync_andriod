@@ -1,0 +1,472 @@
+package com.bloodsync.ui.screens.donors
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.bloodsync.data.model.UserProfile
+import com.bloodsync.data.repository.BloodSyncRepository
+import com.bloodsync.ui.components.BloodDropIcon
+import com.bloodsync.ui.components.BloodSyncTopBar
+import com.bloodsync.ui.components.StatusBadge
+import com.bloodsync.ui.theme.*
+import com.bloodsync.util.BloodCompatibilityHelper
+import com.bloodsync.util.ShareHelper
+
+/**
+ * Dedicated Available Donors Directory Screen.
+ * Moved out of the homepage to keep the home UI clean, simple, and uncluttered.
+ * Pill-shaped design language, strict RED/GREEN/WHITE/YELLOW palette.
+ */
+@Composable
+fun DonorsDirectoryScreen(
+    repository: BloodSyncRepository,
+    onBackClick: () -> Unit,
+    onNavigateToEmergency: () -> Unit,
+    onNotificationClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val strings = com.bloodsync.util.LocalAppStrings.current
+    val donors = repository.donors
+    val unreadNotifs by repository.unreadNotificationCount
+
+    var selectedGroup by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
+    var matchCompatibleOnly by remember { mutableStateOf(true) }
+    val appColors = BloodSyncTheme.colors
+
+    val filteredDonors = remember(donors, selectedGroup, searchQuery, matchCompatibleOnly) {
+        donors.filter { donor ->
+            val matchesGroup = when {
+                selectedGroup == "All" -> true
+                matchCompatibleOnly -> BloodCompatibilityHelper.isDonorCompatible(donor.bloodGroup, selectedGroup)
+                else -> donor.bloodGroup.trim().equals(selectedGroup.trim(), ignoreCase = true)
+            }
+            val matchesSearch = if (searchQuery.isBlank()) true else {
+                donor.name.contains(searchQuery, ignoreCase = true) ||
+                donor.city.contains(searchQuery, ignoreCase = true) ||
+                donor.bloodGroup.contains(searchQuery, ignoreCase = true)
+            }
+            matchesGroup && matchesSearch
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            BloodSyncTopBar(
+                title = strings.donorsDirectoryTitle,
+                subtitle = "${donors.size} ${strings.availableNow}",
+                showBackButton = true,
+                onBackClick = onBackClick,
+                unreadCount = unreadNotifs,
+                onNotificationClick = onNotificationClick
+            )
+        },
+        contentWindowInsets = WindowInsets.systemBars,
+        containerColor = appColors.background
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Search Pill Bar
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(50.dp),
+                color = appColors.cardBackground,
+                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                shadowElevation = 1.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = appColors.textMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text(strings.searchDonorsPlaceholder, fontSize = 13.sp, color = appColors.textMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = BloodRedPrimary
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = appColors.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Blood Group Filter Carousel (Pill Shape)
+            val bloodGroups = listOf("All", "O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-")
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(bloodGroups) { group ->
+                    val isSelected = selectedGroup == group
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1.0f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        label = "pillScale"
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .scale(scale)
+                            .clip(RoundedCornerShape(50.dp))
+                            .clickable { selectedGroup = group }
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) BloodRedPrimary else appColors.border,
+                                shape = RoundedCornerShape(50.dp)
+                            ),
+                        color = if (isSelected) BloodRedPrimary else appColors.cardBackground,
+                        shadowElevation = if (isSelected) 2.dp else 0.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = group,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = if (isSelected) Color.White else appColors.textPrimary
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Results count & Compatibility Mode Controls
+            if (selectedGroup != "All") {
+                val compatibleList = BloodCompatibilityHelper.getCompatibleDonorGroups(selectedGroup).joinToString(", ")
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (matchCompatibleOnly) appColors.redLight else appColors.cardBackground,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = 1.dp,
+                        color = if (matchCompatibleOnly) BloodRedPrimary.copy(alpha = 0.4f) else appColors.border
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clickable { matchCompatibleOnly = !matchCompatibleOnly }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = if (matchCompatibleOnly) Icons.Default.CheckCircle else Icons.Default.FilterList,
+                                contentDescription = null,
+                                tint = if (matchCompatibleOnly) BloodRedPrimary else appColors.textMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (matchCompatibleOnly) "Patient $selectedGroup Matches ($compatibleList)" else "Exact $selectedGroup Donors Only",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (matchCompatibleOnly) BloodRedPrimary else appColors.textPrimary
+                            )
+                        }
+                        Text(
+                            text = if (matchCompatibleOnly) "Show Exact" else "Show Compatible",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BloodRedPrimary
+                        )
+                    }
+                }
+            }
+
+            // Results count badge
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${filteredDonors.size} Donors Found",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = appColors.textSecondary
+                )
+                StatusBadge(
+                    text = when {
+                        selectedGroup == "All" -> "All Groups"
+                        matchCompatibleOnly -> "Compatible with $selectedGroup"
+                        else -> "Exact $selectedGroup"
+                    },
+                    textColor = BloodRedPrimary,
+                    backgroundColor = appColors.redLight
+                )
+            }
+
+            // Donors Feed List
+            if (filteredDonors.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = appColors.cardBackground,
+                        shape = RoundedCornerShape(26.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .background(appColors.redLight, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                BloodDropIcon(size = 32.dp, tint = BloodRedPrimary)
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "No active donors found for $selectedGroup",
+                                fontWeight = FontWeight.Bold,
+                                color = appColors.textPrimary,
+                                fontSize = 15.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Need blood urgently? Broadcast an emergency SOS to notify matching volunteers nearby immediately.",
+                                fontSize = 12.sp,
+                                color = appColors.textSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                lineHeight = 17.sp
+                            )
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Button(
+                                onClick = onNavigateToEmergency,
+                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                                shape = RoundedCornerShape(50.dp),
+                                modifier = Modifier.height(46.dp)
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Broadcast Emergency SOS", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            } else {
+                val listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredDonors, key = { it.id }) { donor ->
+                        DonorPillCard(
+                            donor = donor,
+                            onWhatsAppClick = {
+                                val msg = "Hello ${donor.name}, I am reaching out from BloodSync App regarding voluntary blood donation (${donor.bloodGroup}). Are you available?"
+                                ShareHelper.openWhatsApp(context, donor.phone, msg)
+                            },
+                            onRequestClick = onNavigateToEmergency
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Modern Pill-Shaped Donor Card.
+ */
+@Composable
+private fun DonorPillCard(
+    donor: UserProfile,
+    onWhatsAppClick: () -> Unit,
+    onRequestClick: () -> Unit
+) {
+    val appColors = BloodSyncTheme.colors
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = appColors.cardBackground,
+        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+        shadowElevation = 1.5.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Round Pill Blood Group Avatar (Red)
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(BloodRedPrimary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = donor.bloodGroup,
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 17.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (donor.name.isNotBlank()) donor.name else "Volunteer Donor",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = appColors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Verified",
+                            tint = StatusEligibleGreen,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 3.dp)
+                    ) {
+                        // Crisp Green Active Beacon
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(StatusEligibleGreen, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Active Now • ${if (donor.city.isNotBlank()) donor.city else "Nearby"}",
+                            fontSize = 12.sp,
+                            color = StatusEligibleGreen,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    if (donor.totalDonations > 0) {
+                        Text(
+                            text = "${donor.totalDonations} Previous Donations",
+                            fontSize = 11.sp,
+                            color = appColors.textSecondary,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Green Pill Contact Button (WhatsApp / Call)
+                IconButton(
+                    onClick = onWhatsAppClick,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(StatusEligibleGreen, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Contact Donor",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Red Pill SOS Request Action Button
+                Button(
+                    onClick = onRequestClick,
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
+                ) {
+                    Text(
+                        text = "Request",
+                        fontSize = 12.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}

@@ -9,12 +9,12 @@
 
 # Keep Firebase Firestore & Auth data models for reflection & serialization
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
--keepclassmembers class com.example.bloodsync_android.data.model.** {
+-keepclassmembers class com.bloodsync.data.model.** {
     <fields>;
     <init>(...);
     public <methods>;
 }
--keep class com.example.bloodsync_android.data.model.** { *; }
+-keep class com.bloodsync.data.model.** { *; }
 
 # Keep Firebase models and libraries
 -keep class com.google.firebase.** { *; }

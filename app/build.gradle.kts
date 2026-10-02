@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.bloodsync_android"
+    namespace = "com.bloodsync"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.bloodsync_android"
+        applicationId = "com.bloodsync"
         minSdk = 24
         targetSdk = 37
         versionCode = 4
