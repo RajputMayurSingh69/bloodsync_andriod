@@ -3,8 +3,9 @@
 **Date:** October 3, 2026
 **Version:** v3.2.0 (Critical Error Webhook Integration, Firestore TTL & Weekly Rate-Limit Cleanup)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (Project Root)
+**Latest APK:** [BloodSync-v3.2.0-Production-Release.apk](https://gofile.io/d/qL9ksdrI) (v3.2.0)
 **Previous Builds:** 
+- `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (v3.1.0)
 - `BloodSync-v3.0.0-GPS-Radar-Live.apk` (v3.0.0)
 - `BloodSync-v2.9.0-FCM-SOS-Live.apk` (v2.9.0)
 - `BloodSync-v2.8.0-OTP-Retrofit-Live.apk` (v2.8.0)
