@@ -1,5 +1,9 @@
 package com.bloodsync.ui.screens.emergency
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -25,6 +30,7 @@ import com.bloodsync.data.repository.BloodSyncRepository
 import com.bloodsync.ui.components.BloodGroupSelector
 import com.bloodsync.ui.components.BloodSyncTopBar
 import com.bloodsync.ui.theme.*
+import com.bloodsync.util.LocationHelper
 import com.bloodsync.util.ValidationHelper
 
 /**
@@ -41,6 +47,7 @@ fun EmergencyRequestScreen(
     onRequestCreated: (requestId: String) -> Unit,
     onNotificationClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val unreadNotifs by repository.unreadNotificationCount
 
     // Empty by default - User selects details themselves!
@@ -52,6 +59,57 @@ fun EmergencyRequestScreen(
     var hospitalName by remember { mutableStateOf("") }
     var hospitalAddress by remember { mutableStateOf("") }
     var contactPhone by remember { mutableStateOf("") }
+
+    // GPS 10km Radar Coordinates Capture State
+    var capturedLatitude by remember { mutableStateOf<Double?>(null) }
+    var capturedLongitude by remember { mutableStateOf<Double?>(null) }
+    var isLocating by remember { mutableStateOf(false) }
+    var locationStatusMessage by remember { mutableStateOf<String?>("GPS Coordinates ready for 10km Radar") }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fine = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarse = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        if (fine || coarse) {
+            isLocating = true
+            LocationHelper.getCurrentLocation(
+                context = context,
+                onLocation = { lat, lon ->
+                    capturedLatitude = lat
+                    capturedLongitude = lon
+                    isLocating = false
+                    locationStatusMessage = "GPS Fixed: ${"%.4f".format(lat)}, ${"%.4f".format(lon)}"
+                },
+                onError = { err ->
+                    isLocating = false
+                    locationStatusMessage = "Location unavailable ($err)"
+                }
+            )
+        } else {
+            isLocating = false
+            locationStatusMessage = "Location permission denied"
+        }
+    }
+
+    // Auto-detect GPS coordinates on screen entry if permission granted
+    LaunchedEffect(Unit) {
+        if (LocationHelper.hasLocationPermission(context)) {
+            isLocating = true
+            LocationHelper.getCurrentLocation(
+                context = context,
+                onLocation = { lat, lon ->
+                    capturedLatitude = lat
+                    capturedLongitude = lon
+                    isLocating = false
+                    locationStatusMessage = "GPS Fixed: ${"%.4f".format(lat)}, ${"%.4f".format(lon)}"
+                },
+                onError = {
+                    isLocating = false
+                }
+            )
+        }
+    }
 
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -359,6 +417,98 @@ fun EmergencyRequestScreen(
                 }
             }
 
+            // 10km GPS Radar Proximity Card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (!LocationHelper.hasLocationPermission(context)) {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            } else {
+                                isLocating = true
+                                LocationHelper.getCurrentLocation(
+                                    context = context,
+                                    onLocation = { lat, lon ->
+                                        capturedLatitude = lat
+                                        capturedLongitude = lon
+                                        isLocating = false
+                                        locationStatusMessage = "GPS Fixed: ${"%.4f".format(lat)}, ${"%.4f".format(lon)}"
+                                    },
+                                    onError = { err ->
+                                        isLocating = false
+                                        locationStatusMessage = "Location unavailable ($err)"
+                                    }
+                                )
+                            }
+                        },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (capturedLatitude != null) Color(0xFF1B5E20).copy(alpha = 0.12f) else appColors.cardBackground
+                    ),
+                    border = BorderStroke(1.dp, if (capturedLatitude != null) Color(0xFF2E7D32) else appColors.border)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (capturedLatitude != null) Color(0xFF2E7D32) else BloodRedPrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isLocating) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(
+                                    imageVector = if (capturedLatitude != null) Icons.Default.GpsFixed else Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "24/7 Active Radar (10km Radius)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (capturedLatitude != null) Color(0xFF2E7D32) else appColors.textPrimary
+                            )
+                            Text(
+                                text = locationStatusMessage ?: "Tap to detect GPS coordinates",
+                                fontSize = 12.sp,
+                                color = if (capturedLatitude != null) Color(0xFF2E7D32) else appColors.textMuted
+                            )
+                        }
+                        if (capturedLatitude == null && !isLocating) {
+                            TextButton(
+                                onClick = {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            ) {
+                                Text("Detect", color = BloodRedPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
             // Validation Error Alert (Red)
             if (validationError != null) {
                 item {
@@ -423,7 +573,9 @@ fun EmergencyRequestScreen(
                             hospitalAddress = cleanAddress,
                             contactPhone = cleanPhone,
                             urgencyLevel = urgencyLevel!!,
-                            notes = ""
+                            notes = "",
+                            latitude = capturedLatitude,
+                            longitude = capturedLongitude
                         )
 
                         isSubmitting = false

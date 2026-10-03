@@ -38,3 +38,16 @@
     public static int d(...);
     public static int i(...);
 }
+
+# Retrofit 2, OkHttp & Gson Network Rules
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn retrofit2.**
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepclassmembers class com.bloodsync.data.network.** {
+    <fields>;
+    <init>(...);
+    public <methods>;
+}
+-keep class com.bloodsync.data.network.** { *; }

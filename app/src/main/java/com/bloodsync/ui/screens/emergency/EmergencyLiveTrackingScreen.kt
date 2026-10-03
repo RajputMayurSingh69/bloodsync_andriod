@@ -64,6 +64,25 @@ fun EmergencyLiveTrackingScreen(
         }
     }
 
+    val currentUserId = repository.userProfile.value.id
+    val cloudResponders = remember { mutableStateListOf<EmergencyResponder>() }
+    var isResponding by remember { mutableStateOf(false) }
+    var hasAlreadyResponded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(request?.id) {
+        val reqId = request?.id
+        if (!reqId.isNullOrBlank()) {
+            repository.listenToEmergencyResponders(reqId) { updatedList ->
+                cloudResponders.clear()
+                cloudResponders.addAll(updatedList)
+                hasAlreadyResponded = updatedList.any { 
+                    it.id == currentUserId || 
+                    (it.phone.isNotBlank() && it.phone == repository.userProfile.value.phone) 
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             BloodSyncTopBar(
@@ -168,8 +187,15 @@ fun EmergencyLiveTrackingScreen(
                             color = BloodRedPrimary,
                             modifier = Modifier.weight(1f)
                         )
+                        val displayResponders = if (cloudResponders.isNotEmpty()) cloudResponders else request.responders
                         LiveStatCard(
-                            value = "${request.responders.size}",
+                            value = "${request.donorsNotifiedCount.coerceAtLeast(displayResponders.size)}",
+                            label = "Donors Notified",
+                            color = BloodRedPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        LiveStatCard(
+                            value = "${displayResponders.size}",
                             label = "Responders",
                             color = StatusEligibleGreen,
                             modifier = Modifier.weight(1f)
@@ -183,7 +209,95 @@ fun EmergencyLiveTrackingScreen(
                     }
                 }
 
+                // Donor Action Card: Respond / Accept SOS
+                item {
+                    val isBroadcasting = request.status == EmergencyStatus.BROADCASTING
+                    if (hasAlreadyResponded) {
+                        Surface(
+                            color = appColors.greenLight,
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = StatusEligibleGreen,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "You Accepted This Emergency SOS",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = StatusEligibleGreen
+                                    )
+                                    Text(
+                                        text = "The patient and medical team have been notified that you are on the way.",
+                                        fontSize = 12.sp,
+                                        color = appColors.textPrimary
+                                    )
+                                }
+                            }
+                        }
+                    } else if (isBroadcasting) {
+                        Button(
+                            onClick = {
+                                isResponding = true
+                                repository.respondToEmergency(
+                                    requestId = request.id,
+                                    status = "ACCEPTED",
+                                    notes = "Responding voluntarily to emergency broadcast",
+                                    onSuccess = {
+                                        isResponding = false
+                                        hasAlreadyResponded = true
+                                    },
+                                    onFailure = {
+                                        isResponding = false
+                                    }
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
+                            enabled = !isResponding
+                        ) {
+                            if (isResponding) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Connecting with Hospital...", color = Color.White, fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.VolunteerActivism,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "🙋 I CAN DONATE (ACCEPT SOS)",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Responders List Section
+                val activeResponders = if (cloudResponders.isNotEmpty()) cloudResponders else request.responders
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -191,7 +305,7 @@ fun EmergencyLiveTrackingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Responding Donors (${request.responders.size})",
+                            text = "Responding Donors (${activeResponders.size})",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = appColors.textPrimary
@@ -205,7 +319,7 @@ fun EmergencyLiveTrackingScreen(
                     }
                 }
 
-                if (request.responders.isEmpty()) {
+                if (activeResponders.isEmpty()) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -221,7 +335,7 @@ fun EmergencyLiveTrackingScreen(
                         }
                     }
                 } else {
-                    items(request.responders, key = { it.id }) { responder ->
+                    items(activeResponders, key = { it.id }) { responder ->
                         ResponderCard(
                             responder = responder,
                             onCallClick = {

@@ -69,6 +69,13 @@ service cloud.firestore {
         (request.resource.data.patientName is string &&
          request.resource.data.patientName.size() <= 60);
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Responders subcollection: authenticated donors can record and update their response
+      match /responders/{donorId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated() && request.auth.uid == donorId;
+        allow delete: if isAuthenticated() && request.auth.uid == donorId;
+      }
     }
 
     // 6. Blood Banks Directory: Read-only for authenticated clients; block all client-side writes

@@ -114,6 +114,7 @@ class RateLimiterService {
           emailHash: key,
           lastRequestAt: admin.firestore.Timestamp.fromMillis(now),
           requests: updatedRequests,
+          expiresAt: admin.firestore.Timestamp.fromMillis(now + 24 * 60 * 60 * 1000), // 24h retention TTL
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
       }

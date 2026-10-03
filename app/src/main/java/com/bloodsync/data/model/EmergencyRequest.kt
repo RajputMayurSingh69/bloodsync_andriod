@@ -14,13 +14,15 @@ enum class EmergencyStatus {
 }
 
 data class EmergencyResponder(
-    val id: String,
-    val name: String,
-    val bloodGroup: String,
-    val distanceKm: Double,
-    val etaMinutes: Int,
-    val status: String = "On the way",
-    val phone: String = ""
+    val id: String = "",
+    val name: String = "",
+    val bloodGroup: String = "",
+    val distanceKm: Double = 0.0,
+    val etaMinutes: Int = 15,
+    val status: String = "ACCEPTED",
+    val phone: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 data class EmergencyRequest(
@@ -36,5 +38,7 @@ data class EmergencyRequest(
     val requestedAt: String,
     val status: EmergencyStatus = EmergencyStatus.BROADCASTING,
     val donorsNotifiedCount: Int = 1,
-    val responders: List<EmergencyResponder> = emptyList()
+    val responders: List<EmergencyResponder> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )

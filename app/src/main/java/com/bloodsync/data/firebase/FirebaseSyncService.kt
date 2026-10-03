@@ -91,7 +91,7 @@ class FirebaseSyncService(private val context: Context) {
 
         val currentUserId = auth?.currentUser?.uid ?: ""
 
-        val data = hashMapOf(
+        val data = hashMapOf<String, Any>(
             "id" to request.id,
             "userId" to currentUserId,
             "patientName" to request.patientName,
@@ -107,6 +107,8 @@ class FirebaseSyncService(private val context: Context) {
             "donorsNotifiedCount" to request.donorsNotifiedCount,
             "timestamp" to System.currentTimeMillis()
         )
+        if (request.latitude != null) data["latitude"] = request.latitude
+        if (request.longitude != null) data["longitude"] = request.longitude
 
         db.collection("emergency_requests")
             .document(request.id)
@@ -185,7 +187,9 @@ class FirebaseSyncService(private val context: Context) {
                                     additionalNotes = doc.getString("additionalNotes") ?: "",
                                     requestedAt = doc.getString("requestedAt") ?: "Just now",
                                     donorsNotifiedCount = (doc.getLong("donorsNotifiedCount") ?: 1L).toInt(),
-                                    responders = emptyList()
+                                    responders = emptyList(),
+                                    latitude = doc.getDouble("latitude"),
+                                    longitude = doc.getDouble("longitude")
                                 )
                             } catch (e: Exception) {
                                 null
@@ -268,7 +272,9 @@ class FirebaseSyncService(private val context: Context) {
                                     age = (doc.getLong("age") ?: 18L).toInt(),
                                     totalDonations = (doc.getLong("totalDonations") ?: 0L).toInt(),
                                     livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
-                                    isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true
+                                    isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true,
+                                    latitude = doc.getDouble("latitude"),
+                                    longitude = doc.getDouble("longitude")
                                 )
                             } catch (e: Exception) {
                                 null
@@ -294,7 +300,7 @@ class FirebaseSyncService(private val context: Context) {
         val currentUserId = auth?.currentUser?.uid ?: profile.id.ifBlank { "usr_${System.currentTimeMillis()}" }
 
         // 1. Private User Profile (Full data under /users/{userId})
-        val privateData = hashMapOf(
+        val privateData = hashMapOf<String, Any>(
             "id" to currentUserId,
             "name" to profile.name,
             "email" to profile.email,
@@ -309,11 +315,13 @@ class FirebaseSyncService(private val context: Context) {
             "isAvailableDonor" to profile.isAvailableDonor,
             "lastUpdated" to FieldValue.serverTimestamp()
         )
+        if (profile.latitude != null) privateData["latitude"] = profile.latitude
+        if (profile.longitude != null) privateData["longitude"] = profile.longitude
         db.collection("users").document(currentUserId).set(privateData, SetOptions.merge())
 
         // 2. Public Directory Projection (Sanitized data under /donors/{userId})
         if (profile.isAvailableDonor) {
-            val sanitizedPublicData = hashMapOf(
+            val sanitizedPublicData = hashMapOf<String, Any>(
                 "id" to currentUserId,
                 "displayName" to profile.name.ifBlank { "Volunteer Donor" },
                 "name" to profile.name,
@@ -329,6 +337,8 @@ class FirebaseSyncService(private val context: Context) {
                 "isAvailableDonor" to true,
                 "lastUpdated" to FieldValue.serverTimestamp()
             )
+            if (profile.latitude != null) sanitizedPublicData["latitude"] = profile.latitude
+            if (profile.longitude != null) sanitizedPublicData["longitude"] = profile.longitude
             db.collection("donors").document(currentUserId).set(sanitizedPublicData, SetOptions.merge())
         } else {
             // Remove from public registry if marked unavailable
@@ -531,7 +541,9 @@ class FirebaseSyncService(private val context: Context) {
                             age = (doc.getLong("age") ?: 18L).toInt(),
                             totalDonations = (doc.getLong("totalDonations") ?: 0L).toInt(),
                             livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
-                            isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true
+                            isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true,
+                            latitude = doc.getDouble("latitude"),
+                            longitude = doc.getDouble("longitude")
                         )
                         onResult(profile)
                     } catch (_: Exception) {
@@ -636,6 +648,116 @@ class FirebaseSyncService(private val context: Context) {
         }
     }
 
+    // Responder listeners map
+    private val responderListeners = mutableMapOf<String, ListenerRegistration>()
+
+    /**
+     * Fetch the current device FCM token and sync to Cloud Firestore for the logged-in user.
+     */
+    fun fetchAndSyncFcmToken(userId: String? = null) {
+        val uid = if (!userId.isNullOrBlank()) userId else (auth?.currentUser?.uid ?: return)
+        if (uid.isBlank()) return
+
+        try {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    if (!token.isNullOrBlank()) {
+                        Log.d(tag, "Fetched active FCM token: $token, syncing to Firestore for user: $uid")
+                        val tokenData = hashMapOf(
+                            "fcmToken" to token,
+                            "fcmTokenUpdatedAt" to FieldValue.serverTimestamp()
+                        )
+                        firestore?.collection("users")?.document(uid)?.set(tokenData, SetOptions.merge())
+                        firestore?.collection("donors")?.document(uid)?.set(tokenData, SetOptions.merge())
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.w(tag, "Could not retrieve FCM token: ${e.message}")
+                }
+        } catch (e: Exception) {
+            Log.w(tag, "FCM messaging not available or initialized: ${e.message}")
+        }
+    }
+
+    /**
+     * Record a donor's response to an active emergency request in Firestore.
+     * Path: /emergency_requests/{requestId}/responders/{donorId}
+     */
+    fun respondToEmergency(
+        requestId: String,
+        donorProfile: UserProfile,
+        status: String = "ACCEPTED",
+        notes: String = "",
+        onSuccess: () -> Unit = {},
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        val db = firestore ?: run { onSuccess(); return }
+        val donorId = if (donorProfile.id.isNotBlank()) donorProfile.id else (auth?.currentUser?.uid ?: "anon_donor")
+
+        val data = hashMapOf<String, Any>(
+            "donorId" to donorId,
+            "donorName" to donorProfile.name.ifBlank { "Voluntary Donor" },
+            "donorPhone" to donorProfile.phone,
+            "donorBloodGroup" to donorProfile.bloodGroup,
+            "status" to status,
+            "notes" to notes,
+            "respondedAt" to System.currentTimeMillis()
+        )
+        if (donorProfile.latitude != null) data["latitude"] = donorProfile.latitude
+        if (donorProfile.longitude != null) data["longitude"] = donorProfile.longitude
+
+        db.collection("emergency_requests").document(requestId)
+            .collection("responders").document(donorId)
+            .set(data, SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d(tag, "Donor $donorId response registered for emergency $requestId: $status")
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                Log.e(tag, "Failed to register donor response for emergency $requestId", e)
+                onFailure(e)
+            }
+    }
+
+    /**
+     * Listen for real-time responders to a specific emergency request.
+     */
+    fun listenToEmergencyResponders(
+        requestId: String,
+        onUpdate: (List<EmergencyResponder>) -> Unit
+    ) {
+        val db = firestore ?: return
+        try {
+            responderListeners[requestId]?.remove()
+            val listener = db.collection("emergency_requests").document(requestId)
+                .collection("responders")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null) return@addSnapshotListener
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            EmergencyResponder(
+                                id = doc.getString("donorId") ?: doc.id,
+                                name = doc.getString("donorName") ?: "Voluntary Donor",
+                                bloodGroup = doc.getString("donorBloodGroup") ?: "O+",
+                                distanceKm = doc.getDouble("distanceKm") ?: 2.5,
+                                etaMinutes = (doc.getLong("etaMinutes") ?: 15L).toInt(),
+                                status = doc.getString("status") ?: "ACCEPTED",
+                                phone = doc.getString("donorPhone") ?: "",
+                                latitude = doc.getDouble("latitude"),
+                                longitude = doc.getDouble("longitude")
+                            )
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    onUpdate(list)
+                }
+            responderListeners[requestId] = listener
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to listen to emergency responders for $requestId", e)
+        }
+    }
+
     fun cleanup() {
         emergencyListener?.remove()
         bloodBankListener?.remove()
@@ -643,5 +765,7 @@ class FirebaseSyncService(private val context: Context) {
         appointmentListener?.remove()
         donationListener?.remove()
         certificateListener?.remove()
+        responderListeners.values.forEach { it.remove() }
+        responderListeners.clear()
     }
 }

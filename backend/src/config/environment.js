@@ -23,6 +23,7 @@ const SMTP_CONFIG = {
 
 const FIREBASE_CONFIG = {
   serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+  serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
   projectId: process.env.FIREBASE_PROJECT_ID || 'bloodsync-3b5cf',
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
   privateKey: process.env.FIREBASE_PRIVATE_KEY

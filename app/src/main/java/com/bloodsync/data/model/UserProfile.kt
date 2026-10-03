@@ -14,5 +14,7 @@ data class UserProfile(
     val livesSaved: Int = 0,
     val isAvailableDonor: Boolean = true,
     val isNotificationEnabled: Boolean = true,
-    val isEmergencyVolunteer: Boolean = true
+    val isEmergencyVolunteer: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )

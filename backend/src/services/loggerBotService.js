@@ -13,6 +13,7 @@ const {
 } = require('../config/constants');
 const { NODE_ENV, MONITORING_CONFIG } = require('../config/environment');
 const { maskEmail, sanitizeDetails } = require('../utils/sanitizer');
+const webhookAlertService = require('./webhookAlertService');
 
 class LoggerBotService {
   /**
@@ -51,6 +52,7 @@ class LoggerBotService {
       errorCategory,
       errorMessage: sanitizedErrorMessage,
       serverEnvironment: NODE_ENV,
+      expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14-day TTL
       metadata: sanitizedMetadata,
     };
 
@@ -110,16 +112,19 @@ class LoggerBotService {
     ];
 
     const isCritical = criticalCategories.includes(errorCategory);
+    const isRateLimit = errorCategory === ERROR_CATEGORIES.RATE_LIMIT_ERROR;
 
-    if (!isCritical && errorCategory !== ERROR_CATEGORIES.RATE_LIMIT_ERROR) {
+    if (!isCritical && !isRateLimit && errorCategory !== ERROR_CATEGORIES.UNKNOWN_ERROR) {
       return;
     }
+
+    const severity = isCritical ? 'CRITICAL' : isRateLimit ? 'WARNING' : 'ERROR';
 
     const alertPayload = {
       alertId: `ALERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       timestamp: new Date().toISOString(),
       serverEnvironment: NODE_ENV,
-      severity: isCritical ? 'CRITICAL' : 'WARNING',
+      severity,
       errorCategory,
       requestId,
       maskedUserEmail,
@@ -136,6 +141,7 @@ class LoggerBotService {
         await db.collection(FIRESTORE_COLLECTIONS.CRITICAL_ALERTS).add({
           ...alertPayload,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day TTL
           resolved: false,
         });
       }
@@ -143,51 +149,16 @@ class LoggerBotService {
       console.error(`[CRITICAL_ALERT_BOT] Failed to save alert to Firestore: ${dbErr.message}`);
     }
 
-    // Dispatch webhook alert if enabled (Slack / Discord / OpsGenie)
-    if (MONITORING_CONFIG.enableRealtimeAlerts && MONITORING_CONFIG.alertWebhookUrl) {
-      await this.dispatchWebhookAlert(alertPayload);
-    }
-  }
-
-  /**
-   * Dispatches webhook notification to external monitoring channel (e.g., Slack or Discord)
-   */
-  async dispatchWebhookAlert(alertPayload) {
-    try {
-      const https = require('https');
-      const url = new URL(MONITORING_CONFIG.alertWebhookUrl);
-
-      const messageBody = JSON.stringify({
-        text: `🚨 *BloodSync Alert [${alertPayload.severity}]*\n*Category:* \`${alertPayload.errorCategory}\`\n*Environment:* \`${alertPayload.serverEnvironment}\`\n*Request ID:* \`${alertPayload.requestId}\`\n*User:* \`${alertPayload.maskedUserEmail}\`\n*Message:* ${alertPayload.details}`,
-      });
-
-      const options = {
-        hostname: url.hostname,
-        port: url.port || (url.protocol === 'https:' ? 443 : 80),
-        path: url.pathname + url.search,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(messageBody),
-        },
-        timeout: 5000,
-      };
-
-      const req = https.request(options, (res) => {
-        if (res.statusCode >= 400) {
-          console.warn(`[AlertWebhook] Received non-200 status: ${res.statusCode}`);
-        }
-      });
-
-      req.on('error', (err) => {
-        console.warn(`[AlertWebhook] Dispatch error: ${err.message}`);
-      });
-
-      req.write(messageBody);
-      req.end();
-    } catch (err) {
-      console.warn(`[AlertWebhook] Failed to send webhook alert: ${err.message}`);
-    }
+    // Dispatch webhook alert to Discord/Slack/Telegram/Custom via WebhookAlertService
+    await webhookAlertService.triggerAlert({
+      severity: alertPayload.severity,
+      errorCategory: alertPayload.errorCategory,
+      title: alertPayload.summary,
+      message: alertPayload.details,
+      requestId: alertPayload.requestId,
+      maskedUserEmail: alertPayload.maskedUserEmail,
+      metadata: alertPayload.metadata,
+    });
   }
 }
 

@@ -1,35 +1,105 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** October 2, 2026
-**Version:** v2.7.5 (Fresh Official Google-Services Clean Build, Firebase OAuth Parity)
+**Date:** October 3, 2026
+**Version:** v3.2.0 (Critical Error Webhook Integration, Firestore TTL & Weekly Rate-Limit Cleanup)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** `BloodSync-v2.7.5-OfficialFirebase-Fresh.apk` (Project Root)
-**Latest GoFile Download:** [https://gofile.io/d/Wj7YXBL7](https://gofile.io/d/Wj7YXBL7) (v2.7.5)
+**Latest APK:** `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (Project Root)
 **Previous Builds:** 
+- `BloodSync-v3.0.0-GPS-Radar-Live.apk` (v3.0.0)
+- `BloodSync-v2.9.0-FCM-SOS-Live.apk` (v2.9.0)
+- `BloodSync-v2.8.0-OTP-Retrofit-Live.apk` (v2.8.0)
+- [BloodSync-v2.7.5-OfficialFirebase-Fresh.apk](https://gofile.io/d/Wj7YXBL7) (v2.7.5)
 - [BloodSync-v2.7.4-Com.bloodsync-SHA1-Fixed.apk](https://gofile.io/d/VYqEHAFh) (v2.7.4)
-- [BloodSync-v2.7.3-Firebase-com.bloodsync.apk](https://gofile.io/d/R1BtwLYo) (v2.7.3)
-- [BloodSync-v2.7.2-WebClientID-Configured.apk](https://gofile.io/d/DJb9eBIq) (v2.7.2)
-- [BloodSync-v2.7.1-GoogleAuth-Fixed.apk](https://gofile.io/d/1PjOigDC) (v2.7.1)
-- [BloodSync-v2.7.0-No-Clinical-Note.apk](https://gofile.io/d/EWHp2x62) (v2.7.0)
-- [BloodSync-v2.6.9-OTP-Live.apk](https://gofile.io/d/llYIx52i) (v2.6.9)
-- [bloodsync-v2.6.8-empty-clean-full-scroll.apk](https://gofile.io/d/VLMkYndE) (v2.6.8)
-- [bloodsync-v2.6.7-edit-sos-home-photo-ui.apk](https://gofile.io/d/HbxGJdzu) (v2.6.7)
-- [bloodsync-v2.6.6-smooth-scroll-no-admin.apk](https://gofile.io/d/b9nWuRSC) (v2.6.6)
-- [bloodsync-v2.6.5-portrait-locked.apk](https://gofile.io/d/pPcksip2) (v2.6.5)
-- [bloodsync-v2.6.4-complete-cloud-sync.apk](https://gofile.io/d/8RfXZPMs) (v2.6.4)
-- [bloodsync-v2.6.3-login-crash-fixed.apk](https://gofile.io/d/UJzJeFuK) (v2.6.3)
-
----
-
-## 📌 Executive Summary
-
-Over the course of development, **BloodSync Android** was transformed from an initial prototype into a production-grade, secure, cloud-connected humanitarian application. In the latest update (v2.6.8), the Emergency Request form has been completely re-architected with `LazyColumn` and generous bottom padding (`160.dp`), guaranteeing silky smooth 120 FPS scrolling past the bottom "🚨 BROADCAST EMERGENCY SOS NOW" button on all screen sizes and gesture navigation bars. All pre-selected values across the entire application have been eliminated: blood group chips and urgency levels now start completely unselected (`""` and `null`) so users fill in their own verified details without confusing defaults. In addition, legacy pre-filled emergencies ("Jane Doe", "Metro General Hospital") have been permanently deleted from Cloud Firestore and local preferences cache (`has_purged_stale_emergencies_v2_6_8`), ensuring Live Emergency Status and Home start completely clean.
 
 ---
 
 ## 🚀 Key Milestones Completed
 
-### 24. Clean Rebuild with Fresh Downloaded `google-services.json` (v2.7.5) ← LATEST
+### 29. Critical Error Webhook Integration (Discord/Slack/Telegram) & Firestore TTL Auto-Cleanup (v3.2.0) ← LATEST
+- **Unified Multi-Platform Webhook Dispatcher (`webhookAlertService.js`):**
+  - Created [`webhookAlertService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/webhookAlertService.js) supporting Discord Rich Embeds with colored severity badges (Red for CRITICAL, Amber for WARNING), Slack Block Attachments, Telegram HTML messaging, and Generic Webhook formats.
+  - Added smart anti-flood throttling (30-second cooldown per error category) to prevent notification storms.
+  - Added configurable `ALERT_WEBHOOK_URL` in [`.env`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/.env) and [`.env.example`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/.env.example).
+  - Integrated into:
+    - **Gmail SMTP Errors:** Pre-flight boot verification failures in [`server.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/server.js) and runtime dispatch failures in [`emailService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/emailService.js).
+    - **Firebase Errors:** Initialization failures and fallback mode alerts in [`firebase.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/config/firebase.js).
+    - **Rate Limit Breaches:** Automated notification when client/attacker exceeds OTP request limits in [`rateLimiterService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/rateLimiterService.js) / [`loggerBotService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/loggerBotService.js).
+    - **Host Process Errors:** `process.on('uncaughtException')` and `process.on('unhandledRejection')` in [`server.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/server.js).
+    - **Verification Endpoint:** `POST /admin/test-alert` to verify webhook configuration instantly.
+- **Firestore TTL & Weekly Database Auto-Cleanup (`cleanupCronService.js`):**
+  - Created [`cleanupCronService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/cleanupCronService.js) with atomic Firestore batch deletes (under 500 documents per batch):
+    - `purgeExpiredRateLimits()`: Cleans rate-limit records where `lastRequestAt < now - 24 hours`.
+    - `purgeOldDebuggerLogs()`: Cleans aged logs older than 14 days from `backend_debugger_logs`.
+    - `purgeExpiredOtps()`: Cleans expired verification records from `otp_verifications`.
+  - Added native Firestore TTL fields (`expiresAt`) in [`rateLimiterService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/rateLimiterService.js), [`loggerBotService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/loggerBotService.js), and [`otpService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/otpService.js) for cloud-native automated deletion.
+  - Automated weekly schedule running every 7 days (`cleanupCronService.startWeeklySchedule()`).
+  - Standalone CLI execution script: [`backend/src/scripts/cleanup.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/scripts/cleanup.js).
+  - Admin REST trigger endpoint: `POST /admin/cron/cleanup-expired`.
+  - Dashboard integration: Added **"Clean DB"** button in [`bloodsync-dashboard.html`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/bloodsync-dashboard.html) triggering real-time database purge with toast notifications.
+
+### 28. Blood Bank Live Stock API, WHO 90-Day Cooldown Cron & Dashboard Live Firebase Binding (v3.1.0)
+- **Blood Bank Live Stock Management Service & API:**
+  - Created [`bloodBankService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/bloodBankService.js) with atomic `db.runTransaction` guaranteeing zero negative stock balance overdrafts.
+  - Implemented immutable audit logging in subcollection `/blood_banks/{id}/stock_transactions` for every increment (`DONATION_RECEIVED`) and decrement (`EMERGENCY_DISPATCH`).
+  - Added initial seed registry (`initializeDefaults()`) providing default blood banks (`bb_metro_central`, `bb_redcross_civic`, `bb_apollo_life`).
+  - Exposed REST endpoints in [`bloodBankRoutes.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/routes/bloodBankRoutes.js): `GET /blood-banks` and `POST /blood-banks/:id/update-stock`.
+- **Automated WHO 90-Day Donor Cooldown Cron Job:**
+  - Created [`cooldownCronService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/cooldownCronService.js) implementing World Health Organization safety protocols (strict 90-day recovery between whole blood donations).
+  - Scans `lastDonationTimestamp` / `lastDonationDate`, sets `donorStatus = 'COOLDOWN'` and `isAvailableDonor = false` for $< 90\text{ days}$, and automatically restores to `'AVAILABLE'` when $\ge 90\text{ days}$ have elapsed.
+  - Dual collection synchronization (`/users/{id}` and `/donors/{id}`).
+  - Daily 24-hour recurring timer scheduler (`startDailySchedule()`) and manual admin trigger `POST /admin/cron/cooldown-check`.
+- **Admin Web Dashboard Live Firebase JS Binding:**
+  - Integrated Firebase App and Firestore Compat v10 SDK into [`bloodsync-dashboard.html`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/bloodsync-dashboard.html) with project `bloodsync-3b5cf`.
+  - Added live status pill (`🟢 Live Cloud (bloodsync-3b5cf)`) in top navigation.
+  - Wired real-time `onSnapshot` listeners to `donors`, `emergency_requests`, and `blood_banks` collections with live KPI aggregation, inventory cards, and feed updates.
+  - Added interactive stock adjustment buttons (`−1 Issue`, `+1 Donate`) on inventory cards calling backend API with Firestore fallback.
+  - Added "90-Day Audit" trigger button calling `/admin/cron/cooldown-check` with client-side Firestore fallback.
+  - Connected live Cloud SOS broadcast publishing via `submitRequest()`.
+
+### 27. Precise GPS Coordinate Capture & Haversine 10km Proximity Radar (v3.0.0)
+- **FusedLocationProviderClient GPS Integration:**
+  - Added `LocationHelper.kt` utilizing Google Play Services Location SDK.
+  - Captures high-accuracy coordinates during donor profile registration and SOS broadcasts, storing `{ latitude: Double, longitude: Double }` to Firestore.
+- **Backend Haversine 10km Radius Proximity Engine:**
+  - Enhanced `emergencyDispatcherService.js` with Haversine spherical distance calculation.
+  - Strict filtering: dispatches push notifications only to eligible donors within a $\le 10\text{ km}$ radius of the emergency hospital location.
+
+### 26. Firebase Cloud Messaging (FCM) & Automated Emergency SOS Push Dispatcher (v2.9.0)
+- **Firebase Cloud Messaging (FCM) Integration:**
+  - Added `com.google.firebase:firebase-messaging` to [`app/build.gradle.kts`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/build.gradle.kts).
+  - Created [`BloodSyncFirebaseMessagingService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/notification/BloodSyncFirebaseMessagingService.kt) registered in [`AndroidManifest.xml`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/AndroidManifest.xml).
+  - Automatically captures and syncs unique device registration tokens to Firestore `/users/{userId}.fcmToken` and `/donors/{userId}.fcmToken`.
+- **Automated Emergency SOS Push Dispatcher Service:**
+  - Created [`emergencyDispatcherService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/emergencyDispatcherService.js) with ABO/Rh biological compatibility matrix (`DONOR_COMPATIBILITY`).
+  - Implemented real-time Firestore listener `onSnapshot` on `/emergency_requests` detecting new emergency broadcasts.
+  - Automatically queries all available donors with matching blood groups and active FCM tokens.
+  - Dispatches high-priority multicast FCM push notifications (`admin.messaging().sendEachForMulticast`) with sound, vibration, and structured emergency data payload.
+  - Mounted trigger endpoint `POST /emergency/dispatch` in [`server.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/server.js).
+- **Donor SOS Response & Responders Subcollection:**
+  - Created subcollection rule in [`firestore.rules`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/firestore.rules) under `/emergency_requests/{requestId}/responders/{donorId}`.
+  - Added `respondToEmergency` and `listenToEmergencyResponders` in [`FirebaseSyncService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/firebase/FirebaseSyncService.kt) and [`BloodSyncRepository.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/repository/BloodSyncRepository.kt).
+  - Updated [`EmergencyLiveTrackingScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/emergency/EmergencyLiveTrackingScreen.kt) with real-time cloud responder list, live responder count, and tactile **"🙋 I CAN DONATE (ACCEPT SOS)"** action button for responding lifesavers.
+- **Build & Artifact Verification:**
+  - Compiled and packaged via `./gradlew.bat assembleDebug` (BUILD SUCCESSFUL in 46s, 0 errors).
+  - Released APK: `BloodSync-v2.9.0-FCM-SOS-Live.apk` (36.9 MB) at project root.
+
+### 25. Retrofit 2 Network Stack, 6-Digit Email OTP UI & Firebase Admin Credential Setup (v2.8.0)
+- **Firebase Admin SDK Multi-Source Initialization:**
+  - Enhanced [`firebase.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/config/firebase.js) & [`environment.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/config/environment.js) to support `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON or base64 string), candidate file paths, explicit `clientEmail`/`privateKey` variables, and Application Default Credentials.
+  - Updated [`.env.example`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/.env.example) with clear instructions for cloud/container deployment.
+- **Android Retrofit 2 + OkHttp + Gson Network Client:**
+  - Added Retrofit 2.11.0, converter-gson 2.11.0, OkHttp 4.12.0, and logging-interceptor to [`app/build.gradle.kts`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/build.gradle.kts).
+  - Created [`BloodSyncApiService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/network/BloodSyncApiService.kt) with typed DTO payloads (`OtpRequestPayload`, `OtpRequestResponse`, `OtpVerifyPayload`, `OtpVerifyResponse`) and singleton `BloodSyncNetworkClient`.
+  - Added ProGuard rules in [`app/proguard-rules.pro`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/proguard-rules.pro) protecting network models from reflection truncation.
+- **6-Digit OTP UI & 60-Second Resend Countdown:**
+  - Integrated "Sign In with Email OTP" and "Verify & Register via Email OTP" into [`AuthScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/auth/AuthScreen.kt).
+  - Created `OtpVerificationDialog` featuring 6 distinct visual digit boxes, underlying `BasicTextField` capturing numeric input, real-time 60-second countdown timer (`LaunchedEffect`), resend button, and Firebase token sign-in handling.
+- **Compilation & Build Verification:**
+  - Gradle `compileDebugKotlin` verified with `BUILD SUCCESSFUL in 1m 14s` (0 errors).
+  - Gradle `assembleDebug` completed with `BUILD SUCCESSFUL in 48s`.
+  - Packaged output APK: `BloodSync-v2.8.0-OTP-Retrofit-Live.apk` (29.5 MB) at project root.
+
+### 24. Clean Rebuild with Fresh Downloaded `google-services.json` (v2.7.5)
 - **Official Firebase Configuration Sync:**
   - Integrated the fresh, official [google-services.json](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/google-services.json) downloaded directly from the Firebase Console (single-app clean registration for `Com.bloodsync` with SHA-1 `75:94:8F:B0:A5:67:66:4B:DE:46:92:23:A9:F9:E7:06:A7:DE:60:86` and Web Client ID `1044746314963-01csrn69c2eut7dnhqcrr67oml08244n.apps.googleusercontent.com`).
   - Executed full `clean assembleDebug` wiping any previous incremental build artifacts or cached configuration.
@@ -452,11 +522,29 @@ Over the course of development, **BloodSync Android** was transformed from an in
 
 ## 📂 File Deliverables & Locations
 
-| File / Location | Description |
-|---|---|
-| [`bloodsync-v2.6.4-complete-cloud-sync.apk`](https://gofile.io/d/8RfXZPMs) | **Latest v2.6.4 Release: Full Cloud Data Restore, Multi-Device Sync & Password Reset (26.0 MB)** |
+| [`BloodSync-v3.0.0-GPS-Radar-Live.apk`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync-v3.0.0-GPS-Radar-Live.apk) | **Latest v3.0.0 Release: GPS Coordinates Capture, 10km Haversine Radar Proximity Engine & SOS Multicast Alert (36.9 MB)** |
+| [`BloodSync-v2.9.0-FCM-SOS-Live.apk`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync-v2.9.0-FCM-SOS-Live.apk) | FCM Remote Push Notifications & Donor SOS Acceptance Responder Subcollection (36.9 MB) |
+| [`BloodSync-v2.8.0-OTP-Retrofit-Live.apk`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync-v2.8.0-OTP-Retrofit-Live.apk) | Retrofit 2 + OkHttp + Gson Network Stack & 6-Digit Email OTP Authentication (29.5 MB) |
+| [`bloodsync-v2.6.4-complete-cloud-sync.apk`](https://gofile.io/d/8RfXZPMs) | Full Cloud Data Restore, Multi-Device Sync & Password Reset (26.0 MB) |
 | [`bloodsync-v2.6.3-login-crash-fixed.apk`](https://gofile.io/d/UJzJeFuK) | v2.6.3 Release: Authentication Crash Fix, Restored Password Field & Cloud Sync (25.9 MB) |
 | `bloodsync-v2.6.2.apk` | Build with Zero-Trust Firestore Cloud Security Rules & Security Audit (28.9 MB) |
+
+---
+
+### Milestone 27: GPS Coordinates Capture & 10km Haversine Proximity Filter Engine (Phase 3)
+* **Date**: October 3, 2026
+* **Scope & Implementation**:
+  - Integrated `com.google.android.gms:play-services-location:21.2.0` in `app/build.gradle.kts`.
+  - Added runtime location permissions (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`) in `AndroidManifest.xml`.
+  - Created `LocationHelper.kt` providing high-accuracy location fixes via `FusedLocationProviderClient` with `Priority.PRIORITY_HIGH_ACCURACY` and fallback to `lastLocation`.
+  - Added trigonometric Haversine formula calculation on both Android client and Node.js backend.
+  - Extended data models (`UserProfile`, `EmergencyRequest`, `EmergencyResponder`) to carry `{ latitude: Double, longitude: Double }`.
+  - Persisted GPS coordinates in Firestore collections (`/users`, `/donors`, `/emergency_requests`, and `/emergency_requests/{id}/responders`).
+  - Added interactive **24/7 Active Radar (10km Radius)** card in `EmergencyRequestScreen.kt` with one-tap location acquisition and automatic fix attachment on SOS broadcast.
+  - Added background location auto-detect to donor registration flows in `AuthScreen.kt`.
+  - Implemented backend distance evaluation in `emergencyDispatcherService.js` filtering push alerts strictly to compatible donors within $\le 10\text{ km}$ from the hospital.
+  - Verified clean compilation with zero errors (`compileDebugKotlin` and `assembleDebug` passed).
+  - Output artifact: [`BloodSync-v3.0.0-GPS-Radar-Live.apk`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync-v3.0.0-GPS-Radar-Live.apk) (36.9 MB).
 | [`bloodsync-v2.6.1.apk`](https://gofile.io/d/SMklD0XE) | Triple Gender Support (Male, Female & Others) Build |
 | [`bloodsync-v2.3.0-multilingual-age-gender.apk`](https://gofile.io/d/Ha87y5dK) | Production Build with Gender, Age & Multi-Language Support |
 | [`bloodsync-v2.2.0-pill-ui.apk`](https://gofile.io/d/tyug8Uls) | Real Cloud, Multi-Language & Google Auth APK |

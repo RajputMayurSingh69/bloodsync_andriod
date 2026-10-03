@@ -205,6 +205,9 @@ class BloodSyncRepository(private val context: Context) {
                     saveCertificatesToPrefs()
                 }
             }
+
+            // Sync FCM Token for logged-in user
+            firebaseService.fetchAndSyncFcmToken(currentUid)
         }
     }
 
@@ -413,7 +416,9 @@ class BloodSyncRepository(private val context: Context) {
         hospitalAddress: String,
         contactPhone: String,
         urgencyLevel: UrgencyLevel,
-        notes: String
+        notes: String,
+        latitude: Double? = null,
+        longitude: Double? = null
     ): EmergencyRequest {
         val emgId = "emg_" + UUID.randomUUID().toString().take(8)
         val timeStr = "Just now"
@@ -431,7 +436,9 @@ class BloodSyncRepository(private val context: Context) {
             requestedAt = timeStr,
             status = EmergencyStatus.BROADCASTING,
             donorsNotifiedCount = 1,
-            responders = emptyList()
+            responders = emptyList(),
+            latitude = latitude,
+            longitude = longitude
         )
 
         _emergencyRequests.add(0, request)
@@ -510,6 +517,43 @@ class BloodSyncRepository(private val context: Context) {
                 type = NotificationType.SYSTEM
             )
         }
+    }
+
+    // ==========================================
+    // EMERGENCY SOS RESPONSE METHODS
+    // ==========================================
+    fun respondToEmergency(
+        requestId: String,
+        status: String = "ACCEPTED",
+        notes: String = "",
+        onSuccess: () -> Unit = {},
+        onFailure: (String) -> Unit = {}
+    ) {
+        val profile = _userProfile.value
+        firebaseService.respondToEmergency(
+            requestId = requestId,
+            donorProfile = profile,
+            status = status,
+            notes = notes,
+            onSuccess = {
+                postNotification(
+                    title = "🤝 Response Recorded",
+                    message = "Thank you! The patient and medical staff have been notified of your response.",
+                    type = NotificationType.EMERGENCY
+                )
+                onSuccess()
+            },
+            onFailure = { e ->
+                onFailure(e.localizedMessage ?: "Failed to record response.")
+            }
+        )
+    }
+
+    fun listenToEmergencyResponders(
+        requestId: String,
+        onUpdate: (List<EmergencyResponder>) -> Unit
+    ) {
+        firebaseService.listenToEmergencyResponders(requestId, onUpdate)
     }
 
     // ==========================================
@@ -929,6 +973,8 @@ class BloodSyncRepository(private val context: Context) {
             put("isAvailableDonor", p.isAvailableDonor)
             put("isNotificationEnabled", p.isNotificationEnabled)
             put("isEmergencyVolunteer", p.isEmergencyVolunteer)
+            if (p.latitude != null) put("latitude", p.latitude)
+            if (p.longitude != null) put("longitude", p.longitude)
         }
         prefs.edit().putString("user_profile_json", obj.toString()).apply()
     }
@@ -1035,6 +1081,8 @@ class BloodSyncRepository(private val context: Context) {
                 put("requestedAt", e.requestedAt)
                 put("status", e.status.name)
                 put("donorsNotifiedCount", e.donorsNotifiedCount)
+                if (e.latitude != null) put("latitude", e.latitude)
+                if (e.longitude != null) put("longitude", e.longitude)
             }
             array.put(obj)
         }
@@ -1100,7 +1148,9 @@ class BloodSyncRepository(private val context: Context) {
                     livesSaved = obj.optInt("livesSaved", 0),
                     isAvailableDonor = obj.optBoolean("isAvailableDonor", true),
                     isNotificationEnabled = obj.optBoolean("isNotificationEnabled", true),
-                    isEmergencyVolunteer = obj.optBoolean("isEmergencyVolunteer", true)
+                    isEmergencyVolunteer = obj.optBoolean("isEmergencyVolunteer", true),
+                    latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
+                    longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
                 )
             }
 
@@ -1230,7 +1280,9 @@ class BloodSyncRepository(private val context: Context) {
                             requestedAt = obj.optString("requestedAt", "Recent"),
                             status = EmergencyStatus.valueOf(obj.optString("status", "BROADCASTING")),
                             donorsNotifiedCount = obj.optInt("donorsNotifiedCount", 1),
-                            responders = emptyList()
+                            responders = emptyList(),
+                            latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
+                            longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
                         )
                     )
                 }

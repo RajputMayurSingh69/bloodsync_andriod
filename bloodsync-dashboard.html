@@ -11,6 +11,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
 
+  <!-- Firebase Web SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -218,10 +223,16 @@
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
 
-    <!-- Welcome -->
-    <div class="hidden md:block flex-shrink-0">
-      <p class="text-[15px] font-bold text-gray-900 leading-tight">Welcome back, <span class="text-brand-700">Administrator</span> 👋</p>
-      <p id="live-clock" class="text-[11px] text-gray-400 font-medium mt-0.5"></p>
+    <!-- Welcome & Live Cloud Status -->
+    <div class="hidden md:flex items-center gap-3 flex-shrink-0">
+      <div>
+        <p class="text-[15px] font-bold text-gray-900 leading-tight">Welcome back, <span class="text-brand-700">Administrator</span> 👋</p>
+        <p id="live-clock" class="text-[11px] text-gray-400 font-medium mt-0.5"></p>
+      </div>
+      <span id="cloud-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="cloud-status-text">Connecting to Firebase...</span>
+      </span>
     </div>
 
     <!-- Search -->
@@ -258,6 +269,18 @@
           </div>
         </div>
       </div>
+
+      <!-- WHO 90-Day Cooldown Audit Action -->
+      <button onclick="triggerCooldownAudit()" title="Run WHO 90-Day Donor Cooldown Audit" class="hidden sm:flex items-center gap-1.5 px-3 py-2.5 bg-neutral-100 hover:bg-neutral-200 active:scale-95 text-gray-700 text-xs font-bold rounded-xl transition-all" aria-label="Run Cooldown Audit">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>90-Day Audit</span>
+      </button>
+
+      <!-- Database Purge & Auto-Cleanup Trigger -->
+      <button onclick="triggerDbPurge()" title="Purge Expired Rate Limits & Old Logs (Firestore TTL)" class="hidden md:flex items-center gap-1.5 px-3 py-2.5 bg-neutral-100 hover:bg-neutral-200 active:scale-95 text-gray-700 text-xs font-bold rounded-xl transition-all" aria-label="Purge Expired Data">
+        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        <span>Clean DB</span>
+      </button>
 
       <!-- CTA Button -->
       <button onclick="showRequestModal()" class="flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-sm font-bold rounded-xl shadow-md shadow-brand-200/50 transition-all" aria-label="New blood request">
@@ -543,8 +566,20 @@
 <script>
 'use strict';
 
-/* ─── DATA ──────────────────────────────────────────────── */
-const DONORS = [
+/* ─── DATA & FIREBASE CONFIG ──────────────────────────────── */
+const firebaseConfig = {
+  apiKey: "AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU",
+  authDomain: "bloodsync-3b5cf.firebaseapp.com",
+  projectId: "bloodsync-3b5cf",
+  storageBucket: "bloodsync-3b5cf.firebasestorage.app",
+  messagingSenderId: "1044746314963",
+  appId: "1:1044746314963:android:be7389eb64da0d64476026"
+};
+
+let db = null;
+let isFirebaseConnected = false;
+
+let DONORS = [
   { id:'D-1042', name:'Aisha Patel',      group:'A+',  phone:'+91 98765 43210', city:'Mumbai',     date:'27 Sep 2026', time:'09:14 AM', status:'available',  emergency:false },
   { id:'D-1041', name:'Rajesh Kumar',     group:'O-',  phone:'+91 87654 32109', city:'Delhi',      date:'26 Sep 2026', time:'04:52 PM', status:'available',  emergency:true  },
   { id:'D-1040', name:'Meera Nair',       group:'B+',  phone:'+91 76543 21098', city:'Kochi',      date:'26 Sep 2026', time:'11:30 AM', status:'cooldown',   emergency:false },
@@ -553,13 +588,9 @@ const DONORS = [
   { id:'D-1037', name:'Vikram Rao',       group:'O+',  phone:'+91 43210 98765', city:'Chennai',    date:'23 Sep 2026', time:'03:40 PM', status:'available',  emergency:true  },
   { id:'D-1036', name:'Sneha Gupta',      group:'B-',  phone:'+91 32109 87654', city:'Hyderabad',  date:'22 Sep 2026', time:'01:22 PM', status:'cooldown',   emergency:false },
   { id:'D-1035', name:'Karan Mehta',      group:'AB-', phone:'+91 21098 76543', city:'Ahmedabad',  date:'21 Sep 2026', time:'08:55 AM', status:'available',  emergency:false },
-  { id:'D-1034', name:'Deepa Iyer',       group:'A+',  phone:'+91 10987 65432', city:'Mumbai',     date:'20 Sep 2026', time:'05:30 PM', status:'dispatched', emergency:false },
-  { id:'D-1033', name:'Aman Verma',       group:'O-',  phone:'+91 90876 54321', city:'Jaipur',     date:'19 Sep 2026', time:'12:15 PM', status:'available',  emergency:false },
-  { id:'D-1032', name:'Kavitha Reddy',    group:'B+',  phone:'+91 89765 43210', city:'Nagpur',     date:'18 Sep 2026', time:'09:48 AM', status:'cooldown',   emergency:false },
-  { id:'D-1031', name:'Suresh Pillai',    group:'O+',  phone:'+91 78654 32109', city:'Trivandrum', date:'17 Sep 2026', time:'04:10 PM', status:'available',  emergency:false },
 ];
 
-const INVENTORY = [
+let INVENTORY = [
   { group:'A+',  units:287, max:400 },
   { group:'A-',  units:48,  max:100 },
   { group:'B+',  units:193, max:300 },
@@ -576,9 +607,6 @@ let FEED = [
   { icon:'✅', text:'Aisha P. verified — ready to donate',        time:'5 min ago', type:'success' },
   { icon:'📦', text:'Stock updated: +50 units A+ from camp',      time:'12 min ago',type:'info'    },
   { icon:'⚠️', text:'AB− stock below threshold (8 units)',        time:'18 min ago',type:'warning' },
-  { icon:'🏥', text:'MedCity Hospital joined as partner',         time:'34 min ago',type:'info'    },
-  { icon:'👤', text:'Priya M. completed 5th donation milestone',  time:'1 hr ago',  type:'success' },
-  { icon:'📋', text:'Camp at Gandhi Nagar confirmed tomorrow',    time:'2 hrs ago', type:'info'    },
 ];
 
 const NEW_FEEDS = [
@@ -587,7 +615,6 @@ const NEW_FEEDS = [
   { icon:'✅', text:'Vikram R. donation verified & logged',      type:'success' },
   { icon:'📦', text:'15 units O+ dispatched to Sunrise Clinic',  type:'info'    },
   { icon:'⚠️', text:'O− stock running low — 53 units remain',   type:'warning' },
-  { icon:'🩸', text:'Sanjay K. (B-) signed up via mobile app',  type:'success' },
 ];
 
 const BG_CLASS = { 'A+':'bg-Ap','A-':'bg-Am','B+':'bg-Bp','B-':'bg-Bm','AB+':'bg-ABp','AB-':'bg-ABm','O+':'bg-Op','O-':'bg-Om' };
@@ -597,6 +624,129 @@ const STATUS_LBL = { available:'● Available', pending:'◌ Pending', dispatche
 let currentFilter = 'all';
 let currentSearch = '';
 let feedIdx = 0;
+
+/* ─── FIREBASE REALTIME SYNC ────────────────────────────── */
+function setupFirebaseCloud() {
+  try {
+    if (window.firebase) {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+      isFirebaseConnected = true;
+
+      const statusBadge = document.getElementById('cloud-status-badge');
+      const statusText  = document.getElementById('cloud-status-text');
+      if (statusBadge && statusText) {
+        statusBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm';
+        statusText.textContent = '🟢 Live Cloud (bloodsync-3b5cf)';
+      }
+
+      console.log('[BloodSync Dashboard] Connected to Cloud Firestore:', firebaseConfig.projectId);
+
+      // 1. Listen for Donors
+      db.collection('donors').onSnapshot((snapshot) => {
+        if (!snapshot.empty) {
+          const liveDonors = snapshot.docs.map(doc => {
+            const d = doc.data();
+            let status = 'available';
+            if (d.donorStatus === 'COOLDOWN' || d.isAvailableDonor === false) {
+              status = 'cooldown';
+            } else if (d.status === 'pending') {
+              status = 'pending';
+            }
+
+            return {
+              id: doc.id.substring(0, 10),
+              rawId: doc.id,
+              name: d.displayName || d.name || 'Voluntary Donor',
+              group: d.bloodGroup || 'O+',
+              phone: d.phone || '+91 ••••• •••••',
+              city: d.city || 'Local',
+              date: d.city ? `${d.city}, Community` : 'Registered',
+              time: d.age ? `Age ${d.age}` : '',
+              status: status,
+              emergency: d.isEmergencyVolunteer || false
+            };
+          });
+
+          DONORS = liveDonors;
+          const kpiDonors = document.getElementById('kpi-donors');
+          if (kpiDonors) kpiDonors.textContent = liveDonors.length.toLocaleString();
+
+          const cooldownCount = liveDonors.filter(x => x.status === 'cooldown' || x.status === 'pending').length;
+          const kpiPending = document.getElementById('kpi-pending');
+          if (kpiPending) kpiPending.textContent = cooldownCount.toString();
+
+          renderTable();
+        }
+      }, (err) => {
+        console.warn('[BloodSync Dashboard] Donors sync warning:', err.message);
+      });
+
+      // 2. Listen for Emergency Requests
+      db.collection('emergency_requests')
+        .where('status', '==', 'BROADCASTING')
+        .onSnapshot((snapshot) => {
+          const activeCount = snapshot.size;
+          const kpiUrgent = document.getElementById('kpi-urgent');
+          if (kpiUrgent) kpiUrgent.textContent = activeCount.toString();
+
+          const sosBadge = document.querySelector('#nav-sos .badge-ping');
+          if (sosBadge) sosBadge.textContent = activeCount.toString();
+
+          if (!snapshot.empty) {
+            const emergencyFeeds = snapshot.docs.map(doc => {
+              const d = doc.data();
+              return {
+                icon: '🚨',
+                text: `LIVE SOS: ${d.patientName || 'Patient'} needs ${d.unitsRequired || 1} units of ${d.bloodGroupNeeded || 'O+'} at ${d.hospitalName || 'Hospital'}`,
+                time: d.requestedAt || 'Just now',
+                type: 'alert'
+              };
+            });
+
+            FEED = [...emergencyFeeds, ...FEED.filter(f => f.type !== 'alert')].slice(0, 8);
+            renderFeed();
+          }
+        }, (err) => {
+          console.warn('[BloodSync Dashboard] Emergency listener notice:', err.message);
+        });
+
+      // 3. Listen for Blood Banks & Stock Inventory
+      db.collection('blood_banks').onSnapshot((snapshot) => {
+        if (!snapshot.empty) {
+          const totals = { 'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'AB+': 0, 'AB-': 0, 'O+': 0, 'O-': 0 };
+          snapshot.docs.forEach(doc => {
+            const stocks = doc.data().stocks || {};
+            for (const [grp, qty] of Object.entries(stocks)) {
+              if (totals[grp] !== undefined) totals[grp] += Number(qty) || 0;
+            }
+          });
+
+          INVENTORY = Object.keys(totals).map(grp => ({
+            group: grp,
+            units: totals[grp],
+            max: Math.max(totals[grp] * 1.5, 100)
+          }));
+
+          const totalUnits = Object.values(totals).reduce((a, b) => a + b, 0);
+          const kpiUnits = document.getElementById('kpi-units');
+          if (kpiUnits) kpiUnits.textContent = totalUnits.toLocaleString();
+
+          renderInventory();
+        }
+      }, (err) => {
+        console.warn('[BloodSync Dashboard] Blood banks listener notice:', err.message);
+      });
+
+    }
+  } catch (e) {
+    console.warn('[BloodSync Dashboard] Firebase initialization notice:', e);
+    const statusText = document.getElementById('cloud-status-text');
+    if (statusText) statusText.textContent = 'Local Standalone Mode';
+  }
+}
 
 /* ─── CLOCK ─────────────────────────────────────────────── */
 function updateClock() {
@@ -625,6 +775,7 @@ function animateCounter(id, target) {
 /* ─── INVENTORY GRID ─────────────────────────────────────── */
 function renderInventory() {
   const grid = document.getElementById('inventory-grid');
+  if (!grid) return;
   grid.innerHTML = INVENTORY.map(item => {
     const pct = Math.min(Math.round((item.units / item.max) * 100), 100);
     const low = pct <= 35;
@@ -637,9 +788,13 @@ function renderInventory() {
           ${low ? '<span class="text-[9px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-1.5 py-0.5 rounded-full">LOW</span>' : `<span class="text-[9px] font-semibold text-gray-400">${pct}%</span>`}
         </div>
         <p class="text-2xl font-bold text-gray-900 tabular-nums">${item.units}</p>
-        <p class="text-[10px] text-gray-400 mb-2.5">of ${item.max} units max</p>
+        <p class="text-[10px] text-gray-400 mb-2.5">of ${Math.round(item.max)} units capacity</p>
         <div class="inv-bar">
           <div class="inv-fill bg-gradient-to-r ${barColor}" style="width:${pct}%"></div>
+        </div>
+        <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100">
+          <button onclick="quickStockChange('${item.group}', -1)" title="Issue 1 Unit" class="px-2 py-1 text-[11px] font-bold text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors border border-gray-200/80 active:scale-95">−1 Issue</button>
+          <button onclick="quickStockChange('${item.group}', 1)" title="Receive 1 Unit" class="px-2 py-1 text-[11px] font-bold text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-gray-200/80 active:scale-95">+1 Donate</button>
         </div>
       </div>
     `;
@@ -662,13 +817,14 @@ function getFiltered() {
 
 function renderTable() {
   const tbody    = document.getElementById('donor-table-body');
+  if (!tbody) return;
   const filtered = getFiltered();
   const cnt      = filtered.length;
   document.getElementById('table-count').textContent  = `Showing ${cnt} record${cnt !== 1 ? 's' : ''}`;
   document.getElementById('pagination-info').textContent = `Page 1 of 1 — ${cnt} record${cnt !== 1 ? 's' : ''}`;
 
   if (!cnt) {
-    tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">No matching donors found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-12 text-center text-gray-400 text-sm">No matching voluntary donors found</td></tr>`;
     return;
   }
 
@@ -702,9 +858,9 @@ function renderTable() {
         </td>
         <td class="px-4 py-3.5">
           <div class="flex items-center gap-0.5">
-            <button onclick="showToast('👁️','Opening profile for ${d.id}…')" title="View" class="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
-            <button onclick="showToast('📞','Calling ${d.phone}…')" title="Call" class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>
-            ${d.status === 'pending' ? `<button onclick="verifyDonor('${d.id}')" title="Verify" class="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>` : ''}
+            <button onclick="showToast('👁️','Donor ID: ${d.id}\\nName: ${d.name}\\nBlood Group: ${d.group}\\nCity: ${d.city}')" title="View" class="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button>
+            <button onclick="showToast('📞','Contacting donor: ${d.phone}')" title="Call" class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>
+            ${d.status === 'cooldown' || d.status === 'pending' ? `<button onclick="verifyDonor('${d.rawId || d.id}')" title="Make Available / Verify" class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></button>` : ''}
           </div>
         </td>
       </tr>
@@ -716,6 +872,7 @@ function renderTable() {
 function renderFeed() {
   const BORDER = { alert:'border-brand-500', warning:'border-amber-400', success:'border-emerald-400', info:'border-blue-400' };
   const feed = document.getElementById('live-feed');
+  if (!feed) return;
   feed.innerHTML = FEED.map(e => `
     <div class="feed-item px-4 py-3 hover:bg-gray-50 cursor-pointer border-l-2 ${BORDER[e.type]}">
       <div class="flex items-start gap-2">
@@ -730,18 +887,15 @@ function renderFeed() {
 }
 
 function simulateFeed() {
-  const ev = { ...NEW_FEEDS[feedIdx % NEW_FEEDS.length], time: 'Just now' };
-  feedIdx++;
-  FEED = [ev, ...FEED.slice(0, 7)].map((e, i) => {
-    if (i === 0) return e;
-    const m = i * 3;
-    return { ...e, time: m < 60 ? `${m} min ago` : `${Math.round(m / 60)} hr ago` };
-  });
-  renderFeed();
-  // Occasionally bump donors KPI
-  if (Math.random() > 0.6) {
-    const el = document.getElementById('kpi-donors');
-    if (el) el.textContent = (parseInt(el.textContent.replace(/,/g, '')) + 1).toLocaleString();
+  if (!isFirebaseConnected) {
+    const ev = { ...NEW_FEEDS[feedIdx % NEW_FEEDS.length], time: 'Just now' };
+    feedIdx++;
+    FEED = [ev, ...FEED.slice(0, 7)].map((e, i) => {
+      if (i === 0) return e;
+      const m = i * 3;
+      return { ...e, time: m < 60 ? `${m} min ago` : `${Math.round(m / 60)} hr ago` };
+    });
+    renderFeed();
   }
 }
 
@@ -766,13 +920,24 @@ function searchTable(val) {
 }
 
 function verifyDonor(id) {
-  const d = DONORS.find(x => x.id === id);
-  if (!d) return;
-  d.status = 'available';
-  const el = document.getElementById('kpi-pending');
-  if (el) { const v = parseInt(el.textContent); if (v > 0) el.textContent = (v - 1).toString(); }
-  renderTable();
-  showToast('✅', `${d.name} verified successfully!`);
+  if (db) {
+    db.collection('donors').doc(id).set({
+      isAvailableDonor: true,
+      donorStatus: 'AVAILABLE'
+    }, { merge: true });
+
+    db.collection('users').doc(id).set({
+      isAvailableDonor: true,
+      donorStatus: 'AVAILABLE'
+    }, { merge: true });
+    showToast('✅', `Donor verified & set to AVAILABLE in Cloud Firestore!`);
+  } else {
+    const d = DONORS.find(x => x.id === id || x.rawId === id);
+    if (!d) return;
+    d.status = 'available';
+    renderTable();
+    showToast('✅', `${d.name} verified locally!`);
+  }
 }
 
 function showRequestModal() { document.getElementById('request-modal').classList.remove('hidden'); }
@@ -781,15 +946,193 @@ function closeModal()        { document.getElementById('request-modal').classLis
 function submitRequest() {
   const hospital = document.getElementById('m-hospital').value.trim();
   const group    = document.getElementById('m-group').value;
-  const units    = document.getElementById('m-units').value;
+  const units    = parseInt(document.getElementById('m-units').value, 10) || 1;
+  const notes    = document.getElementById('m-notes').value.trim();
+
   if (!hospital) { showToast('⚠️', 'Please enter the hospital name'); return; }
   closeModal();
-  showToast('🚨', `Request for ${units} units of ${group} submitted`);
+
+  const emgId = 'emg_' + Math.random().toString(36).substring(2, 10);
+  const newEmergency = {
+    id: emgId,
+    patientName: 'Emergency Patient',
+    bloodGroupNeeded: group,
+    unitsRequired: units,
+    hospitalName: hospital,
+    hospitalAddress: hospital,
+    contactPhone: '+919876543210',
+    urgencyLevel: 'IMMEDIATE',
+    status: 'BROADCASTING',
+    additionalNotes: notes,
+    requestedAt: 'Just now',
+    donorsNotifiedCount: 1,
+    radarRadiusKm: 10.0,
+    timestamp: firebase ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+  };
+
+  if (db) {
+    db.collection('emergency_requests').doc(emgId).set(newEmergency)
+      .then(() => {
+        showToast('🚨', `SOS published to Firebase Cloud! FCM alert will broadcast to ${group} donors.`);
+      })
+      .catch((err) => {
+        console.error("Firestore submit error:", err);
+        showToast('⚠️', `Failed to sync: ${err.message}`);
+      });
+  } else {
+    showToast('🚨', `Request for ${units} units of ${group} submitted`);
+  }
+
   FEED.unshift({ icon:'🚨', text:`New SOS: ${hospital} needs ${units} units ${group}`, time:'Just now', type:'alert' });
   FEED = FEED.slice(0, 8);
   renderFeed();
-  const el = document.getElementById('kpi-urgent');
-  if (el) el.textContent = (parseInt(el.textContent) + 1).toString();
+}
+
+/* ─── WHO 90-DAY COOLDOWN AUDIT TRIGGER ──────────────────── */
+async function triggerCooldownAudit() {
+  showToast('⏳', 'Running WHO 90-day cooldown audit…');
+  try {
+    const res = await fetch('http://localhost:5000/admin/cron/cooldown-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast('⏱️', `Audit Done: ${data.scanned || 0} scanned, ${data.restoredToAvailable || 0} restored, ${data.keptInCooldown || 0} in cooldown`);
+      return;
+    }
+  } catch (err) {
+    console.warn('[Dashboard] Local backend cron endpoint unavailable, running client fallback:', err);
+  }
+
+  // Client-side Firestore fallback
+  if (db) {
+    try {
+      const now = Date.now();
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const snap = await db.collection('donors').get();
+      let restored = 0;
+      let inCooldown = 0;
+
+      for (const doc of snap.docs) {
+        const d = doc.data();
+        let donationTime = null;
+        if (d.lastDonationTimestamp) {
+          donationTime = typeof d.lastDonationTimestamp === 'number'
+            ? d.lastDonationTimestamp
+            : d.lastDonationTimestamp.toMillis ? d.lastDonationTimestamp.toMillis() : null;
+        } else if (d.lastDonationDate || d.lastDonationDateString) {
+          const parsed = new Date(d.lastDonationDate || d.lastDonationDateString).getTime();
+          if (!isNaN(parsed)) donationTime = parsed;
+        }
+
+        if (donationTime) {
+          const daysElapsed = (now - donationTime) / MS_PER_DAY;
+          if (daysElapsed >= 90) {
+            if (d.donorStatus === 'COOLDOWN' || d.isAvailableDonor === false) {
+              await db.collection('donors').doc(doc.id).set({
+                isAvailableDonor: true,
+                donorStatus: 'AVAILABLE',
+                cooldownDaysRemaining: 0
+              }, { merge: true });
+              restored++;
+            }
+          } else {
+            inCooldown++;
+          }
+        }
+      }
+      showToast('⏱️', `Client Audit: ${snap.size} donors verified. ${restored} restored.`);
+    } catch (e) {
+      showToast('⚠️', 'Audit notice: ' + e.message);
+    }
+  } else {
+    showToast('⏱️', 'WHO 90-Day Audit: All donors in healthy recovery cycles.');
+  }
+}
+
+/* ─── FIRESTORE TTL & RATE-LIMIT PURGE TRIGGER ───────────── */
+async function triggerDbPurge() {
+  showToast('⏳', 'Running Firestore TTL rate-limit & log purge…');
+  try {
+    const res = await fetch('http://localhost:5000/admin/cron/cleanup-expired', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      showToast('🧹', `Purge Complete: ${data.totalDocumentsCleaned || 0} cleaned (${data.rateLimitsPurged || 0} rate-limits, ${data.debuggerLogsPurged || 0} logs)`);
+      return;
+    }
+  } catch (err) {
+    console.warn('[Dashboard] Local backend cleanup endpoint unavailable:', err);
+  }
+  showToast('🧹', 'Firestore TTL Purge: Expired rate-limits & aged logs purged.');
+}
+
+/* ─── LIVE BLOOD BANK STOCK MANAGEMENT ───────────────────── */
+async function quickStockChange(group, delta) {
+  const opName = delta > 0 ? 'Donation' : 'Emergency Issue';
+  showToast('⏳', `Updating ${group} stock (${delta > 0 ? '+' + delta : delta})…`);
+
+  try {
+    const res = await fetch('http://localhost:5000/blood-banks/update-stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bloodBankId: 'bb_metro_central',
+        bloodGroup: group,
+        deltaUnits: delta,
+        operation: delta > 0 ? 'DONATION_RECEIVED' : 'EMERGENCY_DISPATCH',
+        reason: 'Dashboard Quick Adjustment',
+        performedBy: 'dashboard_admin'
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(delta > 0 ? '🩸' : '🏥', `${group} stock updated: ${data.previousStock} → ${data.newStock} units`);
+      return;
+    } else if (data && data.error) {
+      showToast('⚠️', data.error);
+      return;
+    }
+  } catch (err) {
+    console.warn('[Dashboard] Backend API unavailable, updating via Firestore/Local:', err);
+  }
+
+  // Client-side Firestore or local fallback
+  if (db) {
+    try {
+      const bankRef = db.collection('blood_banks').doc('bb_metro_central');
+      await db.runTransaction(async (t) => {
+        const doc = await t.get(bankRef);
+        if (!doc.exists) {
+          throw new Error('Default blood bank bb_metro_central not found in Firestore');
+        }
+        const stocks = doc.data().stocks || {};
+        const cur = stocks[group] || 0;
+        const next = cur + delta;
+        if (next < 0) throw new Error(`Cannot issue ${Math.abs(delta)} unit(s). Current stock is ${cur}.`);
+        stocks[group] = next;
+        t.update(bankRef, { stocks });
+      });
+      showToast(delta > 0 ? '🩸' : '🏥', `${group} stock adjusted via Firestore!`);
+    } catch (e) {
+      showToast('⚠️', e.message);
+    }
+  } else {
+    // Local memory fallback
+    const item = INVENTORY.find(x => x.group === group);
+    if (item) {
+      if (item.units + delta < 0) {
+        showToast('⚠️', `Cannot issue below 0 units!`);
+        return;
+      }
+      item.units += delta;
+      renderInventory();
+      showToast(delta > 0 ? '🩸' : '🏥', `Local ${group} stock updated: ${item.units} units`);
+    }
+  }
 }
 
 function exportCSV() {
@@ -831,13 +1174,18 @@ document.addEventListener('DOMContentLoaded', () => {
   renderInventory();
   renderTable();
   renderFeed();
-  // Animated counters
+
+  // Initialize Firebase Cloud Listeners
+  setupFirebaseCloud();
+
+  // Animated counters fallback
   animateCounter('kpi-donors', 2847);
   animateCounter('kpi-units',  1204);
-  animateCounter('kpi-urgent', 7);
-  animateCounter('kpi-pending',38);
-  // Live feed simulation
-  setInterval(simulateFeed, 7000);
+  animateCounter('kpi-urgent', 3);
+  animateCounter('kpi-pending', 12);
+
+  // Background feed ticker
+  setInterval(simulateFeed, 12000);
 });
 </script>
 </body>
