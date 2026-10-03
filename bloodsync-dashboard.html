@@ -635,6 +635,13 @@ function setupFirebaseCloud() {
       db = firebase.firestore();
       isFirebaseConnected = true;
 
+      // Auto sign-in anonymously if auth is available
+      if (firebase.auth) {
+        firebase.auth().signInAnonymously().catch(e => {
+          console.log('[BloodSync Dashboard] Optional auth notice:', e.message);
+        });
+      }
+
       const statusBadge = document.getElementById('cloud-status-badge');
       const statusText  = document.getElementById('cloud-status-text');
       if (statusBadge && statusText) {
