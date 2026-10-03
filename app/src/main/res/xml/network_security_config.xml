@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Block all cleartext (HTTP) traffic; allow only secure TLS/HTTPS -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Allow cleartext (HTTP) traffic for local development (10.0.2.2, localhost, LAN IPs) -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
-            <!-- Trust only official Android system CA certificates; disallow user/malicious certs -->
+            <!-- Trust official Android system CA certificates and user certs for debugging -->
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 

@@ -27,7 +27,8 @@ enum class ThemeMode {
 
 class BloodSyncRepository(private val context: Context) {
 
-    // Hardware-backed EncryptedSharedPreferences (AES256-GCM / AES256-SIV) with graceful fallback
+    // Hardware-backed EncryptedSharedPreferences with reliable fallback to standard SharedPreferences
+    private val fallbackPrefs: SharedPreferences = context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
     private val prefs: SharedPreferences = try {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -41,7 +42,7 @@ class BloodSyncRepository(private val context: Context) {
         )
     } catch (e: Exception) {
         Log.e("BloodSyncSecurity", "Failed to initialize hardware-backed EncryptedSharedPreferences; falling back to private SharedPreferences", e)
-        context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
+        fallbackPrefs
     }
 
     // Firebase Cloud Sync Service
@@ -101,10 +102,11 @@ class BloodSyncRepository(private val context: Context) {
         // Initialize notification channels
         NotificationHelper.createNotificationChannels(context)
 
-        // Clear any old dummy demo data on upgrade to v2.0
-        val hasClearedDummyData = prefs.getBoolean("has_cleared_dummy_data_v2", false)
+        // Safe migration flag check without wiping user credentials
+        val hasClearedDummyData = prefs.getBoolean("has_cleared_dummy_data_v2", false) || fallbackPrefs.getBoolean("has_cleared_dummy_data_v2", false)
         if (!hasClearedDummyData) {
-            prefs.edit().clear().putBoolean("has_cleared_dummy_data_v2", true).apply()
+            prefs.edit().putBoolean("has_cleared_dummy_data_v2", true).apply()
+            fallbackPrefs.edit().putBoolean("has_cleared_dummy_data_v2", true).apply()
         }
 
         // Purge any stale pre-filled emergency requests for clean user experience (v2.6.8)
@@ -717,6 +719,7 @@ class BloodSyncRepository(private val context: Context) {
                         val uid = authResult.user?.uid ?: ""
                         _isUserLoggedIn.value = true
                         prefs.edit().putBoolean("is_logged_in", true).apply()
+                        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
                         // Restore complete user profile from Firebase Cloud
                         firebaseService.fetchUserProfile(uid) { cloudProfile ->
                             if (cloudProfile != null) {
@@ -778,6 +781,7 @@ class BloodSyncRepository(private val context: Context) {
                         registerDonor(updatedProfile)
                         _isUserLoggedIn.value = true
                         prefs.edit().putBoolean("is_logged_in", true).apply()
+                        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
                         attachCloudListeners()
                         onSuccess()
                     }
@@ -790,6 +794,7 @@ class BloodSyncRepository(private val context: Context) {
                                         registerDonor(profile)
                                         _isUserLoggedIn.value = true
                                         prefs.edit().putBoolean("is_logged_in", true).apply()
+                                        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
                                         attachCloudListeners()
                                         onSuccess()
                                     }
@@ -811,6 +816,7 @@ class BloodSyncRepository(private val context: Context) {
             registerDonor(profile)
             _isUserLoggedIn.value = true
             prefs.edit().putBoolean("is_logged_in", true).apply()
+            fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
             onSuccess()
         }
     }
@@ -828,6 +834,7 @@ class BloodSyncRepository(private val context: Context) {
         _userProfile.value = profile
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
 
         // Direct registration to Firebase Firestore Cloud
@@ -854,6 +861,7 @@ class BloodSyncRepository(private val context: Context) {
         _userProfile.value = profile
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
 
         // Sync to Firebase Cloud
@@ -869,6 +877,7 @@ class BloodSyncRepository(private val context: Context) {
     fun setLoggedIn(loggedIn: Boolean) {
         _isUserLoggedIn.value = loggedIn
         prefs.edit().putBoolean("is_logged_in", loggedIn).apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", loggedIn).apply()
         if (loggedIn) {
             attachCloudListeners()
         }
@@ -876,7 +885,8 @@ class BloodSyncRepository(private val context: Context) {
 
     fun logoutUser() {
         _isUserLoggedIn.value = false
-        prefs.edit().putBoolean("is_logged_in", false).apply()
+        prefs.edit().putBoolean("is_logged_in", false).remove("user_profile_json").apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", false).remove("user_profile_json").apply()
         detachCloudListeners()
         try {
             firebaseService.getFirebaseAuth()?.signOut()
@@ -977,6 +987,7 @@ class BloodSyncRepository(private val context: Context) {
             if (p.longitude != null) put("longitude", p.longitude)
         }
         prefs.edit().putString("user_profile_json", obj.toString()).apply()
+        fallbackPrefs.edit().putString("user_profile_json", obj.toString()).apply()
     }
 
     private fun saveHealthToPrefs() {
@@ -1109,35 +1120,24 @@ class BloodSyncRepository(private val context: Context) {
 
     private fun loadFromPrefs() {
         try {
-            // Migrate legacy unencrypted preferences to AES256-encrypted preferences if present
-            try {
-                val oldPrefs = context.getSharedPreferences("bloodsync_prefs", Context.MODE_PRIVATE)
-                if (oldPrefs.contains("is_logged_in") && !prefs.contains("is_logged_in")) {
-                    val editor = prefs.edit()
-                    for ((k, v) in oldPrefs.all) {
-                        when (v) {
-                            is String -> editor.putString(k, v)
-                            is Boolean -> editor.putBoolean(k, v)
-                            is Int -> editor.putInt(k, v)
-                            is Long -> editor.putLong(k, v)
-                            is Float -> editor.putFloat(k, v)
-                        }
-                    }
-                    editor.apply()
-                    oldPrefs.edit().clear().apply()
-                }
-            } catch (_: Exception) {}
-
-            val isLoggedIn = prefs.getBoolean("is_logged_in", false)
+            val firebaseUser = firebaseService.getFirebaseAuth()?.currentUser
+            val isPrefsLoggedIn = prefs.getBoolean("is_logged_in", false) || fallbackPrefs.getBoolean("is_logged_in", false)
+            val isLoggedIn = isPrefsLoggedIn || (firebaseUser != null)
             _isUserLoggedIn.value = isLoggedIn
 
+            if (isLoggedIn) {
+                prefs.edit().putBoolean("is_logged_in", true).apply()
+                fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
+            }
+
             // Profile
-            prefs.getString("user_profile_json", null)?.let {
+            val profileJsonStr = prefs.getString("user_profile_json", null) ?: fallbackPrefs.getString("user_profile_json", null)
+            profileJsonStr?.let {
                 val obj = JSONObject(it)
                 _userProfile.value = UserProfile(
-                    id = obj.optString("id", ""),
-                    name = obj.optString("name", ""),
-                    email = obj.optString("email", ""),
+                    id = obj.optString("id", firebaseUser?.uid ?: ""),
+                    name = obj.optString("name", firebaseUser?.displayName ?: ""),
+                    email = obj.optString("email", firebaseUser?.email ?: ""),
                     phone = obj.optString("phone", ""),
                     bloodGroup = obj.optString("bloodGroup", "O+"),
                     city = obj.optString("city", ""),
@@ -1152,6 +1152,23 @@ class BloodSyncRepository(private val context: Context) {
                     latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
                     longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
                 )
+            }
+
+            // If Firebase user is authenticated but local profile is missing, restore from Firebase
+            if (firebaseUser != null && (_userProfile.value.id.isBlank() || _userProfile.value.email.isBlank())) {
+                val cleanEmail = firebaseUser.email ?: ""
+                val displayName = firebaseUser.displayName ?: cleanEmail.substringBefore("@")
+                _userProfile.value = _userProfile.value.copy(
+                    id = firebaseUser.uid,
+                    email = cleanEmail,
+                    name = _userProfile.value.name.ifBlank { displayName }
+                )
+                firebaseService.fetchUserProfile(firebaseUser.uid) { cloudProfile ->
+                    if (cloudProfile != null) {
+                        _userProfile.value = cloudProfile
+                        saveProfileToPrefs()
+                    }
+                }
             }
 
             // Health

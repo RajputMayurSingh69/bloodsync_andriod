@@ -8,10 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -114,7 +114,7 @@ fun EmergencyRequestScreen(
     var isSubmitting by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
     val appColors = BloodSyncTheme.colors
-    val listState = rememberLazyListState()
+    val scrollState = rememberScrollState()
 
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = appColors.textPrimary,
@@ -139,25 +139,21 @@ fun EmergencyRequestScreen(
                 onNotificationClick = onNotificationClick
             )
         },
-        contentWindowInsets = WindowInsets.systemBars,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         containerColor = appColors.background
     ) { innerPadding ->
-        LazyColumn(
-            state = listState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding()),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 14.dp,
-                bottom = innerPadding.calculateBottomPadding() + 160.dp
-            ),
+                .padding(top = innerPadding.calculateTopPadding())
+                .imePadding()
+                .navigationBarsPadding()
+                .verticalScroll(scrollState)
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 48.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Urgent Red Alert Header
-            item {
-                Card(
+            Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = BloodRedPrimary)
@@ -188,11 +184,9 @@ fun EmergencyRequestScreen(
                         }
                     }
                 }
-            }
 
             // Step 1: Blood Group & Units (Most Critical Information)
-            item {
-                Card(
+            Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
@@ -269,11 +263,9 @@ fun EmergencyRequestScreen(
                         }
                     }
                 }
-            }
 
             // Step 2: Urgency Selection (Strict Red / Yellow / Green)
-            item {
-                Card(
+            Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
@@ -346,11 +338,9 @@ fun EmergencyRequestScreen(
                         }
                     }
                 }
-            }
 
             // Step 3: Hospital & Contact Info
-            item {
-                Card(
+            Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
@@ -415,11 +405,9 @@ fun EmergencyRequestScreen(
                         )
                     }
                 }
-            }
 
             // 10km GPS Radar Proximity Card
-            item {
-                Card(
+            Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
@@ -507,31 +495,27 @@ fun EmergencyRequestScreen(
                         }
                     }
                 }
-            }
 
             // Validation Error Alert (Red)
             if (validationError != null) {
-                item {
-                    Surface(
-                        color = appColors.redLight,
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = validationError ?: "",
-                            color = BloodRedPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
+                Surface(
+                    color = appColors.redLight,
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = validationError ?: "",
+                        color = BloodRedPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(12.dp)
+                    )
                 }
             }
 
             // Big Bold Broadcast Button (Red with White text)
-            item {
-                Button(
+            Button(
                     onClick = {
                         if (selectedGroup.isBlank()) {
                             validationError = "Please select the blood group needed."
@@ -601,7 +585,6 @@ fun EmergencyRequestScreen(
                         )
                     }
                 }
-            }
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.bloodsync.ui.screens.auth
 
-import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,9 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.R
 import com.bloodsync.data.model.UserProfile
-import com.bloodsync.data.network.BloodSyncNetworkClient
-import com.bloodsync.data.network.OtpRequestPayload
-import com.bloodsync.data.network.OtpVerifyPayload
 import com.bloodsync.data.repository.BloodSyncRepository
 import com.bloodsync.ui.components.BloodDropIcon
 import com.bloodsync.ui.components.BloodGroupSelector
@@ -49,7 +43,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -81,12 +74,9 @@ fun AuthScreen(
     var donorLatitude by remember { mutableStateOf<Double?>(null) }
     var donorLongitude by remember { mutableStateOf<Double?>(null) }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fine = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val coarse = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
-        if (fine || coarse) {
+    // Silently check if location is already granted; do NOT prompt before login
+    LaunchedEffect(Unit) {
+        if (LocationHelper.hasLocationPermission(context)) {
             LocationHelper.getCurrentLocation(
                 context = context,
                 onLocation = { lat, lon ->
@@ -94,27 +84,6 @@ fun AuthScreen(
                     donorLongitude = lon
                 }
             )
-        }
-    }
-
-    LaunchedEffect(isRegisterMode) {
-        if (isRegisterMode) {
-            if (LocationHelper.hasLocationPermission(context)) {
-                LocationHelper.getCurrentLocation(
-                    context = context,
-                    onLocation = { lat, lon ->
-                        donorLatitude = lat
-                        donorLongitude = lon
-                    }
-                )
-            } else {
-                locationPermissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
-            }
         }
     }
 
@@ -205,148 +174,7 @@ fun AuthScreen(
         "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
     }
 
-    // OTP Verification State
-    var showOtpDialog by remember { mutableStateOf(false) }
-    var otpEmail by remember { mutableStateOf("") }
-    var otpMaskedEmail by remember { mutableStateOf("") }
-    var otpCodeInput by remember { mutableStateOf("") }
-    var otpResendSeconds by remember { mutableIntStateOf(60) }
-    var isRequestingOtp by remember { mutableStateOf(false) }
-    var isVerifyingOtp by remember { mutableStateOf(false) }
-    var otpDialogError by remember { mutableStateOf<String?>(null) }
-    var isOtpRegistrationFlow by remember { mutableStateOf(false) }
 
-    // 60-Second Resend Countdown Timer
-    LaunchedEffect(showOtpDialog, otpResendSeconds) {
-        if (showOtpDialog && otpResendSeconds > 0) {
-            delay(1000L)
-            otpResendSeconds -= 1
-        }
-    }
-
-    val triggerOtpRequest: (String, Boolean) -> Unit = { targetEmail, isRegistration ->
-        val clean = targetEmail.trim()
-        if (clean.isBlank() || !emailPattern.matches(clean)) {
-            errorMessage = strings.invalidEmailError
-        } else {
-            errorMessage = null
-            isRequestingOtp = true
-            isOtpRegistrationFlow = isRegistration
-            otpDialogError = null
-
-            scope.launch {
-                try {
-                    val response = BloodSyncNetworkClient.apiService.requestOtp(OtpRequestPayload(clean))
-                    isRequestingOtp = false
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val body = response.body()!!
-                        otpEmail = clean
-                        otpMaskedEmail = body.data?.maskedEmail ?: clean
-                        otpCodeInput = ""
-                        otpResendSeconds = body.retryAfterSeconds ?: 60
-                        showOtpDialog = true
-                    } else {
-                        val errMsg = response.body()?.message
-                            ?: response.errorBody()?.string()
-                            ?: "Failed to send verification code. Please try again."
-                        errorMessage = errMsg
-                    }
-                } catch (e: Exception) {
-                    isRequestingOtp = false
-                    errorMessage = "Network notice: Backend server unreachable. Make sure BloodSync backend is running on ${BloodSyncNetworkClient.DEFAULT_BASE_URL}."
-                }
-            }
-        }
-    }
-
-    val submitOtpVerification: () -> Unit = {
-        if (otpCodeInput.length != 6) {
-            otpDialogError = "Please enter complete 6-digit code."
-        } else {
-            otpDialogError = null
-            isVerifyingOtp = true
-
-            scope.launch {
-                try {
-                    val response = BloodSyncNetworkClient.apiService.verifyOtp(OtpVerifyPayload(otpEmail, otpCodeInput))
-                    isVerifyingOtp = false
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val body = response.body()!!
-                        val customToken = body.data?.firebaseCustomToken
-                        val cleanEmail = otpEmail
-
-                        if (!customToken.isNullOrBlank()) {
-                            FirebaseAuth.getInstance().signInWithCustomToken(customToken)
-                                .addOnCompleteListener { authTask ->
-                                    showOtpDialog = false
-                                    if (authTask.isSuccessful) {
-                                        val uid = authTask.result?.user?.uid ?: ""
-                                        if (isOtpRegistrationFlow) {
-                                            val newProfile = UserProfile(
-                                                id = uid,
-                                                name = ValidationHelper.sanitizeText(fullName, 60).ifBlank { cleanEmail.substringBefore("@") },
-                                                email = cleanEmail,
-                                                phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
-                                                bloodGroup = selectedBloodGroup.ifBlank { "O+" },
-                                                city = ValidationHelper.sanitizeText(cityInput, 50),
-                                                gender = selectedGender,
-                                                age = ageInput.toIntOrNull() ?: 18,
-                                                isEmergencyVolunteer = volunteerEmergency,
-                                                latitude = donorLatitude,
-                                                longitude = donorLongitude
-                                            )
-                                            repository.registerDonor(newProfile)
-                                        } else {
-                                            repository.loginWithGoogleAccount(cleanEmail.substringBefore("@"), cleanEmail)
-                                        }
-                                        onLoginSuccess()
-                                    } else {
-                                        repository.loginUser(
-                                            name = cleanEmail.substringBefore("@"),
-                                            email = cleanEmail,
-                                            phone = phoneInput.ifBlank { "+919876543210" },
-                                            bloodGroup = selectedBloodGroup.ifBlank { "O+" }
-                                        )
-                                        onLoginSuccess()
-                                    }
-                                }
-                        } else {
-                            showOtpDialog = false
-                            if (isOtpRegistrationFlow) {
-                                val newProfile = UserProfile(
-                                    id = "usr_" + java.util.UUID.randomUUID().toString().take(8),
-                                    name = ValidationHelper.sanitizeText(fullName, 60).ifBlank { cleanEmail.substringBefore("@") },
-                                    email = cleanEmail,
-                                    phone = phoneInput.filter { it.isDigit() || it == '+' }.take(15),
-                                    bloodGroup = selectedBloodGroup.ifBlank { "O+" },
-                                    city = ValidationHelper.sanitizeText(cityInput, 50),
-                                    gender = selectedGender,
-                                    age = ageInput.toIntOrNull() ?: 18,
-                                    isEmergencyVolunteer = volunteerEmergency,
-                                    latitude = donorLatitude,
-                                    longitude = donorLongitude
-                                )
-                                repository.registerDonor(newProfile)
-                            } else {
-                                repository.loginUser(
-                                    name = cleanEmail.substringBefore("@"),
-                                    email = cleanEmail,
-                                    phone = phoneInput.ifBlank { "+919876543210" },
-                                    bloodGroup = selectedBloodGroup.ifBlank { "O+" }
-                                )
-                            }
-                            onLoginSuccess()
-                        }
-                    } else {
-                        otpDialogError = response.body()?.message ?: "Invalid OTP code. Please try again."
-                    }
-                } catch (e: Exception) {
-                    isVerifyingOtp = false
-                    otpDialogError = "Network error: Connection to backend failed."
-                }
-            }
-        }
-    }
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars,
@@ -356,6 +184,7 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -924,67 +753,7 @@ fun AuthScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Outlined Button for Email OTP Verification
-                    OutlinedButton(
-                        onClick = {
-                            val cleanEmail = emailInput.trim()
-                            if (cleanEmail.isBlank() || !emailPattern.matches(cleanEmail)) {
-                                errorMessage = strings.invalidEmailError
-                                return@OutlinedButton
-                            }
-                            if (isRegisterMode) {
-                                val nameValidation = ValidationHelper.validateName(fullName)
-                                if (!nameValidation.isValid) {
-                                    errorMessage = strings.invalidNameError
-                                    return@OutlinedButton
-                                }
-                                val bloodValidation = ValidationHelper.validateBloodGroup(selectedBloodGroup)
-                                if (!bloodValidation.isValid) {
-                                    errorMessage = bloodValidation.errorMessage
-                                    return@OutlinedButton
-                                }
-                                val (isAgeValid, ageErrorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
-                                if (!isAgeValid) {
-                                    errorMessage = ageErrorMsg ?: strings.invalidAgeError
-                                    return@OutlinedButton
-                                }
-                                triggerOtpRequest(cleanEmail, true)
-                            } else {
-                                triggerOtpRequest(cleanEmail, false)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        border = BorderStroke(1.dp, BloodRedPrimary),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BloodRedPrimary),
-                        enabled = !isRequestingOtp && !isLoading
-                    ) {
-                        if (isRequestingOtp) {
-                            CircularProgressIndicator(
-                                color = BloodRedPrimary,
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Sending Code...", color = BloodRedPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        } else {
-                            Icon(
-                                imageVector = if (isRegisterMode) Icons.Default.VerifiedUser else Icons.Default.Email,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isRegisterMode) "Verify & Register via Email OTP" else "Sign In with Email OTP",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -1154,232 +923,4 @@ fun AuthScreen(
         )
     }
 
-    // 6-Digit Email OTP Verification Dialog with 60-Second Resend Timer
-    if (showOtpDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                if (!isVerifyingOtp) showOtpDialog = false
-            },
-            title = null,
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Header Icon
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(appColors.redLight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MarkEmailRead,
-                            contentDescription = "OTP Email",
-                            tint = BloodRedPrimary,
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = "Verify Your Email",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = appColors.textPrimary
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Enter the 6-digit verification code sent to:",
-                        fontSize = 12.sp,
-                        color = appColors.textSecondary,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-
-                    Text(
-                        text = otpMaskedEmail.ifBlank { otpEmail },
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BloodRedPrimary,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // 6-digit visual boxes with underlying text field
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BasicTextField(
-                            value = otpCodeInput,
-                            onValueChange = { input ->
-                                val digitsOnly = input.filter { it.isDigit() }.take(6)
-                                otpCodeInput = digitsOnly
-                                if (digitsOnly.length == 6) {
-                                    otpDialogError = null
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                                .alpha(0f)
-                        )
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            for (i in 0 until 6) {
-                                val char = otpCodeInput.getOrNull(i)
-                                val isCurrent = otpCodeInput.length == i
-                                val boxBorder = when {
-                                    char != null -> BloodRedPrimary
-                                    isCurrent -> BloodRedPrimary.copy(alpha = 0.6f)
-                                    else -> appColors.border
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 40.dp, height = 50.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(appColors.inputBackground)
-                                        .border(
-                                            width = if (isCurrent) 2.dp else 1.dp,
-                                            color = boxBorder,
-                                            shape = RoundedCornerShape(12.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = char?.toString() ?: if (isCurrent) "|" else "",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = appColors.textPrimary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Error banner inside OTP dialog
-                    if (otpDialogError != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Surface(
-                            color = appColors.redLight,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ErrorOutline,
-                                    contentDescription = null,
-                                    tint = StatusUrgentRed,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = otpDialogError ?: "",
-                                    color = StatusUrgentRed,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 60-Second Resend Countdown Timer
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (otpResendSeconds > 0) {
-                            val formattedSec = if (otpResendSeconds < 10) "0$otpResendSeconds" else "$otpResendSeconds"
-                            Text(
-                                text = "Resend OTP in 00:$formattedSec",
-                                fontSize = 12.sp,
-                                color = appColors.textMuted
-                            )
-                        } else {
-                            TextButton(
-                                onClick = {
-                                    triggerOtpRequest(otpEmail, isOtpRegistrationFlow)
-                                },
-                                enabled = !isRequestingOtp
-                            ) {
-                                if (isRequestingOtp) {
-                                    CircularProgressIndicator(
-                                        color = BloodRedPrimary,
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = null,
-                                        tint = BloodRedPrimary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                }
-                                Text(
-                                    text = "Resend Code",
-                                    color = BloodRedPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { submitOtpVerification() },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(50.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    enabled = otpCodeInput.length == 6 && !isVerifyingOtp
-                ) {
-                    if (isVerifyingOtp) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Verifying...", color = Color.White, fontWeight = FontWeight.Bold)
-                    } else {
-                        Text("Verify & Continue", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { if (!isVerifyingOtp) showOtpDialog = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Cancel", color = appColors.textSecondary)
-                }
-            },
-            containerColor = appColors.cardBackground,
-            shape = RoundedCornerShape(24.dp)
-        )
-    }
 }

@@ -32,7 +32,6 @@ import com.bloodsync.ui.components.BloodSyncTopBar
 import com.bloodsync.ui.components.StatusBadge
 import com.bloodsync.ui.theme.*
 import com.bloodsync.util.BloodCompatibilityHelper
-import com.bloodsync.util.ShareHelper
 
 /**
  * Dedicated Available Donors Directory Screen.
@@ -46,7 +45,6 @@ fun DonorsDirectoryScreen(
     onNavigateToEmergency: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
-    val context = LocalContext.current
     val strings = com.bloodsync.util.LocalAppStrings.current
     val donors = repository.donors
     val unreadNotifs by repository.unreadNotificationCount
@@ -327,10 +325,6 @@ fun DonorsDirectoryScreen(
                     items(filteredDonors, key = { it.id }) { donor ->
                         DonorPillCard(
                             donor = donor,
-                            onWhatsAppClick = {
-                                val msg = "Hello ${donor.name}, I am reaching out from BloodSync App regarding voluntary blood donation (${donor.bloodGroup}). Are you available?"
-                                ShareHelper.openWhatsApp(context, donor.phone, msg)
-                            },
                             onRequestClick = onNavigateToEmergency
                         )
                     }
@@ -346,7 +340,6 @@ fun DonorsDirectoryScreen(
 @Composable
 private fun DonorPillCard(
     donor: UserProfile,
-    onWhatsAppClick: () -> Unit,
     onRequestClick: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
@@ -433,39 +426,19 @@ private fun DonorPillCard(
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Red Pill SOS Request Action Button
+            Button(
+                onClick = onRequestClick,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
             ) {
-                // Green Pill Contact Button (WhatsApp / Call)
-                IconButton(
-                    onClick = onWhatsAppClick,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(StatusEligibleGreen, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = "Contact Donor",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // Red Pill SOS Request Action Button
-                Button(
-                    onClick = onRequestClick,
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
-                ) {
-                    Text(
-                        text = "Request",
-                        fontSize = 12.sp,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text = "Request",
+                    fontSize = 12.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

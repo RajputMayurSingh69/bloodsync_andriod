@@ -1,10 +1,11 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** October 3, 2026
-**Version:** v3.2.0 (Critical Error Webhook Integration, Firestore TTL & Weekly Rate-Limit Cleanup)
+**Version:** v3.3.0 (Emergency Request Smooth Keyboard Scrolling & Donor UI Phone Icon Removal)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** [BloodSync-v3.2.0-Production-Release.apk](https://gofile.io/d/qL9ksdrI) (v3.2.0)
+**Latest APK:** [BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk](https://gofile.io/d/W48mSc5k) (v3.3.0)
 **Previous Builds:** 
+- `BloodSync-v3.2.0-Production-Release.apk` (v3.2.0)
 - `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (v3.1.0)
 - `BloodSync-v3.0.0-GPS-Radar-Live.apk` (v3.0.0)
 - `BloodSync-v2.9.0-FCM-SOS-Live.apk` (v2.9.0)
@@ -16,7 +17,19 @@
 
 ## 🚀 Key Milestones Completed
 
-### 29. Critical Error Webhook Integration (Discord/Slack/Telegram) & Firestore TTL Auto-Cleanup (v3.2.0) ← LATEST
+### 30. Emergency Request Keyboard Scroll Fix & Donor Card UI Streamlining (v3.3.0) ← LATEST
+- **Emergency SOS Form Full Seamless Scrolling (`EmergencyRequestScreen.kt`):**
+  - Resolved soft keyboard viewport obstruction with `Modifier.imePadding()` and `Modifier.navigationBarsPadding()`.
+  - Refactored entire 5-card form into a unified `Modifier.verticalScroll(scrollState)` container, guaranteeing uninterrupted scrolling from top alert header to the bottom broadcast SOS button even while the keyboard is actively open on any field (e.g. *Patient Name*).
+  - Added clean `48.dp` bottom breathing padding to avoid edge clipping.
+- **Donor Directory Card Phone Icon Removal (`DonorsDirectoryScreen.kt`):**
+  - Completely removed the green call/phone icon button from `DonorPillCard` per privacy & user experience requirements.
+  - Streamlined donor cards to show verified blood group badge, donor name, active beacon status, and prominent red SOS **Request** button.
+- **Cloud Packaging & Release:**
+  - Built with Gradle (`versionCode = 7`, `versionName = "3.3.0"`), zero warnings/errors.
+  - Uploaded to GoFile: [https://gofile.io/d/W48mSc5k](https://gofile.io/d/W48mSc5k) (`BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk`, 25.3 MB).
+
+### 29. Critical Error Webhook Integration (Discord/Slack/Telegram) & Firestore TTL Auto-Cleanup (v3.2.0)
 - **Unified Multi-Platform Webhook Dispatcher (`webhookAlertService.js`):**
   - Created [`webhookAlertService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/webhookAlertService.js) supporting Discord Rich Embeds with colored severity badges (Red for CRITICAL, Amber for WARNING), Slack Block Attachments, Telegram HTML messaging, and Generic Webhook formats.
   - Added smart anti-flood throttling (30-second cooldown per error category) to prevent notification storms.

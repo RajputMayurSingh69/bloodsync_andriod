@@ -1,7 +1,10 @@
 package com.bloodsync
 
 import android.app.Activity
+import android.Manifest
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +38,7 @@ import com.bloodsync.ui.screens.splash.SplashScreen
 import com.bloodsync.ui.theme.BloodSyncTheme
 import com.bloodsync.util.EnglishTranslations
 import com.bloodsync.util.LocalAppStrings
+import com.bloodsync.util.LocationHelper
 
 sealed class Screen {
     object Splash : Screen()
@@ -115,7 +119,11 @@ fun BloodSyncApp(
             is Screen.Splash -> {
                 SplashScreen(
                     onSplashComplete = {
-                        val isLoggedIn = repository.isUserLoggedIn.value
+                        val firebaseUser = repository.firebaseService.getFirebaseAuth()?.currentUser
+                        val isLoggedIn = repository.isUserLoggedIn.value || (firebaseUser != null)
+                        if (isLoggedIn && !repository.isUserLoggedIn.value) {
+                            repository.setLoggedIn(true)
+                        }
                         currentScreen = if (isLoggedIn) Screen.Main else Screen.Auth
                     }
                 )
@@ -131,6 +139,35 @@ fun BloodSyncApp(
             }
 
             is Screen.Main -> {
+                val locationLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    val fine = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+                    val coarse = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+                    if (fine || coarse) {
+                        LocationHelper.getCurrentLocation(
+                            context = context,
+                            onLocation = { lat: Double, lon: Double ->
+                                val current = repository.userProfile.value
+                                if (current.latitude == null || current.longitude == null) {
+                                    repository.updateUserProfile(current.copy(latitude = lat, longitude = lon))
+                                }
+                            }
+                        )
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    if (!LocationHelper.hasLocationPermission(context)) {
+                        locationLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
