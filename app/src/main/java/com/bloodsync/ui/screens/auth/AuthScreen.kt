@@ -88,7 +88,7 @@ fun AuthScreen(
     var selectedGender by remember { mutableStateOf("Male") }
     var dobInput by remember { mutableStateOf("") }
     var ageInput by remember { mutableStateOf("") }
-    var ageWarning by remember { mutableStateOf<String?>(null) }
+    var dobWarning by remember { mutableStateOf<String?>(null) }
     var phoneInput by remember { mutableStateOf("") }
     var cityInput by remember { mutableStateOf("") }
     var volunteerEmergency by remember { mutableStateOf(true) }
@@ -217,7 +217,9 @@ fun AuthScreen(
                 if (calculatedAge in 0..120) {
                     ageInput = calculatedAge.toString()
                     val (isValid, errorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
-                    ageWarning = if (!isValid) errorMsg else null
+                    dobWarning = if (!isValid) errorMsg else null
+                } else {
+                    dobWarning = "Please enter a valid date of birth."
                 }
             },
             initialYear,
@@ -734,9 +736,14 @@ fun AuthScreen(
                                                 if (calculatedAge in 0..120) {
                                                     ageInput = calculatedAge.toString()
                                                     val (isValid, errorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
-                                                    ageWarning = if (!isValid) errorMsg else null
+                                                    dobWarning = if (!isValid) errorMsg else null
+                                                } else {
+                                                    dobWarning = "Please enter a valid date of birth."
                                                 }
                                             }
+                                        } else if (input.isBlank()) {
+                                            ageInput = ""
+                                            dobWarning = null
                                         }
                                     }
                                 },
@@ -754,44 +761,16 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // Age Input
-                            OutlinedTextField(
-                                value = ageInput,
-                                onValueChange = { input ->
-                                    if (input.all { it.isDigit() } && input.length <= 3) {
-                                        ageInput = input
-                                        if (input.isNotBlank()) {
-                                            val (isValid, errorMsg) = ValidationHelper.isValidAge(input, minAge = 15, maxAge = 65)
-                                            ageWarning = if (!isValid) errorMsg else null
-                                        } else {
-                                            ageWarning = null
-                                        }
-                                    }
-                                },
-                                label = { Text("AGE (MIN 15)") },
-                                placeholder = { Text("e.g. 24") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Cake, contentDescription = null, tint = Color(0xFFC9382B))
-                                },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = textFieldColors,
                                 shape = RoundedCornerShape(14.dp),
-                                isError = ageWarning != null
+                                isError = dobWarning != null
                             )
 
-                            if (ageWarning != null) {
+                            if (dobWarning != null) {
                                 Text(
-                                    text = ageWarning ?: "",
+                                    text = dobWarning ?: "",
                                     color = StatusUrgentRed,
                                     fontSize = 11.sp,
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    modifier = Modifier.padding(top = 2.dp, start = 4.dp)
                                 )
                             }
 
@@ -921,9 +900,13 @@ fun AuthScreen(
                                         errorMessage = "Please enter a valid 10-digit phone number."
                                         return@Button
                                     }
+                                    if (dobInput.isBlank()) {
+                                        errorMessage = "Please enter or select your Date of Birth (DOB)."
+                                        return@Button
+                                    }
                                     val (isAgeOk, ageMsg) = ValidationHelper.isValidAge(ageInput, 15, 65)
                                     if (!isAgeOk) {
-                                        errorMessage = ageMsg ?: "Age must be at least 15 years."
+                                        errorMessage = ageMsg ?: "Donor must be between 15 and 65 years old based on Date of Birth."
                                         return@Button
                                     }
 
