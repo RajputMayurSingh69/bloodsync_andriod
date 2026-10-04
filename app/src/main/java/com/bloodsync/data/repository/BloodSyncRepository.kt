@@ -874,6 +874,77 @@ class BloodSyncRepository(private val context: Context) {
         )
     }
 
+    fun registerBloodBankInstitution(
+        bankName: String,
+        licenseNumber: String,
+        email: String,
+        phone: String,
+        city: String,
+        address: String
+    ) {
+        val bankId = "bb_" + UUID.randomUUID().toString().take(8)
+        val bloodBank = BloodBank(
+            id = bankId,
+            name = bankName.ifBlank { "Blood Bank" },
+            address = if (address.isNotBlank()) "$address, $city (Lic: $licenseNumber)" else "$city (Lic: $licenseNumber)",
+            distanceKm = 0.0,
+            phone = phone.ifBlank { "+91 98765 43210" },
+            bloodStockStatus = "Institution Verified",
+            openHours = "24/7 Operations"
+        )
+        addBloodBank(bloodBank)
+
+        val profile = UserProfile(
+            id = bankId,
+            name = bankName.ifBlank { "Blood Bank Organization" },
+            email = email,
+            phone = phone,
+            bloodGroup = "All Types (Blood Bank)",
+            city = city.ifBlank { "National Network" },
+            isAvailableDonor = false
+        )
+        _userProfile.value = profile
+        _isUserLoggedIn.value = true
+        prefs.edit().putBoolean("is_logged_in", true).apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
+        saveProfileToPrefs()
+
+        postNotification(
+            title = "🏥 Blood Bank Portal Connected",
+            message = "$bankName has been registered and verified on BloodSync Network.",
+            type = NotificationType.SYSTEM
+        )
+    }
+
+    fun loginBloodBankInstitution(
+        email: String,
+        bankName: String? = null
+    ) {
+        val existing = _bloodBanks.firstOrNull { it.phone.contains(email, ignoreCase = true) }
+            ?: _bloodBanks.firstOrNull()
+        val name = bankName ?: existing?.name ?: "Blood Bank Workspace"
+        val profile = UserProfile(
+            id = existing?.id ?: ("bb_" + UUID.randomUUID().toString().take(8)),
+            name = name,
+            email = email,
+            phone = existing?.phone ?: "",
+            bloodGroup = "All Types (Blood Bank)",
+            city = "Registered Institution",
+            isAvailableDonor = false
+        )
+        _userProfile.value = profile
+        _isUserLoggedIn.value = true
+        prefs.edit().putBoolean("is_logged_in", true).apply()
+        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
+        saveProfileToPrefs()
+
+        postNotification(
+            title = "🏥 Blood Bank Sign-In",
+            message = "Welcome back, $name.",
+            type = NotificationType.SYSTEM
+        )
+    }
+
     fun setLoggedIn(loggedIn: Boolean) {
         _isUserLoggedIn.value = loggedIn
         prefs.edit().putBoolean("is_logged_in", loggedIn).apply()

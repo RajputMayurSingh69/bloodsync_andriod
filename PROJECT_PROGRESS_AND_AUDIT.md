@@ -3,7 +3,7 @@
 **Date:** October 4, 2026
 **Version:** v3.4.0 (Dual Authentication Web Portals & Blood Bank Bcrypt/JWT Auth Integration)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** [BloodSync-v3.4.0-DualPortal-BankAuth.apk](https://gofile.io/d/81tW6d6D) (v3.4.0)
+**Latest APK:** [BloodSync-v3.4.0-DualPortal-BankAuth.apk](https://gofile.io/d/uhkJHcVD) (v3.4.0)
 **Previous Builds:** 
 - [BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk](https://gofile.io/d/W48mSc5k) (v3.3.0)
 - `BloodSync-v3.2.0-Production-Release.apk` (v3.2.0)
@@ -18,28 +18,31 @@
 
 ## 🚀 Key Milestones Completed
 
-### 31. Dual Authentication Portals (User Sign In + Blood Bank Registration) & v3.4.0 Release (v3.4.0) ← LATEST
-- **High-Fidelity Split-Screen Authentication Portal ([`bloodsync-auth.html`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/bloodsync-auth.html)):**
-  - **Left Showcase Panel:** Solid warm crimson banner (`#C9382B`) displaying official BloodSync branding, dynamic headline ("Every drop creates a second chance." / "Empowering blood banks, saving lives together."), subtext, and security assurance badge.
-  - **Right Form Container:** Crisp white panel (`#FFFFFF`) with smooth, state-driven transition between **User Sign In** (`?role=user`) and **Blood Bank Registration** (`?role=bank`).
-  - **Strict Security Guardrails:** Google OAuth button strictly restricted to User portal; completely excluded from Blood Bank registration per compliance requirements.
-  - **Client-Side Live Validation:** Real-time input checking for valid email regex, min 10-digit phone formatting, required text fields, and minimum 6-character passwords with inline visual feedback.
-  - **Live API Integration:** Fully wired via `fetch()` to backend endpoints:
-    - User OTP request: `POST /auth/request-otp` & OTP verification: `POST /auth/verify-otp`
-    - Blood Bank Registration: `POST /bank-auth/register` & Blood Bank Login: `POST /bank-auth/login`
+### 31. In-App Dual Authentication Portals (User Sign In + Blood Bank Registration) & v3.4.0 Release (v3.4.0) ← LATEST
+- **Native Android Compose Dual Portals ([`AuthScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/auth/AuthScreen.kt)):**
+  - **Prominent Portal Switcher Pill Bar:** Instant, fluid switching between `[ 👤 User Portal ]` and `[ 🏥 Blood Bank ]`.
+  - **Dynamic Branded Crimson Showcase Banner (`#C9382B`):** Matches exact specification with BloodSync logo, active portal badge, headline ("Every drop creates a second chance." / "Empowering blood banks, saving lives together."), subtext, and security assurance badge.
+  - **Portal 1 (User / Donor):**
+    - Sub-toggle: *User Sign In* vs *Create Account (Donor Registration)*.
+    - Fields: Email, Password (with eye toggle), Full Name, Blood Group, Age, Gender, Phone, City, Emergency Volunteer toggle.
+    - Google Sign-In Button: Officially integrated exclusively here.
+  - **Portal 2 (Blood Bank):**
+    - Sub-toggle: *Register Bank* vs *Sign In*.
+    - Register Organization: 7 official institution fields (Blood Bank Name, License Number, Official Email, Phone, City, Address, Password).
+    - **Strict Compliance Guardrail:** Zero Google OAuth in Blood Bank Portal (institutional credentials only).
+    - Directly wired to backend Retrofit API (`registerBank` / `loginBank`) with graceful fallback to local/cloud Firestore storage.
+  - **Web Portal Launch Option:** Integrated bottom shortcut to view standalone web portal [`bloodsync-auth.html`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/bloodsync-auth.html).
+- **Repository Integration ([`BloodSyncRepository.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/repository/BloodSyncRepository.kt)):**
+  - Added `registerBloodBankInstitution()` and `loginBloodBankInstitution()` managing blood bank sessions, profile records, and system notifications.
 - **Blood Bank Backend Auth Suite ([`bloodBankAuthController.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/controllers/bloodBankAuthController.js), [`bankAuthRoutes.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/routes/bankAuthRoutes.js)):**
   - Password hashing utilizing `bcryptjs` with 12 salt rounds.
   - Duplicate email and phone collision detection across Firestore `bank_registrations` and `blood_banks` collections.
   - Custom JWT session token generation with `role: 'blood_bank'`.
   - Welcome notification trigger and complete audit trail logging via [`loggerBotService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/loggerBotService.js).
   - Mounted `/bank-auth` router cleanly in [`server.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/server.js).
-- **Android App Retrofit Network Layer Synchronization ([`BloodSyncApiService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/network/BloodSyncApiService.kt)):**
-  - Added `BankRegisterPayload`, `BankLoginPayload`, `BankAuthResponse`, and `BankProfileData` DTOs.
-  - Added Retrofit methods `registerBank()` and `loginBank()` mapping to the new backend endpoints.
-  - Bumped Android Gradle config (`versionCode = 8`, `versionName = "3.4.0"`).
 - **Cloud Packaging & Release:**
-  - Built with Gradle (`versionCode = 8`, `versionName = "3.4.0"`), zero warnings/errors.
-  - Uploaded to GoFile: [https://gofile.io/d/81tW6d6D](https://gofile.io/d/81tW6d6D) (`BloodSync-v3.4.0-DualPortal-BankAuth.apk`, 25.3 MB).
+  - Built with Gradle (`versionCode = 8`, `versionName = "3.4.0"`), zero compile errors.
+  - Uploaded to GoFile: [https://gofile.io/d/uhkJHcVD](https://gofile.io/d/uhkJHcVD) (`BloodSync-v3.4.0-DualPortal-BankAuth.apk`, 25.5 MB).
 
 ### 30. Emergency Request Keyboard Scroll Fix & Donor Card UI Streamlining (v3.3.0)
 - **Emergency SOS Form Full Seamless Scrolling (`EmergencyRequestScreen.kt`):**
