@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloodSync — Authentication Portal</title>
+  <meta name="description" content="Sign in to your BloodSync account or register your blood bank. Join the connected community keeping donors, hospitals, and blood banks in sync." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ===== CSS RESET & BASE ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --crimson:       #C9382B;
+      --crimson-dark:  #A82D22;
+      --crimson-deeper:#8C2419;
+      --crimson-light: #E8453A;
+      --crimson-soft:  rgba(201, 56, 43, 0.08);
+      --crimson-glow:  rgba(201, 56, 43, 0.25);
+
+      --bg:            #F3F4F6;
+      --card-bg:       #FFFFFF;
+      --panel-red:     #C9382B;
+
+      --text-primary:  #111827;
+      --text-secondary:#6B7280;
+      --text-muted:    #9CA3AF;
+      --text-white:    #FFFFFF;
+
+      --border:        #E5E7EB;
+      --border-focus:  #C9382B;
+      --input-bg:      #F9FAFB;
+
+      --radius-card:   24px;
+      --radius-btn:    12px;
+      --radius-input:  10px;
+
+      --shadow-card: 0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+      --shadow-btn:  0 4px 14px rgba(201,56,43,0.35);
+      --shadow-google: 0 2px 8px rgba(0,0,0,0.10);
+
+      --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      background:
+        radial-gradient(ellipse 900px 500px at 20% 0%, rgba(201,56,43,0.04) 0%, transparent 70%),
+        radial-gradient(ellipse 700px 400px at 80% 100%, rgba(201,56,43,0.05) 0%, transparent 70%),
+        #F3F4F6;
+    }
+
+    /* ===== PORTAL TOGGLE BAR ===== */
+    .portal-toggle-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #FFFFFF;
+      border: 1.5px solid var(--border);
+      border-radius: 40px;
+      padding: 5px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .toggle-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 22px;
+      border-radius: 32px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .toggle-pill svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .toggle-pill.active {
+      background: var(--crimson);
+      color: #FFFFFF;
+      box-shadow: 0 3px 10px rgba(201,56,43,0.30);
+    }
+
+    .toggle-pill:not(.active):hover {
+      background: var(--crimson-soft);
+      color: var(--crimson);
+    }
+
+    /* ===== MAIN CARD ===== */
+    .auth-card {
+      display: flex;
+      width: 100%;
+      max-width: 960px;
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      background: var(--card-bg);
+      min-height: 580px;
+      animation: cardReveal 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    /* ===== LEFT PANEL ===== */
+    .panel-left {
+      width: 42%;
+      flex-shrink: 0;
+      background: var(--panel-red);
+      background-image:
+        radial-gradient(ellipse 350px 250px at 10% 20%, rgba(255,255,255,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 250px 200px at 85% 80%, rgba(0,0,0,0.12) 0%, transparent 60%),
+        linear-gradient(145deg, #D94438 0%, #C9382B 50%, #A82D22 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 44px 40px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      left: -40px;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.07);
+      pointer-events: none;
+    }
+
+    /* Brand Badge */
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      flex-shrink: 0;
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #FFFFFF;
+    }
+
+    .brand-name {
+      font-size: 19px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+    }
+
+    /* Main Headline */
+    .left-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 32px 0 24px;
+    }
+
+    .left-heading {
+      font-size: 28px;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+    }
+
+    .left-subtext {
+      font-size: 14px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.78);
+      line-height: 1.65;
+    }
+
+    /* Bottom Tagline */
+    .left-tagline {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .tagline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.60);
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .tagline-text {
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.72);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* ===== RIGHT PANEL ===== */
+    .panel-right {
+      flex: 1;
+      background: #FFFFFF;
+      padding: 44px 44px 40px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* Form Header */
+    .form-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .form-header-icon {
+      width: 42px;
+      height: 42px;
+      background: var(--crimson-soft);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .form-header-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--crimson);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .form-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.025em;
+    }
+
+    .form-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      margin-left: 54px;
+    }
+
+    /* ===== FORM ELEMENTS ===== */
+    .form-group {
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-input);
+      font-size: 14.5px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .form-input:focus {
+      border-color: var(--crimson);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3.5px rgba(201,56,43,0.10);
+    }
+
+    .form-input.error {
+      border-color: #EF4444;
+      background: #FFF5F5;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.10);
+    }
+
+    .form-input.valid {
+      border-color: #10B981;
+    }
+
+    .field-error {
+      font-size: 11.5px;
+      color: #EF4444;
+      margin-top: 5px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .field-error.visible {
+      display: flex;
+    }
+
+    .field-error svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    /* Password wrapper */
+    .pw-wrapper {
+      position: relative;
+    }
+
+    .pw-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color var(--transition);
+    }
+
+    .pw-toggle:hover { color: var(--crimson); }
+
+    .pw-toggle svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--crimson-light) 0%, var(--crimson) 60%, var(--crimson-dark) 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-btn);
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      box-shadow: var(--shadow-btn);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+      letter-spacing: 0.01em;
+      margin-top: 4px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 20px rgba(201,56,43,0.45);
+      filter: brightness(1.06);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.72;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* OR Divider */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .or-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* Google Button */
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px;
+      background: #FFFFFF;
+      border: 1.5px solid #DADCE0;
+      border-radius: var(--radius-btn);
+      font-size: 14.5px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      color: #3C4043;
+      cursor: pointer;
+      box-shadow: var(--shadow-google);
+      transition: background var(--transition), box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+      letter-spacing: 0.01em;
+    }
+
+    .btn-google:hover {
+      background: #F8F9FA;
+      border-color: #C5C6C8;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+      transform: translateY(-1px);
+    }
+
+    .btn-google:active { transform: translateY(0); }
+
+    .google-logo {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Footer */
+    .form-footer {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .form-footer .link {
+      color: var(--crimson);
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition);
+      background: none;
+      border: none;
+      font-size: inherit;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    .form-footer .link:hover {
+      color: var(--crimson-dark);
+      text-decoration: underline;
+    }
+
+    /* ===== PORTAL VIEWS ===== */
+    .portal-view {
+      display: none;
+      width: 100%;
+    }
+
+    .portal-view.active {
+      display: contents;
+    }
+
+    /* Two-column form grid */
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 18px;
+    }
+
+    .form-grid-2 .form-group.full-span {
+      grid-column: 1 / -1;
+    }
+
+    /* ===== TOAST NOTIFICATION ===== */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      background: #1F2937;
+      color: #FFFFFF;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.20);
+      animation: slideIn 0.3s ease forwards;
+      max-width: 340px;
+    }
+
+    .toast.success { background: #065F46; border-left: 4px solid #10B981; }
+    .toast.error   { background: #7F1D1D; border-left: 4px solid #EF4444; }
+    .toast.info    { background: #1E3A5F; border-left: 4px solid #3B82F6; }
+
+    .toast svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes cardReveal {
+      from { opacity: 0; transform: translateY(28px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(30px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(30px); }
+    }
+
+    .portal-toggle-bar {
+      animation: fadeDown 0.35s ease both;
+    }
+
+    /* Focus ring accessibility */
+    .btn-primary:focus-visible,
+    .btn-google:focus-visible,
+    .toggle-pill:focus-visible {
+      outline: 3px solid rgba(201,56,43,0.40);
+      outline-offset: 2px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 760px) {
+      body { padding: 16px 12px; }
+
+      .auth-card {
+        flex-direction: column;
+        max-width: 480px;
+        min-height: unset;
+      }
+
+      .panel-left {
+        width: 100%;
+        padding: 28px 28px 24px;
+      }
+
+      .left-content { padding: 20px 0 16px; }
+      .left-heading { font-size: 22px; }
+      .left-subtext { font-size: 13px; }
+
+      .panel-right {
+        padding: 28px 24px 28px;
+      }
+
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid-2 .form-group.full-span {
+        grid-column: 1;
+      }
+
+      .portal-toggle-bar { flex-wrap: wrap; justify-content: center; }
+      .form-subtitle { margin-left: 0; margin-top: 4px; }
+    }
+
+    @media (max-width: 480px) {
+      .form-title { font-size: 18px; }
+      .panel-right { padding: 24px 18px; }
+      .toggle-pill { padding: 8px 16px; font-size: 12.5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- PORTAL TOGGLE BAR -->
+  <div class="portal-toggle-bar" role="tablist" aria-label="Authentication portal selector">
+    <button class="toggle-pill active" id="toggleUser" role="tab" aria-selected="true" onclick="switchPortal('user')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      User Sign In
+    </button>
+    <button class="toggle-pill" id="toggleBank" role="tab" aria-selected="false" onclick="switchPortal('bank')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M12 8v8M8 12h8"/>
+      </svg>
+      Blood Bank Portal
+    </button>
+  </div>
+
+  <!-- AUTH CARD -->
+  <div class="auth-card" id="authCard">
+
+    <!-- ============ PORTAL 1: USER SIGN IN ============ -->
+    <div class="portal-view active" id="portalUser" role="tabpanel" aria-labelledby="toggleUser">
+
+      <!-- LEFT PANEL -->
+      <div class="panel-left" aria-hidden="true">
+        <div class="brand-badge">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="white" aria-hidden="true">
+              <path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/>
+              <path d="M9 14a3 3 0 0 1 3-3" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="brand-name">BloodSync</span>
+        </div>
+
+        <div class="left-content">
+          <h1 class="left-heading">Every drop creates a&nbsp;second chance.</h1>
+          <p class="left-subtext">Access your BloodSync workspace and help keep donors, hospitals, and blood banks connected.</p>
+        </div>
+
+        <div class="left-tagline">
+          <div class="tagline-dot"></div>
+          <p class="tagline-text">24/7 Connected care for every urgent moment.</p>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="panel-right">
+        <div class="form-header">
+          <div class="form-header-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h2 class="form-title">User Sign In</h2>
+        </div>
+        <p class="form-subtitle">Sign in to your user account</p>
+
+        <form id="userSignInForm" novalidate autocomplete="on" onsubmit="handleUserSignIn(event)">
+
+          <!-- EMAIL -->
+          <div class="form-group">
+            <label for="userEmail" class="form-label">Email</label>
+            <input type="email" id="userEmail" name="email" class="form-input"
+              placeholder="user@bloodsync.com" autocomplete="email"
+              aria-describedby="userEmailError" aria-required="true" />
+            <div class="field-error" id="userEmailError" role="alert">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="userEmailErrMsg">Please enter a valid email address.</span>
+            </div>
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="form-group">
+            <label for="userPassword" class="form-label">Password</label>
+            <div class="pw-wrapper">
+              <input type="password" id="userPassword" name="password" class="form-input"
+                placeholder="Enter your password" autocomplete="current-password"
+                aria-describedby="userPasswordError" aria-required="true"
+                style="padding-right:44px" />
+              <button type="button" class="pw-toggle" id="userPwToggle"
+                aria-label="Show password" onclick="togglePassword('userPassword','userPwToggle')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <div class="field-error" id="userPasswordError" role="alert">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="userPasswordErrMsg">Password is required.</span>
+            </div>
+          </div>
+
+          <!-- SIGN IN BUTTON -->
+          <button type="submit" class="btn-primary" id="userSignInBtn">Sign In</button>
+
+          <!-- OR DIVIDER -->
+          <div class="or-divider" aria-hidden="true"><span class="or-text">OR</span></div>
+
+          <!-- GOOGLE (USER PORTAL ONLY) -->
+          <button type="button" class="btn-google" id="googleSignInBtn" onclick="handleGoogleAuth()">
+            <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </button>
+
+        </form>
+
+        <p class="form-footer">
+          Are you new here?
+          <button class="link" onclick="switchPortal('bank')">Create your donor account</button>
+        </p>
+      </div>
+
+    </div><!-- /portalUser -->
+
+
+    <!-- ============ PORTAL 2: BLOOD BANK REGISTRATION ============ -->
+    <div class="portal-view" id="portalBank" role="tabpanel" aria-labelledby="toggleBank">
+
+      <!-- LEFT PANEL -->
+      <div class="panel-left" aria-hidden="true">
+        <div class="brand-badge">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="white" aria-hidden="true">
+              <path d="M12 2C12 2 5 9.5 5 14a7 7 0 0 0 14 0C19 9.5 12 2 12 2z"/>
+              <path d="M9 14a3 3 0 0 1 3-3" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="brand-name">BloodSync</span>
+        </div>
+
+        <div class="left-content">
+          <h1 class="left-heading">Join the people keeping care in motion.</h1>
+          <p class="left-subtext">Create your BloodSync account and become part of a connected community built around timely blood support.</p>
+        </div>
+
+        <div class="left-tagline">
+          <div class="tagline-dot"></div>
+          <p class="tagline-text">1 account · One place to donate, request, and manage care.</p>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="panel-right">
+        <div class="form-header">
+          <div class="form-header-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 21V9l9-6 9 6v12"/>
+              <path d="M9 21V12h6v9"/>
+              <path d="M12 6h.01"/>
+            </svg>
+          </div>
+          <h2 class="form-title">Blood Bank Registration</h2>
+        </div>
+        <p class="form-subtitle" style="margin-bottom:20px">Create your bank account</p>
+
+        <form id="bankRegForm" novalidate autocomplete="on" onsubmit="handleBankRegistration(event)">
+          <div class="form-grid-2">
+
+            <!-- BLOOD BANK NAME -->
+            <div class="form-group full-span">
+              <label for="bankName" class="form-label">Blood Bank Name</label>
+              <input type="text" id="bankName" name="bankName" class="form-input"
+                placeholder="e.g. Central Blood Bank" autocomplete="organization"
+                aria-describedby="bankNameError" aria-required="true" />
+              <div class="field-error" id="bankNameError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="bankNameErrMsg">Blood bank name is required.</span>
+              </div>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="form-group">
+              <label for="bankEmail" class="form-label">Email</label>
+              <input type="email" id="bankEmail" name="email" class="form-input"
+                placeholder="you@example.com" autocomplete="email"
+                aria-describedby="bankEmailError" aria-required="true" />
+              <div class="field-error" id="bankEmailError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="bankEmailErrMsg">Enter a valid email address.</span>
+              </div>
+            </div>
+
+            <!-- PHONE -->
+            <div class="form-group">
+              <label for="bankPhone" class="form-label">Phone</label>
+              <input type="tel" id="bankPhone" name="phone" class="form-input"
+                placeholder="+91 9876543210" autocomplete="tel"
+                aria-describedby="bankPhoneError" aria-required="true" />
+              <div class="field-error" id="bankPhoneError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="bankPhoneErrMsg">Enter a valid phone number (min 10 digits).</span>
+              </div>
+            </div>
+
+            <!-- CITY -->
+            <div class="form-group">
+              <label for="bankCity" class="form-label">City</label>
+              <input type="text" id="bankCity" name="city" class="form-input"
+                placeholder="e.g. Ahmedabad" autocomplete="address-level2"
+                aria-describedby="bankCityError" aria-required="true" />
+              <div class="field-error" id="bankCityError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>City is required.</span>
+              </div>
+            </div>
+
+            <!-- PHONE column placeholder to push city into right column -->
+            <!-- FULL ADDRESS (full span) -->
+            <div class="form-group full-span">
+              <label for="bankAddress" class="form-label">Full Address</label>
+              <input type="text" id="bankAddress" name="address" class="form-input"
+                placeholder="Enter full address" autocomplete="street-address"
+                aria-describedby="bankAddressError" aria-required="true" />
+              <div class="field-error" id="bankAddressError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Full address is required.</span>
+              </div>
+            </div>
+
+            <!-- PASSWORD -->
+            <div class="form-group full-span">
+              <label for="bankPassword" class="form-label">Password</label>
+              <div class="pw-wrapper">
+                <input type="password" id="bankPassword" name="password" class="form-input"
+                  placeholder="Min 6 characters" autocomplete="new-password"
+                  aria-describedby="bankPasswordError" aria-required="true"
+                  style="padding-right:44px" />
+                <button type="button" class="pw-toggle" id="bankPwToggle"
+                  aria-label="Show password" onclick="togglePassword('bankPassword','bankPwToggle')">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="field-error" id="bankPasswordError" role="alert">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span id="bankPasswordErrMsg">Password must be at least 6 characters.</span>
+              </div>
+            </div>
+
+          </div><!-- /form-grid-2 -->
+
+          <button type="submit" class="btn-primary" id="bankCreateBtn" style="margin-top:8px">Create Account</button>
+        </form>
+
+        <p class="form-footer">
+          Already have an account?
+          <button class="link" onclick="switchPortal('user')">Sign In</button>
+          &nbsp;&middot;&nbsp;
+          Are you new here?
+          <button class="link" onclick="switchPortal('bank')">Create your donor account</button>
+        </p>
+      </div>
+
+    </div><!-- /portalBank -->
+
+  </div><!-- /auth-card -->
+
+
+  <script>
+    /* ==========================================================
+       API CONFIG — change BASE_URL to your deployed server
+    ========================================================== */
+    const BASE_URL = window.BLOODSYNC_API_URL || 'http://localhost:5000';
+
+    /* ==========================================================
+       PORTAL SWITCHING
+    ========================================================== */
+    function switchPortal(role) {
+      if (!['user','bank'].includes(role)) return;
+
+      // Update URL without reload
+      const url = new URL(window.location.href);
+      url.searchParams.set('role', role);
+      history.pushState({ role }, '', url.toString());
+
+      // Tab buttons
+      document.getElementById('toggleUser').classList.toggle('active', role === 'user');
+      document.getElementById('toggleUser').setAttribute('aria-selected', role === 'user' ? 'true' : 'false');
+      document.getElementById('toggleBank').classList.toggle('active', role === 'bank');
+      document.getElementById('toggleBank').setAttribute('aria-selected', role === 'bank' ? 'true' : 'false');
+
+      // Panels
+      document.getElementById('portalUser').classList.toggle('active', role === 'user');
+      document.getElementById('portalBank').classList.toggle('active', role === 'bank');
+
+      // Re-animate card
+      const card = document.getElementById('authCard');
+      card.style.animation = 'none';
+      // Force reflow
+      void card.offsetWidth;
+      card.style.animation = 'cardReveal 0.40s cubic-bezier(0.34,1.56,0.64,1) both';
+    }
+
+    // Init from URL param
+    (function() {
+      const p = new URLSearchParams(window.location.search).get('role');
+      switchPortal(['user','bank'].includes(p) ? p : 'user');
+    })();
+
+    // Browser back/forward
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.role) switchPortal(e.state.role);
+    });
+
+
+    /* ==========================================================
+       PASSWORD TOGGLE
+    ========================================================== */
+    function togglePassword(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const btn   = document.getElementById(btnId);
+      const svg   = btn.querySelector('svg');
+      const isHidden = input.type === 'password';
+
+      input.type = isHidden ? 'text' : 'password';
+      btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+
+      svg.innerHTML = isHidden
+        ? /* eye-off */
+          `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+           <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+           <line x1="1" y1="1" x2="23" y2="23"/>`
+        : /* eye-open */
+          `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+           <circle cx="12" cy="12" r="3"/>`;
+    }
+
+
+    /* ==========================================================
+       VALIDATION HELPERS
+    ========================================================== */
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    function setField(inputId, errorDivId, errMsgId, valid, msg) {
+      const inp = document.getElementById(inputId);
+      const err = document.getElementById(errorDivId);
+      inp.classList.toggle('error', !valid);
+      inp.classList.toggle('valid',  valid);
+      if (!valid && msg && errMsgId) {
+        const sp = document.getElementById(errMsgId);
+        if (sp) sp.textContent = msg;
+      }
+      err && err.classList.toggle('visible', !valid);
+      return valid;
+    }
+
+    // Auto-clear on typing
+    function onInput(id, errId) {
+      document.getElementById(id)?.addEventListener('input', () => {
+        const inp = document.getElementById(id);
+        inp.classList.remove('error');
+        document.getElementById(errId)?.classList.remove('visible');
+      });
+    }
+
+    onInput('userEmail',    'userEmailError');
+    onInput('userPassword', 'userPasswordError');
+    onInput('bankName',     'bankNameError');
+    onInput('bankEmail',    'bankEmailError');
+    onInput('bankPhone',    'bankPhoneError');
+    onInput('bankCity',     'bankCityError');
+    onInput('bankAddress',  'bankAddressError');
+    onInput('bankPassword', 'bankPasswordError');
+
+    // Blur validators
+    document.getElementById('userEmail')?.addEventListener('blur', validateUserEmail);
+    document.getElementById('userPassword')?.addEventListener('blur', validateUserPassword);
+    document.getElementById('bankName')?.addEventListener('blur', validateBankName);
+    document.getElementById('bankEmail')?.addEventListener('blur', validateBankEmail);
+    document.getElementById('bankPhone')?.addEventListener('blur', validateBankPhone);
+    document.getElementById('bankCity')?.addEventListener('blur', validateBankCity);
+    document.getElementById('bankAddress')?.addEventListener('blur', validateBankAddress);
+    document.getElementById('bankPassword')?.addEventListener('blur', validateBankPassword);
+
+
+    /* ==========================================================
+       USER FORM VALIDATORS
+    ========================================================== */
+    function validateUserEmail() {
+      const v = document.getElementById('userEmail').value.trim();
+      if (!v)              return setField('userEmail','userEmailError','userEmailErrMsg',false,'Email is required.');
+      if (!EMAIL_RE.test(v)) return setField('userEmail','userEmailError','userEmailErrMsg',false,'Please enter a valid email address.');
+      return setField('userEmail','userEmailError',null,true,'');
+    }
+
+    function validateUserPassword() {
+      const v = document.getElementById('userPassword').value;
+      if (!v) return setField('userPassword','userPasswordError','userPasswordErrMsg',false,'Password is required.');
+      return setField('userPassword','userPasswordError',null,true,'');
+    }
+
+    function handleUserSignIn(e) {
+      e.preventDefault();
+      const emailOk = validateUserEmail();
+      const pwOk    = validateUserPassword();
+      if (!emailOk || !pwOk) { showToast('Please fix the errors above.', 'error'); return; }
+
+      const email    = document.getElementById('userEmail').value.trim();
+      const password = document.getElementById('userPassword').value;
+      const btn      = document.getElementById('userSignInBtn');
+
+      btn.disabled = true;
+      btn.textContent = 'Signing In\u2026';
+      showToast('Sending verification code\u2026', 'info');
+
+      // Step 1: Request OTP (BloodSync user auth is OTP-based)
+      fetch(`${BASE_URL}/auth/request-otp`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email }),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+
+          if (!res.ok || !data.success) {
+            const msg = data.message || 'Sign in failed. Please try again.';
+            showToast(msg, 'error');
+            return;
+          }
+
+          // OTP sent successfully
+          showToast(`Verification code sent to ${data.data?.maskedEmail || email}`, 'success');
+          console.log('[BloodSync] OTP requested. Masked email:', data.data?.maskedEmail);
+          // TODO: Show OTP input UI / navigate to OTP verification screen
+        })
+        .catch((err) => {
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          console.error('[BloodSync] Sign in network error:', err);
+          showToast('Network error. Is the server running?', 'error');
+        });
+    }
+
+
+    /* ==========================================================
+       BANK FORM VALIDATORS
+    ========================================================== */
+    function validateBankName() {
+      const v = document.getElementById('bankName').value.trim();
+      if (!v)       return setField('bankName','bankNameError','bankNameErrMsg',false,'Blood bank name is required.');
+      if (v.length<3) return setField('bankName','bankNameError','bankNameErrMsg',false,'Name must be at least 3 characters.');
+      return setField('bankName','bankNameError',null,true,'');
+    }
+
+    function validateBankEmail() {
+      const v = document.getElementById('bankEmail').value.trim();
+      if (!v)              return setField('bankEmail','bankEmailError','bankEmailErrMsg',false,'Email is required.');
+      if (!EMAIL_RE.test(v)) return setField('bankEmail','bankEmailError','bankEmailErrMsg',false,'Enter a valid email address.');
+      return setField('bankEmail','bankEmailError',null,true,'');
+    }
+
+    function validateBankPhone() {
+      const v      = document.getElementById('bankPhone').value.trim();
+      const digits = v.replace(/\D/g,'');
+      if (!v)          return setField('bankPhone','bankPhoneError','bankPhoneErrMsg',false,'Phone number is required.');
+      if (digits.length<10) return setField('bankPhone','bankPhoneError','bankPhoneErrMsg',false,'Enter a valid phone number (min 10 digits).');
+      return setField('bankPhone','bankPhoneError',null,true,'');
+    }
+
+    function validateBankCity() {
+      const v = document.getElementById('bankCity').value.trim();
+      if (!v) return setField('bankCity','bankCityError',null,false,'City is required.');
+      return setField('bankCity','bankCityError',null,true,'');
+    }
+
+    function validateBankAddress() {
+      const v = document.getElementById('bankAddress').value.trim();
+      if (!v)        return setField('bankAddress','bankAddressError',null,false,'Full address is required.');
+      if (v.length<8) return setField('bankAddress','bankAddressError',null,false,'Please enter a complete address.');
+      return setField('bankAddress','bankAddressError',null,true,'');
+    }
+
+    function validateBankPassword() {
+      const v = document.getElementById('bankPassword').value;
+      if (!v)      return setField('bankPassword','bankPasswordError','bankPasswordErrMsg',false,'Password is required.');
+      if (v.length<6) return setField('bankPassword','bankPasswordError','bankPasswordErrMsg',false,'Password must be at least 6 characters.');
+      return setField('bankPassword','bankPasswordError',null,true,'');
+    }
+
+    function handleBankRegistration(e) {
+      e.preventDefault();
+      const ok = validateBankName() & validateBankEmail() & validateBankPhone()
+               & validateBankCity() & validateBankAddress() & validateBankPassword();
+      if (!ok) { showToast('Please complete all required fields correctly.', 'error'); return; }
+
+      const payload = {
+        bankName: document.getElementById('bankName').value.trim(),
+        email:    document.getElementById('bankEmail').value.trim(),
+        phone:    document.getElementById('bankPhone').value.trim(),
+        city:     document.getElementById('bankCity').value.trim(),
+        address:  document.getElementById('bankAddress').value.trim(),
+        password: document.getElementById('bankPassword').value,
+      };
+
+      const btn = document.getElementById('bankCreateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating Account\u2026';
+      showToast('Registering your blood bank\u2026', 'info');
+
+      fetch(`${BASE_URL}/bank-auth/register`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          btn.disabled    = false;
+          btn.textContent = 'Create Account';
+
+          if (!res.ok || !data.success) {
+            // Show all validation errors if present
+            const msgs = (data.errors && data.errors.length)
+              ? data.errors.join(' | ')
+              : (data.message || 'Registration failed.');
+            showToast(msgs, 'error');
+            return;
+          }
+
+          // Store session tokens
+          try {
+            sessionStorage.setItem('bs_bank_token', data.data.token);
+            sessionStorage.setItem('bs_bank_id',    data.data.bankId);
+            sessionStorage.setItem('bs_bank_name',  data.data.bankName);
+            if (data.data.firebaseCustomToken) {
+              sessionStorage.setItem('bs_firebase_token', data.data.firebaseCustomToken);
+            }
+          } catch (_) { /* sessionStorage may be blocked in WebView strict mode */ }
+
+          console.log('[BloodSync] Bank registered:', {
+            bankId:   data.data.bankId,
+            bankName: data.data.bankName,
+            email:    data.data.maskedEmail,
+          });
+
+          showToast(`Welcome, ${data.data.bankName}! Account created \uD83C\uDF89`, 'success');
+          // TODO: Redirect to bank dashboard after short delay
+        })
+        .catch((err) => {
+          btn.disabled    = false;
+          btn.textContent = 'Create Account';
+          console.error('[BloodSync] Registration network error:', err);
+          showToast('Network error. Is the server running?', 'error');
+        });
+    }
+
+
+    /* ==========================================================
+       GOOGLE AUTH TRIGGER
+    ========================================================== */
+    function handleGoogleAuth() {
+      console.log('[BloodSync] Google OAuth trigger — wire up Firebase signInWithPopup here.');
+      showToast('Opening Google Sign In\u2026','info');
+      // Integration point:
+      // import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+      // signInWithPopup(getAuth(), new GoogleAuthProvider()).then(result => { ... });
+    }
+
+
+    /* ==========================================================
+       TOAST
+    ========================================================== */
+    const ICONS = {
+      success: `<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>`,
+      error:   `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+      info:    `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    };
+
+    function showToast(msg, type='info', ms=3500) {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.innerHTML = (ICONS[type]||'') + `<span>${msg}</span>`;
+      c.appendChild(t);
+      setTimeout(() => {
+        t.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => t.remove(), 320);
+      }, ms);
+    }
+  </script>
+</body>
+</html>

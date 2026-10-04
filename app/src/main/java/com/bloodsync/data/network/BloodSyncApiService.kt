@@ -92,6 +92,46 @@ data class OtpUserData(
 )
 
 // ==============================================================================
+// Data Transfer Objects (DTOs) for Blood Bank Authentication API
+// ==============================================================================
+
+data class BankRegisterPayload(
+    @SerializedName("bankName") val bankName: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("phone") val phone: String,
+    @SerializedName("city") val city: String,
+    @SerializedName("address") val address: String,
+    @SerializedName("password") val password: String
+)
+
+data class BankLoginPayload(
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
+)
+
+data class BankAuthResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String,
+    @SerializedName("data") val data: BankAuthData? = null,
+    @SerializedName("errors") val errors: List<String>? = null
+)
+
+data class BankAuthData(
+    @SerializedName("token") val token: String? = null,
+    @SerializedName("firebaseCustomToken") val firebaseCustomToken: String? = null,
+    @SerializedName("bank") val bank: BankProfileData? = null
+)
+
+data class BankProfileData(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("bankName") val bankName: String? = null,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("phone") val phone: String? = null,
+    @SerializedName("city") val city: String? = null,
+    @SerializedName("address") val address: String? = null
+)
+
+// ==============================================================================
 // Retrofit API Service Interface
 // ==============================================================================
 
@@ -114,6 +154,22 @@ interface BloodSyncApiService {
     suspend fun verifyOtp(
         @Body payload: OtpVerifyPayload
     ): Response<OtpVerifyResponse>
+
+    /**
+     * Register a new Blood Bank organization with contact details and password.
+     */
+    @POST("bank-auth/register")
+    suspend fun registerBank(
+        @Body payload: BankRegisterPayload
+    ): Response<BankAuthResponse>
+
+    /**
+     * Authenticate a Blood Bank with email and password.
+     */
+    @POST("bank-auth/login")
+    suspend fun loginBank(
+        @Body payload: BankLoginPayload
+    ): Response<BankAuthResponse>
 }
 
 // ==============================================================================

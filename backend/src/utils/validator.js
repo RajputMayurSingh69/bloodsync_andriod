@@ -34,7 +34,33 @@ function isValidOtpFormat(otp) {
   return /^\d{6}$/.test(otpStr);
 }
 
+/**
+ * Validates a phone number (Indian & international).
+ * Accepts optional leading +, spaces, dashes, parens.
+ * Requires minimum 10 digits.
+ * @param {string} phone
+ * @returns {boolean}
+ */
+function isValidPhone(phone) {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+/**
+ * Validates that a string is non-empty after trimming.
+ * @param {string} value
+ * @param {number} [minLength=1]
+ * @returns {boolean}
+ */
+function isNonEmptyString(value, minLength = 1) {
+  if (!value || typeof value !== 'string') return false;
+  return value.trim().length >= minLength;
+}
+
 module.exports = {
   isValidEmail,
   isValidOtpFormat,
+  isValidPhone,
+  isNonEmptyString,
 };

@@ -12,6 +12,7 @@ const { PORT, NODE_ENV, validateConfig } = require('./config/environment');
 const { verifyTransporter } = require('./config/mailer');
 const authRoutes = require('./routes/authRoutes');
 const bloodBankRoutes = require('./routes/bloodBankRoutes');
+const bankAuthRoutes = require('./routes/bankAuthRoutes');
 const errorHandler = require('./middleware/errorHandlerMiddleware');
 const emergencyDispatcherService = require('./services/emergencyDispatcherService');
 const bloodBankService = require('./services/bloodBankService');
@@ -66,6 +67,7 @@ app.get('/debugger/status', async (req, res) => {
 // Mount Routes
 app.use('/auth', authRoutes);
 app.use('/blood-banks', bloodBankRoutes);
+app.use('/bank-auth', bankAuthRoutes);
 
 // Manual trigger for WHO 90-Day Cooldown Scan
 app.post('/admin/cron/cooldown-check', async (req, res) => {
@@ -116,7 +118,9 @@ const server = app.listen(PORT, async () => {
   console.log(`🩸 BloodSync Backend running on port ${PORT} [${NODE_ENV}]`);
   console.log(`📡 Health Check: http://localhost:${PORT}/health`);
   console.log(`🛠️ Debugger Status: http://localhost:${PORT}/debugger/status`);
-  console.log(`🏥 Blood Banks: http://localhost:${PORT}/blood-banks`);
+  console.log(`👤 User Auth (OTP): http://localhost:${PORT}/auth`);
+  console.log(`🏥 Blood Bank Auth: http://localhost:${PORT}/bank-auth`);
+  console.log(`🏦 Blood Banks: http://localhost:${PORT}/blood-banks`);
   console.log(`🚨 Emergency Dispatcher: http://localhost:${PORT}/emergency/dispatch`);
   console.log(`🧹 Database Purge: http://localhost:${PORT}/admin/cron/cleanup-expired`);
   console.log(`=======================================================`);

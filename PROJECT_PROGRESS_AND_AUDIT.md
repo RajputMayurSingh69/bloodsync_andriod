@@ -1,10 +1,11 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
-**Date:** October 3, 2026
-**Version:** v3.3.0 (Emergency Request Smooth Keyboard Scrolling & Donor UI Phone Icon Removal)
+**Date:** October 4, 2026
+**Version:** v3.4.0 (Dual Authentication Web Portals & Blood Bank Bcrypt/JWT Auth Integration)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** [BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk](https://gofile.io/d/W48mSc5k) (v3.3.0)
+**Latest APK:** [BloodSync-v3.4.0-DualPortal-BankAuth.apk](https://gofile.io/d/81tW6d6D) (v3.4.0)
 **Previous Builds:** 
+- [BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk](https://gofile.io/d/W48mSc5k) (v3.3.0)
 - `BloodSync-v3.2.0-Production-Release.apk` (v3.2.0)
 - `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (v3.1.0)
 - `BloodSync-v3.0.0-GPS-Radar-Live.apk` (v3.0.0)
@@ -17,7 +18,30 @@
 
 ## 🚀 Key Milestones Completed
 
-### 30. Emergency Request Keyboard Scroll Fix & Donor Card UI Streamlining (v3.3.0) ← LATEST
+### 31. Dual Authentication Portals (User Sign In + Blood Bank Registration) & v3.4.0 Release (v3.4.0) ← LATEST
+- **High-Fidelity Split-Screen Authentication Portal ([`bloodsync-auth.html`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/bloodsync-auth.html)):**
+  - **Left Showcase Panel:** Solid warm crimson banner (`#C9382B`) displaying official BloodSync branding, dynamic headline ("Every drop creates a second chance." / "Empowering blood banks, saving lives together."), subtext, and security assurance badge.
+  - **Right Form Container:** Crisp white panel (`#FFFFFF`) with smooth, state-driven transition between **User Sign In** (`?role=user`) and **Blood Bank Registration** (`?role=bank`).
+  - **Strict Security Guardrails:** Google OAuth button strictly restricted to User portal; completely excluded from Blood Bank registration per compliance requirements.
+  - **Client-Side Live Validation:** Real-time input checking for valid email regex, min 10-digit phone formatting, required text fields, and minimum 6-character passwords with inline visual feedback.
+  - **Live API Integration:** Fully wired via `fetch()` to backend endpoints:
+    - User OTP request: `POST /auth/request-otp` & OTP verification: `POST /auth/verify-otp`
+    - Blood Bank Registration: `POST /bank-auth/register` & Blood Bank Login: `POST /bank-auth/login`
+- **Blood Bank Backend Auth Suite ([`bloodBankAuthController.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/controllers/bloodBankAuthController.js), [`bankAuthRoutes.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/routes/bankAuthRoutes.js)):**
+  - Password hashing utilizing `bcryptjs` with 12 salt rounds.
+  - Duplicate email and phone collision detection across Firestore `bank_registrations` and `blood_banks` collections.
+  - Custom JWT session token generation with `role: 'blood_bank'`.
+  - Welcome notification trigger and complete audit trail logging via [`loggerBotService.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/services/loggerBotService.js).
+  - Mounted `/bank-auth` router cleanly in [`server.js`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/backend/src/server.js).
+- **Android App Retrofit Network Layer Synchronization ([`BloodSyncApiService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/network/BloodSyncApiService.kt)):**
+  - Added `BankRegisterPayload`, `BankLoginPayload`, `BankAuthResponse`, and `BankProfileData` DTOs.
+  - Added Retrofit methods `registerBank()` and `loginBank()` mapping to the new backend endpoints.
+  - Bumped Android Gradle config (`versionCode = 8`, `versionName = "3.4.0"`).
+- **Cloud Packaging & Release:**
+  - Built with Gradle (`versionCode = 8`, `versionName = "3.4.0"`), zero warnings/errors.
+  - Uploaded to GoFile: [https://gofile.io/d/81tW6d6D](https://gofile.io/d/81tW6d6D) (`BloodSync-v3.4.0-DualPortal-BankAuth.apk`, 25.3 MB).
+
+### 30. Emergency Request Keyboard Scroll Fix & Donor Card UI Streamlining (v3.3.0)
 - **Emergency SOS Form Full Seamless Scrolling (`EmergencyRequestScreen.kt`):**
   - Resolved soft keyboard viewport obstruction with `Modifier.imePadding()` and `Modifier.navigationBarsPadding()`.
   - Refactored entire 5-card form into a unified `Modifier.verticalScroll(scrollState)` container, guaranteeing uninterrupted scrolling from top alert header to the bottom broadcast SOS button even while the keyboard is actively open on any field (e.g. *Patient Name*).
