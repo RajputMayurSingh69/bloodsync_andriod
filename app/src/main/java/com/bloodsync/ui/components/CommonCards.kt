@@ -122,14 +122,15 @@ fun StatMetricCard(
 fun BloodGroupSelector(
     selectedGroup: String,
     onGroupSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String = "Blood Group Need"
 ) {
     val appColors = BloodSyncTheme.colors
     val groups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
     Column(modifier = modifier) {
         Text(
-            text = "Blood Group Needed",
+            text = title,
             style = MaterialTheme.typography.titleMedium,
             color = appColors.textPrimary
         )

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>BloodSync — API Keys & Services Usage Report</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+      color: #1f2937;
+      background: #ffffff;
+      line-height: 1.35;
+      font-size: 9.5pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header {
+      border-bottom: 2.5px solid #C9382B;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-icon {
+      font-size: 22pt;
+      line-height: 1;
+    }
+    .brand-title {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #C9382B;
+      letter-spacing: -0.4px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #4b5563;
+      font-weight: 600;
+    }
+    .meta-badge {
+      text-align: right;
+      font-size: 8pt;
+      color: #6b7280;
+    }
+    .badge-pill {
+      display: inline-block;
+      background: #FEE2E2;
+      color: #991B1B;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 8pt;
+      margin-bottom: 2px;
+    }
+
+    /* SUMMARY BOX */
+    .summary-card {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-left: 4px solid #C9382B;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+    }
+    .summary-title {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 2px;
+    }
+    .summary-desc {
+      font-size: 8.5pt;
+      color: #374151;
+    }
+
+    /* CREDENTIALS SECTION */
+    .section-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #111827;
+      margin: 10px 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .credentials-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .cred-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      padding: 7px 10px;
+    }
+    .cred-name {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #C9382B;
+    }
+    .cred-value {
+      font-family: Consolas, monospace;
+      font-size: 8pt;
+      background: #F3F4F6;
+      padding: 3px 5px;
+      border-radius: 4px;
+      margin: 3px 0;
+      word-break: break-all;
+      color: #111827;
+    }
+    .cred-desc {
+      font-size: 7.5pt;
+      color: #4b5563;
+    }
+
+    /* MAIN TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 8pt;
+    }
+    thead th {
+      background: #C9382B;
+      color: #FFFFFF;
+      text-align: left;
+      padding: 5px 6px;
+      font-weight: 700;
+      font-size: 8pt;
+      border: 1px solid #C9382B;
+    }
+    tbody tr {
+      border-bottom: 1px solid #E5E7EB;
+    }
+    tbody tr:nth-child(even) {
+      background: #F9FAFB;
+    }
+    tbody td {
+      padding: 4.5px 6px;
+      vertical-align: middle;
+      border: 1px solid #E5E7EB;
+    }
+    .col-id {
+      width: 4%;
+      text-align: center;
+      font-weight: 700;
+      color: #6b7280;
+    }
+    .col-feat {
+      width: 26%;
+      font-weight: 700;
+      color: #111827;
+    }
+    .col-purpose {
+      width: 44%;
+      color: #374151;
+    }
+    .col-file {
+      width: 26%;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #065F46;
+      background: #ECFDF5;
+      padding: 3px 4px;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    /* FOOTER */
+    .footer {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7.5pt;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <span class="brand-icon">🩸</span>
+      <div>
+        <div class="brand-title">BloodSync Android</div>
+        <div class="brand-subtitle">API Keys & Cloud Services Architecture Audit Report</div>
+      </div>
+    </div>
+    <div class="meta-badge">
+      <span class="badge-pill">Production Verified</span>
+      <div>Generated: October 2026</div>
+      <div>Package: <code>com.bloodsync</code></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY BOX -->
+  <div class="summary-card">
+    <div class="summary-title">Executive Architecture Summary</div>
+    <div class="summary-desc">
+      BloodSync Android application me Google Firebase aur Play Services ki API keys client-side par 
+      <strong>Authentication, Real-Time Cloud Firestore, Emergency SOS Radar, Push Notifications (FCM)</strong> 
+      aur <strong>Google 1-Tap Sign-In</strong> ko operate karne ke liye use hoti hain. 
+      Yeh keys <code>google-services.json</code> ke dwara Gradle build system se automatically compile-time par inject hoti hain.
+    </div>
+  </div>
+
+  <!-- CREDENTIALS DETAIL -->
+  <div class="section-title">🔑 Mukhya Credentials & Keys</div>
+  <div class="credentials-grid">
+    <div class="cred-card">
+      <div class="cred-name">1. Google / Firebase Mobile API Key</div>
+      <div class="cred-value">AIzaSyBTuYi0hGnq6lcuilxBc4HsjPF7ocIMldU</div>
+      <div class="cred-desc">
+        <strong>Source:</strong> <code>app/google-services.json</code><br>
+        <strong>Scope:</strong> Firebase Auth, Firestore Realtime Database, Cloud Messaging (FCM).
+      </div>
+    </div>
+    <div class="cred-card">
+      <div class="cred-name">2. Google OAuth Web Client ID</div>
+      <div class="cred-value">1044746314963-01csrn69c2eut7dnhqcrr67oml08244n...</div>
+      <div class="cred-desc">
+        <strong>Source:</strong> <code>AuthScreen.kt (GoogleSignInOptions)</code><br>
+        <strong>Scope:</strong> 1-Tap Google Sign-In & ID Token Authentication.
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETE FEATURES TABLE -->
+  <div class="section-title">📋 App Ke Wo Features Jahan API Keys Ka Use Ho Raha Hai</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-id">#</th>
+        <th class="col-feat">Feature / Screen</th>
+        <th class="col-purpose">Kaam (Detailed Purpose)</th>
+        <th class="col-file">App Code File</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="col-id">1</td>
+        <td class="col-feat">Donor Registration</td>
+        <td class="col-purpose">Naye donor ka name, email, password aur credentials Firebase Auth cloud me create karna.</td>
+        <td class="col-file">AuthScreen.kt<br>BloodSyncRepository.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">2</td>
+        <td class="col-feat">User Login (Sign-In)</td>
+        <td class="col-purpose">Registered donor ka email & password verify karke authenticated session start karna.</td>
+        <td class="col-file">AuthScreen.kt<br>BloodSyncRepository.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">3</td>
+        <td class="col-feat">"Continue with Google"</td>
+        <td class="col-purpose">1-Tap Google sign-in prompt kholna aur bina password direct secure login karwana.</td>
+        <td class="col-file">AuthScreen.kt (Line 143)</td>
+      </tr>
+      <tr>
+        <td class="col-id">4</td>
+        <td class="col-feat">Self-Service Password Reset</td>
+        <td class="col-purpose">User ke registered email par secure password reset link bhejna.</td>
+        <td class="col-file">AuthScreen.kt<br>BloodSyncRepository.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">5</td>
+        <td class="col-feat">Donor Directory & Search</td>
+        <td class="col-purpose">A+, B+, O+, AB+ blood groups ke verified donors ki list Firestore cloud se fetch karna.</td>
+        <td class="col-file">FirebaseSyncService.kt<br>DonorsDirectoryScreen.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">6</td>
+        <td class="col-feat">Emergency SOS Broadcast</td>
+        <td class="col-purpose">Urgent blood requirement create karna aur nearby volunteers ko real-time broadcast karna.</td>
+        <td class="col-file">EmergencyRequestScreen.kt<br>FirebaseSyncService.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">7</td>
+        <td class="col-feat">Live Emergency Tracking</td>
+        <td class="col-purpose">Emergency blood request ka real-time status, accepted donor aur location update dekhna.</td>
+        <td class="col-file">EmergencyLiveTrackingScreen.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">8</td>
+        <td class="col-feat">User Profile & DOB Sync</td>
+        <td class="col-purpose">User ka Name, Blood Group, Age, Date of Birth (DOB), Phone aur City cloud par save karna.</td>
+        <td class="col-file">FirebaseSyncService.kt<br>ProfileScreen.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">9</td>
+        <td class="col-feat">Push Notifications (FCM)</td>
+        <td class="col-purpose">Urgent blood requests par donor ke phone par high-priority sound aur pop-up notification bhejna.</td>
+        <td class="col-file">BloodSyncFirebaseMessagingService.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">10</td>
+        <td class="col-feat">Hospital & Blood Bank Directory</td>
+        <td class="col-purpose">24/7 verified blood banks aur unka live stock status cloud database se load karna.</td>
+        <td class="col-file">BloodSyncRepository.kt<br>BloodBanksScreen.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">11</td>
+        <td class="col-feat">Donation Certificates & History</td>
+        <td class="col-purpose">User ke lifetime blood donation records aur digital certificates cloud se retrieve karna.</td>
+        <td class="col-file">FirebaseSyncService.kt<br>ProfileScreen.kt</td>
+      </tr>
+      <tr>
+        <td class="col-id">12</td>
+        <td class="col-feat">Web Admin Dashboard</td>
+        <td class="col-purpose">Computer browser me pura BloodSync network, donors aur requests live monitor karna.</td>
+        <td class="col-file">bloodsync-dashboard.html</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>BloodSync Android Architecture Document &bull; Confidential &bull; Project ID: <code>bloodsync-3b5cf</code></div>
+    <div>Page 1 of 1</div>
+  </div>
+
+</body>
+</html>

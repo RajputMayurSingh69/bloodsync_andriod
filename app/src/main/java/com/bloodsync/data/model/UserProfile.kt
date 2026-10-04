@@ -9,6 +9,7 @@ data class UserProfile(
     val city: String = "",
     val address: String = "",
     val gender: String = "Male",
+    val dob: String = "",
     val age: Int = 18,
     val totalDonations: Int = 0,
     val livesSaved: Int = 0,

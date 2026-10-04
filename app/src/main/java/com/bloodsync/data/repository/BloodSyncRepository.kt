@@ -979,14 +979,19 @@ class BloodSyncRepository(private val context: Context) {
     ) {
         val auth = firebaseService.getFirebaseAuth()
         if (auth != null) {
-            val cleanEmail = email.trim()
+            val cleanEmail = email.trim().lowercase()
             if (cleanEmail.isBlank()) {
                 onFailure("Please enter your registered email address.")
+                return
+            }
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+                onFailure("Please enter a valid email address.")
                 return
             }
             try {
                 auth.sendPasswordResetEmail(cleanEmail)
                     .addOnSuccessListener {
+                        Log.d("BloodSyncAuth", "Password reset email dispatch requested for: $cleanEmail")
                         onSuccess()
                     }
                     .addOnFailureListener { e ->
@@ -1048,6 +1053,7 @@ class BloodSyncRepository(private val context: Context) {
             put("city", p.city)
             put("address", p.address)
             put("gender", p.gender)
+            put("dob", p.dob)
             put("age", p.age)
             put("totalDonations", p.totalDonations)
             put("livesSaved", p.livesSaved)
@@ -1214,6 +1220,7 @@ class BloodSyncRepository(private val context: Context) {
                     city = obj.optString("city", ""),
                     address = obj.optString("address", ""),
                     gender = obj.optString("gender", "Male"),
+                    dob = obj.optString("dob", ""),
                     age = obj.optInt("age", 18),
                     totalDonations = obj.optInt("totalDonations", 0),
                     livesSaved = obj.optInt("livesSaved", 0),

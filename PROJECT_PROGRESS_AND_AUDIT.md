@@ -1,10 +1,11 @@
 # 🩸 BloodSync Android — Complete Project Progress & Audit Report
 
 **Date:** October 4, 2026
-**Version:** v3.4.0 (Dual Authentication Web Portals & Blood Bank Bcrypt/JWT Auth Integration)
+**Version:** v3.5.0 (DOB Calendar Picker, Auto Age Calculation, Password Reset Deliverability & Architecture PDF)
 **Repository:** [github.com/RajputMayurSingh69/bloodsync_andriod](https://github.com/RajputMayurSingh69/bloodsync_andriod)
-**Latest APK:** [BloodSync-v3.4.0-DualPortal-BankAuth.apk](https://gofile.io/d/uhkJHcVD) (v3.4.0)
+**Latest APK:** `BloodSync-v3.5.0-DOB-ResetAuth-Fixed.apk` (v3.5.0)
 **Previous Builds:** 
+- [BloodSync-v3.4.0-DualPortal-BankAuth.apk](https://gofile.io/d/uhkJHcVD) (v3.4.0)
 - [BloodSync-v3.3.0-Scroll-DonorUI-Fixed.apk](https://gofile.io/d/W48mSc5k) (v3.3.0)
 - `BloodSync-v3.2.0-Production-Release.apk` (v3.2.0)
 - `BloodSync-v3.1.0-Stock-Cooldown-Live.apk` (v3.1.0)
@@ -18,7 +19,26 @@
 
 ## 🚀 Key Milestones Completed
 
-### 31. In-App Dual Authentication Portals (User Sign In + Blood Bank Registration) & v3.4.0 Release (v3.4.0) ← LATEST
+### 32. Date of Birth (DOB) Integration, Auto Age Calculation, Password Reset Deliverability & PDF Architecture (v3.5.0) ← LATEST
+- **"Blood Group Need" UI Update ([`CommonCards.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/components/CommonCards.kt)):**
+  - Updated `BloodGroupSelector` component title from `"Blood Group Needed"` to `"Blood Group Need"`.
+- **Date of Birth (DOB) Section & Auto Age Calculation ([`AuthScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/auth/AuthScreen.kt)):**
+  - Added dedicated `DATE OF BIRTH (DOB)` input section before Age input in Donor Registration.
+  - Integrated native `DatePickerDialog` via calendar button with `maxDate` protection against future dates.
+  - Automatic real-time age calculation upon DOB selection or manual input (`DD/MM/YYYY`) with inline auto-fill into Age field.
+  - Preserved manual editing for actual age with instant validation (15-65 years).
+  - Extended [`UserProfile.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/model/UserProfile.kt), [`FirebaseSyncService.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/firebase/FirebaseSyncService.kt), and [`BloodSyncRepository.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/repository/BloodSyncRepository.kt) with `dob` persistence to Cloud Firestore.
+- **Password Reset Email Deliverability Fix ([`AuthScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/auth/AuthScreen.kt), [`BloodSyncRepository.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/data/repository/BloodSyncRepository.kt)):**
+  - Standardized email input normalization with `.trim().lowercase()`.
+  - Added dedicated guidance banner regarding Firebase Email Enumeration Protection and Spam/Junk folder delivery.
+  - Added direct 1-tap **"Open Email / Spam Folder"** action button launching Gmail/default mail client via Android system intent.
+- **API Keys & Architecture PDF Report:**
+  - Audited full backend services (Firebase Auth, Cloud Firestore, FCM, Play Services Location, Nodemailer).
+  - Generated professional single-page PDF report: [`BloodSync_API_Keys_Usage_Report.pdf`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync_API_Keys_Usage_Report.pdf).
+- **Packaging & Assembly:**
+  - Clean Gradle debug build assembled: [`BloodSync-v3.5.0-DOB-ResetAuth-Fixed.apk`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/BloodSync-v3.5.0-DOB-ResetAuth-Fixed.apk) (26.8 MB).
+
+### 31. In-App Dual Authentication Portals (User Sign In + Blood Bank Registration) & v3.4.0 Release (v3.4.0)
 - **Native Android Compose Dual Portals ([`AuthScreen.kt`](file:///c:/Users/ADMIN/AndroidStudioProjects/bloodsync_android/app/src/main/java/com/bloodsync/ui/screens/auth/AuthScreen.kt)):**
   - **Prominent Portal Switcher Pill Bar:** Instant, fluid switching between `[ 👤 User Portal ]` and `[ 🏥 Blood Bank ]`.
   - **Dynamic Branded Crimson Showcase Banner (`#C9382B`):** Matches exact specification with BloodSync logo, active portal badge, headline ("Every drop creates a second chance." / "Empowering blood banks, saving lives together."), subtext, and security assurance badge.

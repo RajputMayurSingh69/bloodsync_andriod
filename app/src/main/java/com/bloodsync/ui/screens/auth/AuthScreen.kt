@@ -1,7 +1,9 @@
 package com.bloodsync.ui.screens.auth
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
+import java.util.Calendar
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -84,6 +86,7 @@ fun AuthScreen(
     var fullName by remember { mutableStateOf("") }
     var selectedBloodGroup by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf("Male") }
+    var dobInput by remember { mutableStateOf("") }
     var ageInput by remember { mutableStateOf("") }
     var ageWarning by remember { mutableStateOf<String?>(null) }
     var phoneInput by remember { mutableStateOf("") }
@@ -186,6 +189,42 @@ fun AuthScreen(
         } catch (e: Exception) {
             isLoading = false
             errorMessage = "Google Sign-In: ${e.localizedMessage ?: "Cancelled"}"
+        }
+    }
+
+    // Date of Birth Calendar Picker Dialog
+    val calendar = remember { Calendar.getInstance() }
+    val initialYear = remember { calendar.get(Calendar.YEAR) - 20 }
+    val initialMonth = remember { calendar.get(Calendar.MONTH) }
+    val initialDay = remember { calendar.get(Calendar.DAY_OF_MONTH) }
+
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val formattedDay = dayOfMonth.toString().padStart(2, '0')
+                val formattedMonth = (month + 1).toString().padStart(2, '0')
+                dobInput = "$formattedDay/$formattedMonth/$year"
+
+                // Auto-calculate exact age from selected DOB
+                val today = Calendar.getInstance()
+                var calculatedAge = today.get(Calendar.YEAR) - year
+                val currentMonth = today.get(Calendar.MONTH)
+                val currentDay = today.get(Calendar.DAY_OF_MONTH)
+                if (currentMonth < month || (currentMonth == month && currentDay < dayOfMonth)) {
+                    calculatedAge--
+                }
+                if (calculatedAge in 0..120) {
+                    ageInput = calculatedAge.toString()
+                    val (isValid, errorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
+                    ageWarning = if (!isValid) errorMsg else null
+                }
+            },
+            initialYear,
+            initialMonth,
+            initialDay
+        ).apply {
+            datePicker.maxDate = System.currentTimeMillis()
         }
     }
 
@@ -673,6 +712,53 @@ fun AuthScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
+                            // Date of Birth (DOB) Input Section
+                            OutlinedTextField(
+                                value = dobInput,
+                                onValueChange = { input ->
+                                    if (input.length <= 10 && input.all { it.isDigit() || it == '/' || it == '-' || it == '.' }) {
+                                        dobInput = input
+                                        val parts = input.split('/', '-', '.')
+                                        if (parts.size == 3 && parts[0].length in 1..2 && parts[1].length in 1..2 && parts[2].length == 4) {
+                                            val d = parts[0].toIntOrNull()
+                                            val m = parts[1].toIntOrNull()
+                                            val y = parts[2].toIntOrNull()
+                                            if (d != null && m != null && y != null && m in 1..12 && d in 1..31) {
+                                                val today = Calendar.getInstance()
+                                                var calculatedAge = today.get(Calendar.YEAR) - y
+                                                val currentMonth = today.get(Calendar.MONTH) + 1
+                                                val currentDay = today.get(Calendar.DAY_OF_MONTH)
+                                                if (currentMonth < m || (currentMonth == m && currentDay < d)) {
+                                                    calculatedAge--
+                                                }
+                                                if (calculatedAge in 0..120) {
+                                                    ageInput = calculatedAge.toString()
+                                                    val (isValid, errorMsg) = ValidationHelper.isValidAge(ageInput, minAge = 15, maxAge = 65)
+                                                    ageWarning = if (!isValid) errorMsg else null
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                label = { Text("DATE OF BIRTH (DOB)") },
+                                placeholder = { Text("DD/MM/YYYY (e.g. 15/08/2000)") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFFC9382B))
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { datePickerDialog.show() }) {
+                                        Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date of Birth", tint = Color(0xFFC9382B))
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = textFieldColors,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
                             // Age Input
                             OutlinedTextField(
                                 value = ageInput,
@@ -849,6 +935,7 @@ fun AuthScreen(
                                         bloodGroup = selectedBloodGroup,
                                         city = ValidationHelper.sanitizeText(cityInput, 50),
                                         gender = selectedGender,
+                                        dob = dobInput.trim(),
                                         age = ageInput.trim().toIntOrNull() ?: 20,
                                         isEmergencyVolunteer = volunteerEmergency,
                                         latitude = donorLatitude,
@@ -1615,12 +1702,63 @@ fun AuthScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (resetMessage != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (resetMessage?.contains("sent", ignoreCase = true) == true) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = resetMessage ?: "",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen else StatusUrgentRed
+                                )
+                                if (resetMessage?.contains("sent", ignoreCase = true) == true) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "📁 Email nahi dikh raha? Gmail ke SPAM / JUNK ya PROMOTIONS folder ko zaroor check karein.",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(
+                                        onClick = {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_MAIN).apply {
+                                                    addCategory(Intent.CATEGORY_APP_EMAIL)
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                context.startActivity(Intent.createChooser(intent, "Open Email App"))
+                                            } catch (_: Exception) {
+                                                try {
+                                                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/"))
+                                                    browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    context.startActivity(browserIntent)
+                                                } catch (_: Exception) {}
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
+                                        shape = RoundedCornerShape(50.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(38.dp)
+                                    ) {
+                                        Icon(Icons.Default.Email, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Open Email / Spam Folder", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = resetMessage ?: "",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen else StatusUrgentRed
+                            text = "💡 Tip: Make sure this is the exact email registered in BloodSync. Reset links are sent via Firebase noreply.",
+                            fontSize = 11.sp,
+                            color = appColors.textMuted
                         )
                     }
                 }
@@ -1628,9 +1766,13 @@ fun AuthScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val clean = resetEmailInput.trim()
+                        val clean = resetEmailInput.trim().lowercase()
                         if (clean.isBlank()) {
                             resetMessage = "Please enter your email."
+                            return@Button
+                        }
+                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(clean).matches()) {
+                            resetMessage = "Please enter a valid email address format."
                             return@Button
                         }
                         isSendingReset = true
@@ -1639,7 +1781,7 @@ fun AuthScreen(
                             email = clean,
                             onSuccess = {
                                 isSendingReset = false
-                                resetMessage = "Password reset email sent! Check your inbox."
+                                resetMessage = "Password reset link sent to $clean! Please check your Inbox and Spam/Junk folder."
                             },
                             onFailure = { err ->
                                 isSendingReset = false
