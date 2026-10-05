@@ -1,0 +1,9 @@
+ktor:
+  deployment:
+    port: 5000
+    watch:
+      - classes
+
+application:
+  modules:
+    - com.bloodsync.ApplicationKt.module

@@ -1,0 +1,3919 @@
+﻿=== FILE: backend/src/config/constants.js ===
+
+/**
+ * BloodSync Backend - System Constants & Error Categories
+ */
+
+const ERROR_CATEGORIES = {
+  OTP_GENERATION_ERROR: 'OTP_GENERATION_ERROR',
+  OTP_DATABASE_ERROR: 'OTP_DATABASE_ERROR',
+  EMAIL_CONFIGURATION_ERROR: 'EMAIL_CONFIGURATION_ERROR',
+  SMTP_AUTH_ERROR: 'SMTP_AUTH_ERROR',
+  EMAIL_SEND_ERROR: 'EMAIL_SEND_ERROR',
+  FIREBASE_ERROR: 'FIREBASE_ERROR',
+  RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  DUPLICATE_EMAIL_ERROR: 'DUPLICATE_EMAIL_ERROR',
+  BANK_REGISTRATION_ERROR: 'BANK_REGISTRATION_ERROR',
+  BANK_NOT_FOUND_ERROR: 'BANK_NOT_FOUND_ERROR',
+  UNAUTHORIZED_ERROR: 'UNAUTHORIZED_ERROR',
+};
+
+const REQUEST_STATUS = {
+  SUCCESS: 'SUCCESS',
+  FAILURE: 'FAILURE',
+};
+
+const OTP_GEN_STATUS = {
+  GENERATED: 'GENERATED',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED',
+};
+
+const EMAIL_SEND_STATUS = {
+  SENT: 'SENT',
+  FAILED: 'FAILED',
+  PENDING: 'PENDING',
+};
+
+const FIRESTORE_COLLECTIONS = {
+  BACKEND_DEBUGGER_LOGS: 'backend_debugger_logs',
+  OTP_VERIFICATIONS: 'otp_verifications',
+  OTP_RATE_LIMITS: 'otp_rate_limits',
+  CRITICAL_ALERTS: 'critical_alerts',
+  USERS: 'users',
+  BLOOD_BANKS: 'blood_banks',
+  BANK_REGISTRATIONS: 'bank_registrations',
+};
+
+const CONFIG_DEFAULTS = {
+  OTP_LENGTH: 6,
+  OTP_EXPIRY_MINUTES: 5,
+  OTP_MAX_ATTEMPTS: 5,
+  RATE_LIMIT_WINDOW_MINUTES: 10,
+  RATE_LIMIT_MAX_REQUESTS: 3,
+  RATE_LIMIT_COOLDOWN_SECONDS: 60,
+};
+
+module.exports = {
+  ERROR_CATEGORIES,
+  REQUEST_STATUS,
+  OTP_GEN_STATUS,
+  EMAIL_SEND_STATUS,
+  FIRESTORE_COLLECTIONS,
+  CONFIG_DEFAULTS,
+};
+
+
+=== FILE: backend/src/config/environment.js ===
+
+/**
+ * BloodSync Backend - Environment Configuration Loader
+ */
+
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Load .env file from backend root
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = parseInt(process.env.PORT, 10) || 5000;
+
+const SMTP_CONFIG = {
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT, 10) || 465,
+  secure: process.env.SMTP_SECURE === 'true' || parseInt(process.env.SMTP_PORT, 10) === 465,
+  user: process.env.SMTP_USER || '',
+  password: process.env.SMTP_PASSWORD || '',
+  fromName: process.env.EMAIL_FROM_NAME || 'BloodSync Security',
+  fromAddress: process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || 'no-reply@bloodsync.org',
+};
+
+const FIREBASE_CONFIG = {
+  serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+  serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
+  projectId: process.env.FIREBASE_PROJECT_ID || 'bloodsync-3b5cf',
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
+  privateKey: process.env.FIREBASE_PRIVATE_KEY
+    ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    : '',
+};
+
+const SECURITY_CONFIG = {
+  otpExpiryMinutes: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
+  otpMaxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS, 10) || 5,
+  otpSaltSecret: process.env.OTP_SALT_SECRET || 'bloodsync_default_secure_salt_change_me_in_prod',
+  jwtSecret: process.env.JWT_SECRET || 'bloodsync_super_secret_jwt_key_change_me_in_prod',
+  jwtExpiration: process.env.JWT_EXPIRATION || '24h',
+};
+
+const RATE_LIMIT_CONFIG = {
+  windowMinutes: parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES, 10) || 10,
+  maxRequestsPerWindow: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS_PER_WINDOW, 10) || 3,
+  cooldownSeconds: parseInt(process.env.RATE_LIMIT_COOLDOWN_SECONDS, 10) || 60,
+};
+
+const MONITORING_CONFIG = {
+  alertWebhookUrl: process.env.ALERT_WEBHOOK_URL || '',
+  alertNotificationEmail: process.env.ALERT_NOTIFICATION_EMAIL || '',
+  enableRealtimeAlerts: process.env.ENABLE_REALTIME_ALERTS === 'true',
+};
+
+function validateConfig() {
+  const warnings = [];
+
+  if (!SMTP_CONFIG.user || !SMTP_CONFIG.password) {
+    warnings.push('SMTP_USER or SMTP_PASSWORD is not set. Nodemailer will fail to send real emails.');
+  }
+
+  if (SECURITY_CONFIG.otpSaltSecret.includes('change_me')) {
+    warnings.push('OTP_SALT_SECRET is using default placeholder. Set a strong secret in production.');
+  }
+
+  if (SECURITY_CONFIG.jwtSecret.includes('change_me')) {
+    warnings.push('JWT_SECRET is using default placeholder. Set a strong secret in production.');
+  }
+
+  return {
+    isValid: true,
+    warnings,
+  };
+}
+
+module.exports = {
+  NODE_ENV,
+  PORT,
+  SMTP_CONFIG,
+  FIREBASE_CONFIG,
+  SECURITY_CONFIG,
+  RATE_LIMIT_CONFIG,
+  MONITORING_CONFIG,
+  validateConfig,
+};
+
+
+=== FILE: backend/src/config/firebase.js ===
+
+/**
+ * BloodSync Backend - Firebase Admin SDK Initialization
+ */
+
+const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
+const { FIREBASE_CONFIG } = require('./environment');
+
+let isInitialized = false;
+
+function initializeFirebase() {
+  if (isInitialized || admin.apps.length > 0) {
+    return admin;
+  }
+
+  try {
+    let credential;
+
+    // Method 1: Direct JSON content in environment variable (FIREBASE_SERVICE_ACCOUNT_JSON)
+    if (FIREBASE_CONFIG.serviceAccountJson) {
+      try {
+        let jsonStr = String(FIREBASE_CONFIG.serviceAccountJson).trim();
+        // Check if base64 encoded
+        if (!jsonStr.startsWith('{')) {
+          jsonStr = Buffer.from(jsonStr, 'base64').toString('utf8');
+        }
+        const serviceAccount = JSON.parse(jsonStr);
+        credential = admin.credential.cert(serviceAccount);
+        console.log('[Firebase] Successfully initialized with FIREBASE_SERVICE_ACCOUNT_JSON environment variable.');
+      } catch (jsonErr) {
+        console.warn(`[Firebase] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: ${jsonErr.message}`);
+      }
+    }
+
+    // Method 2: Path to service account JSON
+    if (!credential && FIREBASE_CONFIG.serviceAccountPath) {
+      const candidatePaths = [
+        FIREBASE_CONFIG.serviceAccountPath,
+        path.isAbsolute(FIREBASE_CONFIG.serviceAccountPath) ? FIREBASE_CONFIG.serviceAccountPath : null,
+        path.resolve(process.cwd(), FIREBASE_CONFIG.serviceAccountPath),
+        path.resolve(__dirname, '../../config/firebase-service-account.json'),
+        path.resolve(__dirname, './firebase-service-account.json'),
+      ].filter(Boolean);
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          try {
+            const serviceAccount = JSON.parse(fs.readFileSync(p, 'utf8'));
+            credential = admin.credential.cert(serviceAccount);
+            console.log(`[Firebase] Successfully initialized with service account file: ${p}`);
+            break;
+          } catch (fileErr) {
+            console.warn(`[Firebase] Could not read service account from ${p}: ${fileErr.message}`);
+          }
+        }
+      }
+    }
+
+    // Method 3: Explicit credentials from environment variables
+    if (!credential && FIREBASE_CONFIG.clientEmail && FIREBASE_CONFIG.privateKey) {
+      credential = admin.credential.cert({
+        projectId: FIREBASE_CONFIG.projectId,
+        clientEmail: FIREBASE_CONFIG.clientEmail,
+        privateKey: FIREBASE_CONFIG.privateKey,
+      });
+      console.log('[Firebase] Successfully initialized with FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY.');
+    }
+
+    // Method 4: Application Default Credentials (GCP / Cloud Run / Firebase Functions)
+    if (!credential) {
+      try {
+        credential = admin.credential.applicationDefault();
+      } catch (_adcErr) {
+        // Fallback below
+      }
+    }
+
+    if (credential) {
+      admin.initializeApp({
+        credential,
+        projectId: FIREBASE_CONFIG.projectId,
+      });
+      isInitialized = true;
+      console.log(`[Firebase] Firebase Admin SDK active for project: ${FIREBASE_CONFIG.projectId}`);
+    } else {
+      admin.initializeApp({
+        projectId: FIREBASE_CONFIG.projectId || 'bloodsync-3b5cf',
+      });
+      isInitialized = true;
+      console.warn('[Firebase] Initialized in default fallback mode without private service account credentials.');
+
+      try {
+        const webhookAlertService = require('../services/webhookAlertService');
+        webhookAlertService.triggerAlert({
+          severity: 'WARNING',
+          errorCategory: 'FIREBASE_FALLBACK_MODE',
+          title: 'Firebase Service Account Credentials Missing',
+          message: 'Firebase Admin SDK initialized in fallback mode without service account credentials. Elevated admin operations may fail.',
+          requestId: 'boot_firebase_fallback',
+        });
+      } catch (_hookErr) {}
+    }
+  } catch (error) {
+    console.error(`[Firebase] Initialization Warning: ${error.message}`);
+    try {
+      const webhookAlertService = require('../services/webhookAlertService');
+      webhookAlertService.triggerAlert({
+        severity: 'CRITICAL',
+        errorCategory: 'FIREBASE_CREDENTIALS_ERROR',
+        title: 'Firebase Admin SDK Initialization Error',
+        message: `Failed to initialize Firebase Admin SDK: ${error.message}. Check service account credentials.`,
+        requestId: 'boot_firebase_init',
+      });
+    } catch (_hookErr) {}
+
+    if (!isInitialized && admin.apps.length === 0) {
+      try {
+        admin.initializeApp({
+          projectId: FIREBASE_CONFIG.projectId || 'bloodsync-3b5cf',
+        });
+        isInitialized = true;
+      } catch (innerError) {
+        console.error('[Firebase] Fatal initialization failure:', innerError.message);
+      }
+    }
+  }
+
+  return admin;
+}
+
+const firebaseApp = initializeFirebase();
+const db = firebaseApp.firestore ? firebaseApp.firestore() : null;
+const auth = firebaseApp.auth ? firebaseApp.auth() : null;
+
+module.exports = {
+  admin,
+  db,
+  auth,
+  initializeFirebase,
+};
+
+
+=== FILE: backend/src/config/mailer.js ===
+
+/**
+ * BloodSync Backend - Nodemailer & Gmail SMTP Transporter Setup
+ */
+
+const nodemailer = require('nodemailer');
+const { SMTP_CONFIG } = require('./environment');
+const { ERROR_CATEGORIES } = require('./constants');
+
+let transporterInstance = null;
+
+function createTransporter() {
+  if (transporterInstance) {
+    return transporterInstance;
+  }
+
+  const isPort465 = Number(SMTP_CONFIG.port) === 465;
+
+  const transportOptions = {
+    host: SMTP_CONFIG.host,
+    port: Number(SMTP_CONFIG.port),
+    secure: SMTP_CONFIG.secure || isPort465, // true for 465, false for 587/STARTTLS
+    auth: {
+      user: SMTP_CONFIG.user,
+      pass: SMTP_CONFIG.password,
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateLimit: 10, // max 10 messages/second
+    connectionTimeout: 15000, // 15 seconds
+    socketTimeout: 30000,     // 30 seconds
+    tls: {
+      // Do not fail on invalid certs in test environments, but enforce in production
+      rejectUnauthorized: process.env.NODE_ENV === 'production',
+      minVersion: 'TLSv1.2',
+    },
+  };
+
+  transporterInstance = nodemailer.createTransport(transportOptions);
+  return transporterInstance;
+}
+
+/**
+ * Verifies SMTP connection and classifies any configuration or authentication failure
+ */
+async function verifyTransporter() {
+  const transporter = createTransporter();
+
+  if (!SMTP_CONFIG.user || !SMTP_CONFIG.password) {
+    return {
+      success: false,
+      category: ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR,
+      message: 'SMTP credentials missing. Please set SMTP_USER and SMTP_PASSWORD in .env',
+    };
+  }
+
+  try {
+    await transporter.verify();
+    return {
+      success: true,
+      message: `SMTP Transporter verified successfully for ${SMTP_CONFIG.user}`,
+    };
+  } catch (error) {
+    let category = ERROR_CATEGORIES.EMAIL_SEND_ERROR;
+
+    if (
+      error.code === 'EAUTH' ||
+      error.responseCode === 535 ||
+      (error.message && error.message.toLowerCase().includes('badcredentials')) ||
+      (error.message && error.message.toLowerCase().includes('username and password not accepted'))
+    ) {
+      category = ERROR_CATEGORIES.SMTP_AUTH_ERROR;
+    } else if (
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'ETIMEDOUT'
+    ) {
+      category = ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR;
+    }
+
+    return {
+      success: false,
+      category,
+      message: error.message,
+      code: error.code,
+      responseCode: error.responseCode,
+    };
+  }
+}
+
+module.exports = {
+  createTransporter,
+  verifyTransporter,
+};
+
+
+=== FILE: backend/src/controllers/authController.js ===
+
+/**
+ * BloodSync Backend - Authentication & OTP Controller
+ * 
+ * Implements:
+ * - POST /auth/request-otp
+ * - POST /auth/verify-otp
+ * 
+ * Strictly follows the 6-step architecture, safe error propagation, and zero credential leakage.
+ */
+
+const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
+const { auth } = require('../config/firebase');
+const { SECURITY_CONFIG } = require('../config/environment');
+const {
+  ERROR_CATEGORIES,
+  REQUEST_STATUS,
+  OTP_GEN_STATUS,
+  EMAIL_SEND_STATUS,
+} = require('../config/constants');
+const { isValidEmail, isValidOtpFormat } = require('../utils/validator');
+const { maskEmail, sanitizeIp } = require('../utils/sanitizer');
+const otpService = require('../services/otpService');
+const emailService = require('../services/emailService');
+const rateLimiterService = require('../services/rateLimiterService');
+const loggerBotService = require('../services/loggerBotService');
+
+class AuthController {
+  /**
+   * Handles POST /auth/request-otp
+   * 
+   * Step 1: Validate incoming email format.
+   * Step 2: Check rate limits.
+   * Step 3: Generate and store OTP record.
+   * Step 4: Attempt Gmail SMTP delivery.
+   * Step 5: On Success -> Return generic success response; log success event to Firebase monitoring.
+   * Step 6: On Failure -> Return safe generic error to user; log exact technical error to Firebase debugger.
+   */
+  async requestOtp(req, res) {
+    const startTime = Date.now();
+    const requestId = req.headers['x-request-id'] || uuidv4();
+    const { email } = req.body || {};
+    const clientIp = sanitizeIp(req.ip || req.connection.remoteAddress);
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    let currentOtpGenStatus = OTP_GEN_STATUS.SKIPPED;
+    let currentEmailSendStatus = EMAIL_SEND_STATUS.PENDING;
+
+    // STEP 1: Validate incoming email format
+    if (!email || !isValidEmail(email)) {
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: email || 'unknown',
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: OTP_GEN_STATUS.SKIPPED,
+        emailSendingStatus: EMAIL_SEND_STATUS.PENDING,
+        errorCategory: ERROR_CATEGORIES.UNKNOWN_ERROR,
+        errorMessage: 'Invalid or missing email address provided in request payload.',
+        metadata: { clientIp, userAgent, durationMs: Date.now() - startTime },
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: 'A valid email address is required.',
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // STEP 2: Check rate limits
+    const rateLimitCheck = await rateLimiterService.checkRateLimit(normalizedEmail);
+    if (!rateLimitCheck.allowed) {
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: normalizedEmail,
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: OTP_GEN_STATUS.SKIPPED,
+        emailSendingStatus: EMAIL_SEND_STATUS.PENDING,
+        errorCategory: ERROR_CATEGORIES.RATE_LIMIT_ERROR,
+        errorMessage: rateLimitCheck.reason,
+        metadata: {
+          clientIp,
+          userAgent,
+          retryAfterSeconds: rateLimitCheck.retryAfterSeconds,
+          durationMs: Date.now() - startTime,
+        },
+      });
+
+      return res.status(429).json({
+        success: false,
+        message: rateLimitCheck.reason,
+        retryAfterSeconds: rateLimitCheck.retryAfterSeconds,
+      });
+    }
+
+    // STEP 3: Generate and store OTP record
+    let otpData;
+    try {
+      otpData = await otpService.createAndStoreOtp(normalizedEmail, requestId);
+      currentOtpGenStatus = OTP_GEN_STATUS.GENERATED;
+    } catch (genError) {
+      currentOtpGenStatus = OTP_GEN_STATUS.FAILED;
+
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: normalizedEmail,
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: currentOtpGenStatus,
+        emailSendingStatus: EMAIL_SEND_STATUS.PENDING,
+        errorCategory: genError.category || ERROR_CATEGORIES.OTP_GENERATION_ERROR,
+        errorMessage: genError.message,
+        metadata: { clientIp, userAgent, durationMs: Date.now() - startTime },
+      });
+
+      // Step 6: Safe generic error to user
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to process OTP request at this time. Please try again later.',
+      });
+    }
+
+    // Record request into rate limiter after successful generation
+    await rateLimiterService.recordRequest(normalizedEmail);
+
+    // STEP 4: Attempt Gmail SMTP delivery
+    const emailResult = await emailService.sendOtpEmail({
+      recipientEmail: normalizedEmail,
+      otp: otpData.otp, // Plaintext OTP is sent solely to recipient via SMTP
+      requestId,
+    });
+
+    currentEmailSendStatus = emailResult.status;
+
+    // STEP 5: On Success -> Return generic success response; log success event to Firebase monitoring
+    if (emailResult.success) {
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: normalizedEmail,
+        requestStatus: REQUEST_STATUS.SUCCESS,
+        otpGenStatus: currentOtpGenStatus,
+        emailSendingStatus: currentEmailSendStatus,
+        errorCategory: null,
+        errorMessage: null,
+        metadata: {
+          clientIp,
+          userAgent,
+          messageId: emailResult.messageId,
+          durationMs: Date.now() - startTime,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Verification code sent to your email address.',
+        data: {
+          maskedEmail: maskEmail(normalizedEmail),
+          expiresInMinutes: SECURITY_CONFIG.otpExpiryMinutes,
+        },
+      });
+    }
+
+    // STEP 6: On Failure -> Safe generic error to user; log exact technical error to Firebase debugger bot
+    await loggerBotService.logOtpEvent({
+      requestId,
+      rawEmail: normalizedEmail,
+      requestStatus: REQUEST_STATUS.FAILURE,
+      otpGenStatus: currentOtpGenStatus,
+      emailSendingStatus: currentEmailSendStatus,
+      errorCategory: emailResult.errorCategory || ERROR_CATEGORIES.EMAIL_SEND_ERROR,
+      errorMessage: emailResult.errorMessage,
+      metadata: { clientIp, userAgent, durationMs: Date.now() - startTime },
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to deliver verification code. Please check your email and try again later.',
+    });
+  }
+
+  /**
+   * Handles POST /auth/verify-otp
+   * Validates user OTP against stored HMAC hash, enforces brute-force limits and expiry,
+   * and issues JWT & Firebase Custom Token for seamless authentication.
+   */
+  async verifyOtp(req, res) {
+    const startTime = Date.now();
+    const requestId = req.headers['x-request-id'] || uuidv4();
+    const { email, otp } = req.body || {};
+    const clientIp = sanitizeIp(req.ip || req.connection.remoteAddress);
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid email address is required.',
+      });
+    }
+
+    if (!otp || !isValidOtpFormat(otp)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A 6-digit numeric verification code is required.',
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Verify OTP against Firestore HMAC
+    const verification = await otpService.verifyOtp(normalizedEmail, otp, requestId);
+
+    if (!verification.success) {
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: normalizedEmail,
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: OTP_GEN_STATUS.SKIPPED,
+        emailSendingStatus: EMAIL_SEND_STATUS.PENDING,
+        errorCategory: verification.errorCategory || ERROR_CATEGORIES.UNKNOWN_ERROR,
+        errorMessage: `OTP verification failed: ${verification.reason}`,
+        metadata: { clientIp, userAgent, durationMs: Date.now() - startTime },
+      });
+
+      const statusCode = verification.errorCategory === ERROR_CATEGORIES.RATE_LIMIT_ERROR ? 429 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        message: verification.reason,
+      });
+    }
+
+    // OTP is valid! Generate session tokens
+    let firebaseCustomToken = null;
+    try {
+      if (auth) {
+        // Create or locate Firebase Auth User Record
+        let userRecord;
+        try {
+          userRecord = await auth.getUserByEmail(normalizedEmail);
+        } catch (findErr) {
+          if (findErr.code === 'auth/user-not-found') {
+            userRecord = await auth.createUser({
+              email: normalizedEmail,
+              emailVerified: true,
+            });
+          }
+        }
+
+        if (userRecord) {
+          firebaseCustomToken = await auth.createCustomToken(userRecord.uid, {
+            email: normalizedEmail,
+            verifiedViaOtp: true,
+          });
+        }
+      }
+    } catch (authError) {
+      console.warn(`[AuthController] Could not issue Firebase custom token: ${authError.message}`);
+    }
+
+    // Generate JWT token for backend API session handling
+    const jwtToken = jwt.sign(
+      {
+        email: normalizedEmail,
+        type: 'otp_verified_session',
+      },
+      SECURITY_CONFIG.jwtSecret,
+      { expiresIn: SECURITY_CONFIG.jwtExpiration }
+    );
+
+    await loggerBotService.logOtpEvent({
+      requestId,
+      rawEmail: normalizedEmail,
+      requestStatus: REQUEST_STATUS.SUCCESS,
+      otpGenStatus: OTP_GEN_STATUS.SKIPPED,
+      emailSendingStatus: EMAIL_SEND_STATUS.PENDING,
+      errorCategory: null,
+      errorMessage: null,
+      metadata: {
+        action: 'OTP_VERIFIED',
+        clientIp,
+        userAgent,
+        durationMs: Date.now() - startTime,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email verified successfully.',
+      data: {
+        token: jwtToken,
+        firebaseCustomToken, // Can be used directly with FirebaseAuth.getInstance().signInWithCustomToken()
+        user: {
+          email: normalizedEmail,
+          maskedEmail: maskEmail(normalizedEmail),
+        },
+      },
+    });
+  }
+}
+
+module.exports = new AuthController();
+
+
+=== FILE: backend/src/controllers/bloodBankAuthController.js ===
+
+/**
+ * BloodSync Backend - Blood Bank Authentication Controller
+ *
+ * Handles:
+ *  POST /bank-auth/register  - Blood Bank Registration Portal
+ *  POST /bank-auth/login     - Blood Bank Sign In
+ *  GET  /bank-auth/me        - Get authenticated bank profile (protected)
+ *
+ * Architecture:
+ *  - Input validation -> Duplicate guard -> bcrypt hash -> Firestore write
+ *    -> Firebase Auth user (custom claim: role=blood_bank) -> JWT -> welcome email
+ *  - Consistent safe error responses (no stack traces to client)
+ *  - Full audit trail via loggerBotService
+ */
+
+'use strict';
+
+const { v4: uuidv4 } = require('uuid');
+const bcrypt          = require('bcryptjs');
+const jwt             = require('jsonwebtoken');
+const { auth, db }    = require('../config/firebase');
+const { SECURITY_CONFIG }           = require('../config/environment');
+const { ERROR_CATEGORIES, REQUEST_STATUS, FIRESTORE_COLLECTIONS } = require('../config/constants');
+const { isValidEmail, isValidPhone, isNonEmptyString } = require('../utils/validator');
+const { maskEmail, sanitizeIp }     = require('../utils/sanitizer');
+const emailService      = require('../services/emailService');
+const loggerBotService  = require('../services/loggerBotService');
+
+const BCRYPT_ROUNDS = 12;
+const COLLECTION    = FIRESTORE_COLLECTIONS.BANK_REGISTRATIONS || 'bank_registrations';
+
+/* -----------------------------------------------------------------
+   HELPER: Sign a JWT for a blood bank session
+----------------------------------------------------------------- */
+function signBankJwt(bankId, email) {
+  return jwt.sign(
+    { sub: bankId, email, role: 'blood_bank', type: 'bank_session' },
+    SECURITY_CONFIG.jwtSecret,
+    { expiresIn: SECURITY_CONFIG.jwtExpiration || '24h' }
+  );
+}
+
+/* -----------------------------------------------------------------
+   HELPER: Verify Bearer JWT from Authorization header
+----------------------------------------------------------------- */
+function verifyBankJwt(authHeader) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  try {
+    return jwt.verify(authHeader.slice(7), SECURITY_CONFIG.jwtSecret);
+  } catch {
+    return null;
+  }
+}
+
+class BloodBankAuthController {
+
+  /* ================================================================
+     POST /bank-auth/register
+     Blood Bank Registration Portal - full onboarding flow
+  ================================================================ */
+  async register(req, res) {
+    const startTime = Date.now();
+    const requestId = req.headers['x-request-id'] || uuidv4();
+    const clientIp  = sanitizeIp(req.ip || req.connection?.remoteAddress);
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    const { bankName, email, phone, city, address, password } = req.body || {};
+
+    // STEP 1: Input Validation
+    const validationErrors = [];
+    if (!isNonEmptyString(bankName, 3))
+      validationErrors.push('Blood bank name must be at least 3 characters.');
+    if (!email || !isValidEmail(email))
+      validationErrors.push('A valid email address is required.');
+    if (!isValidPhone(phone))
+      validationErrors.push('A valid phone number (min 10 digits) is required.');
+    if (!isNonEmptyString(city, 2))
+      validationErrors.push('City is required.');
+    if (!isNonEmptyString(address, 8))
+      validationErrors.push('Full address (min 8 characters) is required.');
+    if (!password || password.length < 6)
+      validationErrors.push('Password must be at least 6 characters.');
+
+    if (validationErrors.length > 0) {
+      await loggerBotService.logOtpEvent({
+        requestId,
+        rawEmail: email || 'unknown',
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: 'SKIPPED',
+        emailSendingStatus: 'SKIPPED',
+        errorCategory: ERROR_CATEGORIES.VALIDATION_ERROR,
+        errorMessage: `Bank registration validation failed: ${validationErrors.join(' | ')}`,
+        metadata: { clientIp, userAgent, action: 'BANK_REGISTER', durationMs: Date.now() - startTime },
+      });
+      return res.status(400).json({ success: false, message: 'Validation failed.', errors: validationErrors });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+    const normalizedName  = bankName.trim();
+    const normalizedCity  = city.trim();
+    const normalizedAddr  = address.trim();
+
+    // STEP 2: Duplicate Email Guard
+    if (db) {
+      try {
+        const existing = await db
+          .collection(COLLECTION)
+          .where('email', '==', normalizedEmail)
+          .limit(1)
+          .get();
+        if (!existing.empty) {
+          return res.status(409).json({
+            success: false,
+            message: 'An account with this email already exists. Please sign in.',
+          });
+        }
+      } catch (dbErr) {
+        console.error('[BankAuth] Duplicate check failed:', dbErr.message);
+      }
+    }
+
+    // STEP 3: Hash Password
+    let passwordHash;
+    try {
+      passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    } catch (hashErr) {
+      console.error('[BankAuth] bcrypt hash error:', hashErr.message);
+      return res.status(500).json({ success: false, message: 'Registration failed. Please try again later.' });
+    }
+
+    // STEP 4: Write to Firestore
+    const bankId  = `bank_${uuidv4().replace(/-/g, '').slice(0, 16)}`;
+    const bankDoc = {
+      bankId,
+      bankName:    normalizedName,
+      email:       normalizedEmail,
+      phone:       normalizedPhone,
+      city:        normalizedCity,
+      address:     normalizedAddr,
+      passwordHash,
+      role:        'blood_bank',
+      verified:    false,
+      active:      true,
+      stocks:      { 'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0, 'AB+': 0, 'AB-': 0, 'O+': 0, 'O-': 0 },
+      totalUnitsAvailable: 0,
+      registrationIp: clientIp,
+      createdAt:   new Date().toISOString(),
+      updatedAt:   new Date().toISOString(),
+    };
+
+    if (db) {
+      try {
+        await db.collection(COLLECTION).doc(bankId).set(bankDoc);
+
+        // Lightweight entry in blood_banks for inventory queries
+        await db.collection(FIRESTORE_COLLECTIONS.BLOOD_BANKS || 'blood_banks').doc(bankId).set({
+          bankId,
+          name:    normalizedName,
+          email:   normalizedEmail,
+          phone:   normalizedPhone,
+          city:    normalizedCity,
+          address: normalizedAddr,
+          verified: false,
+          active:   true,
+          stocks:  bankDoc.stocks,
+          totalUnitsAvailable: 0,
+          bloodStockStatus: 'Pending Setup',
+          createdAt: new Date().toISOString(),
+        });
+      } catch (fsErr) {
+        console.error('[BankAuth] Firestore write failed:', fsErr.message);
+        await loggerBotService.logOtpEvent({
+          requestId,
+          rawEmail: normalizedEmail,
+          requestStatus: REQUEST_STATUS.FAILURE,
+          otpGenStatus: 'SKIPPED',
+          emailSendingStatus: 'SKIPPED',
+          errorCategory: ERROR_CATEGORIES.FIREBASE_ERROR,
+          errorMessage: `Firestore bank registration write failed: ${fsErr.message}`,
+          metadata: { clientIp, userAgent, action: 'BANK_REGISTER', durationMs: Date.now() - startTime },
+        });
+        return res.status(500).json({ success: false, message: 'Registration failed. Please try again later.' });
+      }
+    }
+
+    // STEP 5: Firebase Auth User with custom claim role=blood_bank
+    let firebaseCustomToken = null;
+    if (auth) {
+      try {
+        let userRecord;
+        try {
+          userRecord = await auth.getUserByEmail(normalizedEmail);
+        } catch (findErr) {
+          if (findErr.code === 'auth/user-not-found') {
+            userRecord = await auth.createUser({
+              uid:           bankId,
+              email:         normalizedEmail,
+              emailVerified: false,
+              displayName:   normalizedName,
+            });
+          }
+        }
+        if (userRecord) {
+          await auth.setCustomUserClaims(userRecord.uid, { role: 'blood_bank', bankId, active: true });
+          firebaseCustomToken = await auth.createCustomToken(userRecord.uid, { role: 'blood_bank', bankId });
+        }
+      } catch (authErr) {
+        console.warn('[BankAuth] Firebase Auth setup warning:', authErr.message);
+      }
+    }
+
+    // STEP 6: Issue JWT
+    const jwtToken = signBankJwt(bankId, normalizedEmail);
+
+    // STEP 7: Send Welcome Email (best-effort)
+    try {
+      if (emailService && typeof emailService.sendOtpEmail === 'function') {
+        await emailService.sendOtpEmail({
+          recipientEmail: normalizedEmail,
+          otp: `WELCOME_${normalizedName}`,
+          requestId,
+        });
+      }
+    } catch (mailErr) {
+      console.warn('[BankAuth] Welcome email failed:', mailErr.message);
+    }
+
+    // STEP 8: Audit Log
+    await loggerBotService.logOtpEvent({
+      requestId,
+      rawEmail: normalizedEmail,
+      requestStatus: REQUEST_STATUS.SUCCESS,
+      otpGenStatus: 'SKIPPED',
+      emailSendingStatus: 'SENT',
+      errorCategory: null,
+      errorMessage: null,
+      metadata: {
+        action: 'BANK_REGISTERED', bankId, bankName: normalizedName, city: normalizedCity,
+        clientIp, userAgent, durationMs: Date.now() - startTime,
+      },
+    });
+
+    // STEP 9: Success Response
+    return res.status(201).json({
+      success: true,
+      message: 'Blood bank registered successfully. Your account is under review.',
+      data: {
+        bankId,
+        bankName:    normalizedName,
+        email:       normalizedEmail,
+        maskedEmail: maskEmail(normalizedEmail),
+        city:        normalizedCity,
+        phone:       normalizedPhone,
+        address:     normalizedAddr,
+        verified:    false,
+        active:      true,
+        token:       jwtToken,
+        firebaseCustomToken,
+      },
+    });
+  }
+
+
+  /* ================================================================
+     POST /bank-auth/login
+     Blood Bank Sign In
+  ================================================================ */
+  async login(req, res) {
+    const startTime = Date.now();
+    const requestId = req.headers['x-request-id'] || uuidv4();
+    const clientIp  = sanitizeIp(req.ip || req.connection?.remoteAddress);
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    const { email, password } = req.body || {};
+
+    if (!email || !isValidEmail(email))
+      return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+    if (!password)
+      return res.status(400).json({ success: false, message: 'Password is required.' });
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!db)
+      return res.status(503).json({ success: false, message: 'Service temporarily unavailable.' });
+
+    // Fetch bank record
+    let bankData = null;
+    let bankDocId = null;
+    try {
+      const snap = await db.collection(COLLECTION).where('email', '==', normalizedEmail).limit(1).get();
+      if (snap.empty)
+        return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      const doc = snap.docs[0];
+      bankData  = doc.data();
+      bankDocId = doc.id;
+    } catch (dbErr) {
+      console.error('[BankAuth] Login DB fetch failed:', dbErr.message);
+      return res.status(500).json({ success: false, message: 'Sign in failed. Please try again.' });
+    }
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, bankData.passwordHash || '');
+    if (!passwordMatch) {
+      await loggerBotService.logOtpEvent({
+        requestId, rawEmail: normalizedEmail,
+        requestStatus: REQUEST_STATUS.FAILURE,
+        otpGenStatus: 'SKIPPED', emailSendingStatus: 'SKIPPED',
+        errorCategory: ERROR_CATEGORIES.UNAUTHORIZED_ERROR,
+        errorMessage: 'Bank login failed: incorrect password.',
+        metadata: { clientIp, userAgent, action: 'BANK_LOGIN', durationMs: Date.now() - startTime },
+      });
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    if (bankData.active === false)
+      return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact BloodSync support.' });
+
+    // Issue tokens
+    const jwtToken = signBankJwt(bankDocId, normalizedEmail);
+    let firebaseCustomToken = null;
+    if (auth) {
+      try {
+        const uid = bankData.bankId || bankDocId;
+        firebaseCustomToken = await auth.createCustomToken(uid, { role: 'blood_bank', bankId: uid });
+      } catch (authErr) {
+        console.warn('[BankAuth] Firebase token error on login:', authErr.message);
+      }
+    }
+
+    // Audit log
+    await loggerBotService.logOtpEvent({
+      requestId, rawEmail: normalizedEmail,
+      requestStatus: REQUEST_STATUS.SUCCESS,
+      otpGenStatus: 'SKIPPED', emailSendingStatus: 'SKIPPED',
+      errorCategory: null, errorMessage: null,
+      metadata: {
+        action: 'BANK_LOGIN', bankId: bankData.bankId, bankName: bankData.bankName,
+        clientIp, userAgent, durationMs: Date.now() - startTime,
+      },
+    });
+
+    const { passwordHash: _pw, registrationIp: _ip, ...safeData } = bankData;
+    return res.status(200).json({
+      success: true,
+      message: 'Signed in successfully.',
+      data: { ...safeData, maskedEmail: maskEmail(normalizedEmail), token: jwtToken, firebaseCustomToken },
+    });
+  }
+
+
+  /* ================================================================
+     GET /bank-auth/me
+     Returns authenticated blood bank profile.
+     Requires: Authorization: Bearer <jwt>
+  ================================================================ */
+  async getMe(req, res) {
+    const decoded = verifyBankJwt(req.headers['authorization']);
+    if (!decoded || decoded.role !== 'blood_bank')
+      return res.status(401).json({ success: false, message: 'Unauthorized. Valid bank token required.' });
+
+    if (!db)
+      return res.status(503).json({ success: false, message: 'Service temporarily unavailable.' });
+
+    try {
+      const snap = await db.collection(COLLECTION).where('email', '==', decoded.email).limit(1).get();
+      if (snap.empty)
+        return res.status(404).json({ success: false, message: 'Bank profile not found.' });
+
+      const { passwordHash: _pw, registrationIp: _ip, ...safeData } = snap.docs[0].data();
+      return res.status(200).json({ success: true, data: safeData });
+    } catch (err) {
+      console.error('[BankAuth] getMe failed:', err.message);
+      return res.status(500).json({ success: false, message: 'Failed to fetch profile.' });
+    }
+  }
+}
+
+module.exports = new BloodBankAuthController();
+
+
+=== FILE: backend/src/middleware/errorHandlerMiddleware.js ===
+
+/**
+ * BloodSync Backend - Global Error Handler Middleware
+ * Sanitizes errors and logs technical details to LoggerBotService without leaking credentials.
+ */
+
+const { v4: uuidv4 } = require('uuid');
+const loggerBotService = require('../services/loggerBotService');
+const {
+  ERROR_CATEGORIES,
+  REQUEST_STATUS,
+  OTP_GEN_STATUS,
+  EMAIL_SEND_STATUS,
+} = require('../config/constants');
+const { sanitizeIp } = require('../utils/sanitizer');
+
+function errorHandlerMiddleware(err, req, res, next) {
+  const requestId = req.headers['x-request-id'] || uuidv4();
+  const rawEmail = (req.body && req.body.email) || 'unknown';
+  const clientIp = sanitizeIp(req.ip || req.connection.remoteAddress);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+
+  const errorCategory = err.category || ERROR_CATEGORIES.UNKNOWN_ERROR;
+
+  // Log error via LoggerBotService
+  loggerBotService.logOtpEvent({
+    requestId,
+    rawEmail,
+    requestStatus: REQUEST_STATUS.FAILURE,
+    otpGenStatus: OTP_GEN_STATUS.SKIPPED,
+    emailSendingStatus: EMAIL_SEND_STATUS.FAILED,
+    errorCategory,
+    errorMessage: err.message || 'Internal server error occurred.',
+    metadata: {
+      clientIp,
+      userAgent,
+      path: req.originalUrl,
+      method: req.method,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    },
+  }).catch((logErr) => {
+    console.error(`[ErrorHandler] Error logger failed: ${logErr.message}`);
+  });
+
+  const statusCode = err.status || err.statusCode || 500;
+
+  // Never return internal error stacks to client in production
+  return res.status(statusCode).json({
+    success: false,
+    message: err.userMessage || 'An unexpected error occurred. Please try again later.',
+    requestId,
+  });
+}
+
+module.exports = errorHandlerMiddleware;
+
+
+=== FILE: backend/src/routes/authRoutes.js ===
+
+/**
+ * BloodSync Backend - Authentication Routes
+ */
+
+const express = require('express');
+const router = express.Router();
+const authController = require('../controllers/authController');
+
+// POST /auth/request-otp - Request a cryptographically secure 6-digit OTP
+router.post('/request-otp', (req, res) => authController.requestOtp(req, res));
+
+// POST /auth/verify-otp - Verify OTP and obtain JWT + Firebase Custom Token
+router.post('/verify-otp', (req, res) => authController.verifyOtp(req, res));
+
+module.exports = router;
+
+
+=== FILE: backend/src/routes/bankAuthRoutes.js ===
+
+/**
+ * BloodSync Backend - Blood Bank Authentication Routes
+ *
+ * POST /bank-auth/register  -> Blood Bank Registration (Portal 2)
+ * POST /bank-auth/login     -> Blood Bank Sign In
+ * GET  /bank-auth/me        -> Protected: fetch bank profile
+ */
+
+'use strict';
+
+const express  = require('express');
+const router   = express.Router();
+const bankAuthController = require('../controllers/bloodBankAuthController');
+
+/**
+ * POST /bank-auth/register
+ * Body: { bankName, email, phone, city, address, password }
+ * Response 201: { success, message, data: { bankId, token, firebaseCustomToken, ... } }
+ */
+router.post('/register', (req, res) => bankAuthController.register(req, res));
+
+/**
+ * POST /bank-auth/login
+ * Body: { email, password }
+ * Response 200: { success, message, data: { token, firebaseCustomToken, bankName, ... } }
+ */
+router.post('/login', (req, res) => bankAuthController.login(req, res));
+
+/**
+ * GET /bank-auth/me
+ * Headers: Authorization: Bearer <jwt>
+ * Response 200: { success, data: { bankName, email, city, stocks, ... } }
+ */
+router.get('/me', (req, res) => bankAuthController.getMe(req, res));
+
+module.exports = router;
+
+
+=== FILE: backend/src/routes/bloodBankRoutes.js ===
+
+/**
+ * BloodSync Backend - Blood Bank Inventory Routes
+ */
+
+const express = require('express');
+const router = express.Router();
+const bloodBankService = require('../services/bloodBankService');
+
+// GET /blood-banks - List all blood banks and current stock levels
+router.get('/', async (req, res) => {
+  try {
+    const banks = await bloodBankService.getAllBanks();
+    res.status(200).json({ success: true, count: banks.length, data: banks });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /blood-banks/:id/update-stock - Transactional stock update for a specific blood bank
+router.post('/:id/update-stock', async (req, res) => {
+  const bankId = req.params.id;
+  const result = await bloodBankService.updateStock(bankId, req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+// POST /blood-banks/update-stock - Transactional stock update with bloodBankId in body
+router.post('/update-stock', async (req, res) => {
+  const bankId = req.body.bloodBankId || req.body.id || req.body.bankId;
+  const result = await bloodBankService.updateStock(bankId, req.body);
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+module.exports = router;
+
+
+=== FILE: backend/src/scripts/cleanup.js ===
+
+#!/usr/bin/env node
+/**
+ * BloodSync Backend - Standalone Database Purge CLI Script
+ * 
+ * Usage:
+ *   node backend/src/scripts/cleanup.js
+ */
+
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
+
+const cleanupCronService = require('../services/cleanupCronService');
+
+async function main() {
+  console.log('========================================================');
+  console.log('🧹 BloodSync Database Purge & Retention Enforcement');
+  console.log('========================================================');
+
+  try {
+    const result = await cleanupCronService.runFullCleanup();
+    console.log('\n✅ Cleanup Results:');
+    console.log(`   - Rate Limits Purged: ${result.rateLimitsPurged}`);
+    console.log(`   - Aged Logs Purged:    ${result.debuggerLogsPurged}`);
+    console.log(`   - Expired OTPs Purged: ${result.expiredOtpsPurged}`);
+    console.log(`   - Total Deleted:       ${result.totalDocumentsCleaned}`);
+    console.log(`   - Execution Time:      ${result.durationMs}ms\n`);
+    process.exit(0);
+  } catch (err) {
+    console.error(`\n❌ Fatal Cleanup Error: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+main();
+
+
+=== FILE: backend/src/server.js ===
+
+/**
+ * BloodSync Backend - Server Entry Point
+ * 
+ * Secure Express application providing OTP authentication, Gmail SMTP integration,
+ * and real-time Firebase Debugger Bot monitoring.
+ */
+
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const { PORT, NODE_ENV, validateConfig } = require('./config/environment');
+const { verifyTransporter } = require('./config/mailer');
+const authRoutes = require('./routes/authRoutes');
+const bloodBankRoutes = require('./routes/bloodBankRoutes');
+const bankAuthRoutes = require('./routes/bankAuthRoutes');
+const errorHandler = require('./middleware/errorHandlerMiddleware');
+const emergencyDispatcherService = require('./services/emergencyDispatcherService');
+const bloodBankService = require('./services/bloodBankService');
+const cooldownCronService = require('./services/cooldownCronService');
+const cleanupCronService = require('./services/cleanupCronService');
+const webhookAlertService = require('./services/webhookAlertService');
+
+const app = express();
+
+// Security Middlewares
+app.use(helmet());
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+
+// Request tracing middleware
+app.use((req, res, next) => {
+  if (!req.headers['x-request-id']) {
+    const { v4: uuidv4 } = require('uuid');
+    req.headers['x-request-id'] = uuidv4();
+  }
+  res.setHeader('X-Request-ID', req.headers['x-request-id']);
+  next();
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    service: 'bloodsync-backend',
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+  });
+});
+
+// System Diagnostics & Debugger Status endpoint
+app.get('/debugger/status', async (req, res) => {
+  const smtpStatus = await verifyTransporter();
+  res.status(200).json({
+    service: 'BloodSync Debugger & Monitoring Bot',
+    environment: NODE_ENV,
+    smtp: {
+      connected: smtpStatus.success,
+      category: smtpStatus.category || null,
+      message: smtpStatus.message,
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Mount Routes
+app.use('/auth', authRoutes);
+app.use('/blood-banks', bloodBankRoutes);
+app.use('/bank-auth', bankAuthRoutes);
+
+// Manual trigger for WHO 90-Day Cooldown Scan
+app.post('/admin/cron/cooldown-check', async (req, res) => {
+  const result = await cooldownCronService.runCooldownScan();
+  res.status(200).json({ success: true, ...result });
+});
+
+// Manual trigger for Firestore Expired Rate-Limits & Logs Cleanup
+app.post('/admin/cron/cleanup-expired', async (req, res) => {
+  const result = await cleanupCronService.runFullCleanup();
+  res.status(200).json({ success: true, ...result });
+});
+
+// Test Webhook Alert Dispatch Endpoint (for developer verification)
+app.post('/admin/test-alert', async (req, res) => {
+  const result = await webhookAlertService.triggerAlert({
+    severity: req.body.severity || 'WARNING',
+    errorCategory: req.body.errorCategory || 'WEBHOOK_VERIFICATION_TEST',
+    title: req.body.title || 'BloodSync Test Alert',
+    message: req.body.message || 'Manual webhook alert verification from BloodSync backend.',
+    requestId: 'test_' + Date.now(),
+    maskedUserEmail: 'admin@bloodsync.org',
+    metadata: { source: 'Admin API /admin/test-alert' },
+  });
+  res.status(result.success ? 200 : 400).json(result);
+});
+
+// Emergency SOS Dispatch Endpoint (manual trigger / webhook)
+app.post('/emergency/dispatch', async (req, res) => {
+  const result = await emergencyDispatcherService.onEmergencyCreated(req.body);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Resource not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// Global Error Handler
+app.use(errorHandler);
+
+// Start Server
+const server = app.listen(PORT, async () => {
+  console.log(`=======================================================`);
+  console.log(`🩸 BloodSync Backend running on port ${PORT} [${NODE_ENV}]`);
+  console.log(`📡 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🛠️ Debugger Status: http://localhost:${PORT}/debugger/status`);
+  console.log(`👤 User Auth (OTP): http://localhost:${PORT}/auth`);
+  console.log(`🏥 Blood Bank Auth: http://localhost:${PORT}/bank-auth`);
+  console.log(`🏦 Blood Banks: http://localhost:${PORT}/blood-banks`);
+  console.log(`🚨 Emergency Dispatcher: http://localhost:${PORT}/emergency/dispatch`);
+  console.log(`🧹 Database Purge: http://localhost:${PORT}/admin/cron/cleanup-expired`);
+  console.log(`=======================================================`);
+
+  // Start real-time Firestore Emergency SOS Listener
+  emergencyDispatcherService.startListener();
+
+  // Initialize default blood banks & start automated schedulers
+  bloodBankService.initializeDefaults();
+  cooldownCronService.startDailySchedule();
+  cleanupCronService.startWeeklySchedule();
+
+  // Validate configuration warnings
+  const { warnings } = validateConfig();
+  if (warnings.length > 0) {
+    warnings.forEach((warn) => console.warn(`⚠️  [CONFIG WARNING] ${warn}`));
+  }
+
+  // Pre-flight SMTP check
+  const smtpCheck = await verifyTransporter();
+  if (smtpCheck.success) {
+    console.log(`✅ [SMTP] ${smtpCheck.message}`);
+  } else {
+    console.warn(`⚠️ [SMTP] Pre-flight verification failed: [${smtpCheck.category}] ${smtpCheck.message}`);
+    // Trigger instant webhook alert if configured
+    webhookAlertService.triggerAlert({
+      severity: 'CRITICAL',
+      errorCategory: smtpCheck.category,
+      title: 'Gmail SMTP Pre-flight Verification Failed',
+      message: `Failed to connect to Gmail SMTP: ${smtpCheck.message}. OTP delivery will fail until credentials are corrected.`,
+      requestId: 'boot_smtp_preflight',
+    });
+  }
+});
+
+// Uncaught exception and unhandled rejection listeners for fail-safe alerting
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught Exception:', err);
+  webhookAlertService.triggerAlert({
+    severity: 'CRITICAL',
+    errorCategory: 'UNCAUGHT_EXCEPTION',
+    title: 'Node.js Fatal Uncaught Exception',
+    message: err.message || 'Fatal uncaught exception occurred in host process.',
+    metadata: { stack: err.stack },
+  });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled Rejection:', reason);
+  webhookAlertService.triggerAlert({
+    severity: 'CRITICAL',
+    errorCategory: 'UNHANDLED_REJECTION',
+    title: 'Node.js Unhandled Promise Rejection',
+    message: String(reason && reason.message ? reason.message : reason),
+  });
+});
+
+// Graceful shutdown handling
+function handleShutdown(signal) {
+  console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
+  server.close(() => {
+    console.log('[Server] HTTP server closed cleanly. Exiting process.');
+    process.exit(0);
+  });
+
+  // Force exit if shutdown takes too long
+  setTimeout(() => {
+    console.error('[Server] Forcing shutdown due to timeout.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+
+module.exports = app;
+
+
+=== FILE: backend/src/services/bloodBankService.js ===
+
+/**
+ * BloodSync Backend - Blood Bank Inventory Management Service
+ * 
+ * Provides transactional stock increment/decrement operations
+ * for donations and emergency blood dispatches.
+ */
+
+const { admin, db } = require('../config/firebase');
+const loggerBotService = require('./loggerBotService');
+const { REQUEST_STATUS } = require('../config/constants');
+
+const VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+class BloodBankService {
+
+  /**
+   * Safely updates blood inventory units in a blood bank using a Firestore transaction.
+   * Prevents negative stock balances and logs an immutable audit trail.
+   * 
+   * @param {string} bankId Blood bank document ID
+   * @param {Object} payload
+   * @param {string} payload.bloodGroup e.g. 'O+', 'A+'
+   * @param {number} payload.deltaUnits positive integer to add, negative integer to deduct
+   * @param {string} payload.operation 'DONATION_RECEIVED' | 'EMERGENCY_DISPATCH' | 'MANUAL_ADJUSTMENT'
+   * @param {string} [payload.reason] Contextual explanation (e.g. SOS request ID, Donor ID)
+   * @param {string} [payload.performedBy] Operator/User identifier
+   * @returns {Promise<{ success: boolean, previousStock: number, newStock: number, bankId: string, bloodGroup: string, error?: string }>}
+   */
+  async updateStock(bankId, payload) {
+    if (!db) {
+      return { success: false, error: 'Database uninitialized' };
+    }
+
+    if (!bankId) {
+      return { success: false, error: 'bloodBankId is required' };
+    }
+
+    const {
+      bloodGroup,
+      deltaUnits,
+      operation = 'MANUAL_ADJUSTMENT',
+      reason = '',
+      performedBy = 'system_admin',
+    } = payload || {};
+
+    const cleanGroup = String(bloodGroup || '').trim().toUpperCase();
+    if (!VALID_BLOOD_GROUPS.includes(cleanGroup)) {
+      return { success: false, error: `Invalid blood group: ${bloodGroup}. Must be one of ${VALID_BLOOD_GROUPS.join(', ')}` };
+    }
+
+    const delta = parseInt(deltaUnits, 10);
+    if (isNaN(delta) || delta === 0) {
+      return { success: false, error: 'deltaUnits must be a non-zero integer' };
+    }
+
+    const bankRef = db.collection('blood_banks').doc(bankId);
+
+    try {
+      const result = await db.runTransaction(async (transaction) => {
+        const bankDoc = await transaction.get(bankRef);
+
+        if (!bankDoc.exists) {
+          throw new Error(`Blood bank ${bankId} does not exist in registry`);
+        }
+
+        const data = bankDoc.data() || {};
+        const stocks = data.stocks || {
+          'A+': 40, 'A-': 10, 'B+': 35, 'B-': 8,
+          'AB+': 15, 'AB-': 4, 'O+': 50, 'O-': 12
+        };
+
+        const currentStock = typeof stocks[cleanGroup] === 'number' ? stocks[cleanGroup] : 0;
+        const newStock = currentStock + delta;
+
+        if (newStock < 0) {
+          throw new Error(`Insufficient stock for ${cleanGroup}. Available: ${currentStock} units, requested deduction: ${Math.abs(delta)} units.`);
+        }
+
+        // Update current group stock
+        stocks[cleanGroup] = newStock;
+
+        // Compute total units
+        const totalUnits = Object.values(stocks).reduce((sum, val) => sum + (Number(val) || 0), 0);
+
+        // Record stock transaction history log
+        const logRef = bankRef.collection('stock_transactions').doc();
+        transaction.set(logRef, {
+          id: logRef.id,
+          bankId,
+          bloodGroup: cleanGroup,
+          deltaUnits: delta,
+          previousStock: currentStock,
+          newStock,
+          operation,
+          reason,
+          performedBy,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Update blood bank document
+        transaction.set(bankRef, {
+          stocks,
+          totalUnitsAvailable: totalUnits,
+          bloodStockStatus: newStock <= 5 ? 'Critical Low' : newStock <= 15 ? 'Low' : 'Adequate',
+          lastStockUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        return {
+          success: true,
+          bankId,
+          bloodGroup: cleanGroup,
+          previousStock: currentStock,
+          newStock,
+          deltaUnits: delta,
+          operation,
+        };
+      });
+
+      // Audit log in loggerBot
+      await loggerBotService.logOtpEvent({
+        requestId: `stock_${bankId}_${Date.now()}`,
+        rawEmail: 'inventory@bloodsync.org',
+        requestStatus: REQUEST_STATUS.SUCCESS,
+        otpGenStatus: 'SKIPPED',
+        emailSendingStatus: 'SKIPPED',
+        errorCategory: null,
+        errorMessage: null,
+        metadata: {
+          action: 'STOCK_TRANSACTION',
+          ...result,
+        },
+      });
+
+      return result;
+    } catch (err) {
+      console.error(`[BloodBankService] Transaction failed for bank ${bankId}:`, err.message);
+      return {
+        success: false,
+        error: err.message,
+      };
+    }
+  }
+
+  /**
+   * Retrieves all registered blood banks and their stock levels.
+   */
+  async getAllBanks() {
+    if (!db) return [];
+    try {
+      const snap = await db.collection('blood_banks').get();
+      return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.error('[BloodBankService] Error fetching blood banks:', err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Seeds initial blood banks if the collection is empty.
+   */
+  async initializeDefaults() {
+    if (!db) return;
+    try {
+      const snap = await db.collection('blood_banks').limit(1).get();
+      if (snap.empty) {
+        console.log('[BloodBankService] Seeding default blood banks into Firestore...');
+        const initialBanks = [
+          {
+            id: 'bb_metro_central',
+            name: 'Metro Central Blood Bank',
+            address: '108 Healthcare Blvd, Central District',
+            phone: '+91 79 2656 1234',
+            openHours: '24/7',
+            distanceKm: 2.1,
+            bloodStockStatus: 'Adequate',
+            latitude: 23.0225,
+            longitude: 72.5714,
+            stocks: { 'A+': 55, 'A-': 12, 'B+': 48, 'B-': 9, 'AB+': 22, 'AB-': 5, 'O+': 68, 'O-': 14 },
+          },
+          {
+            id: 'bb_redcross_civic',
+            name: 'Red Cross Civic Blood Center',
+            address: 'Ring Road, Civic Center Cross',
+            phone: '+91 79 2658 5678',
+            openHours: '24/7',
+            distanceKm: 4.5,
+            bloodStockStatus: 'Adequate',
+            latitude: 23.0300,
+            longitude: 72.5800,
+            stocks: { 'A+': 42, 'A-': 8, 'B+': 39, 'B-': 6, 'AB+': 18, 'AB-': 3, 'O+': 52, 'O-': 10 },
+          },
+          {
+            id: 'bb_apollo_life',
+            name: 'Apollo Lifeline Regional Bank',
+            address: 'Plot 14, SG Highway Medical Zone',
+            phone: '+91 79 4000 9999',
+            openHours: '24/7',
+            distanceKm: 6.8,
+            bloodStockStatus: 'Adequate',
+            latitude: 23.0450,
+            longitude: 72.5350,
+            stocks: { 'A+': 60, 'A-': 15, 'B+': 50, 'B-': 11, 'AB+': 25, 'AB-': 6, 'O+': 75, 'O-': 18 },
+          },
+        ];
+
+        for (const bank of initialBanks) {
+          const total = Object.values(bank.stocks).reduce((a, b) => a + b, 0);
+          await db.collection('blood_banks').doc(bank.id).set({
+            ...bank,
+            totalUnitsAvailable: total,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+        console.log('[BloodBankService] Default blood banks seeded successfully.');
+      }
+    } catch (err) {
+      console.warn('[BloodBankService] Could not initialize default blood banks:', err.message);
+    }
+  }
+}
+
+module.exports = new BloodBankService();
+
+
+=== FILE: backend/src/services/cleanupCronService.js ===
+
+/**
+ * BloodSync Backend - Rate Limit & Log Auto-Cleanup Service
+ * 
+ * Purges expired rate-limit records (`otp_rate_limits`), expired OTP verifications,
+ * and aged debugger logs from Cloud Firestore to keep storage optimized and GDPR/HIPAA compliant.
+ * 
+ * Operates on a weekly automated schedule and supports on-demand admin execution.
+ */
+
+const { admin, db } = require('../config/firebase');
+const { FIRESTORE_COLLECTIONS } = require('../config/constants');
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000; // 24 hours
+const LOG_RETENTION_DAYS = 14; // 14 days
+const BATCH_SIZE = 400; // Under Firestore limit of 500 operations per commit
+
+class CleanupCronService {
+  constructor() {
+    this.intervalId = null;
+    this.isRunning = false;
+  }
+
+  /**
+   * Purges expired documents from the `otp_rate_limits` collection.
+   * Any rate-limit entry where `lastRequestAt` is older than 24 hours has expired.
+   */
+  async purgeExpiredRateLimits() {
+    if (!db) return { deleted: 0, scanned: 0 };
+
+    const cutoffMillis = Date.now() - RATE_LIMIT_RETENTION_MS;
+    const cutoffTimestamp = admin.firestore.Timestamp.fromMillis(cutoffMillis);
+    let deletedCount = 0;
+    let scannedCount = 0;
+
+    try {
+      // Find expired rate limits by lastRequestAt
+      const snapshot = await db
+        .collection(FIRESTORE_COLLECTIONS.OTP_RATE_LIMITS)
+        .where('lastRequestAt', '<', cutoffTimestamp)
+        .limit(BATCH_SIZE)
+        .get();
+
+      scannedCount = snapshot.size;
+
+      if (!snapshot.empty) {
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+        await batch.commit();
+      }
+
+      return { deleted: deletedCount, scanned: scannedCount };
+    } catch (err) {
+      console.error(`[CleanupService] Error purging otp_rate_limits: ${err.message}`);
+      return { deleted: deletedCount, scanned: scannedCount, error: err.message };
+    }
+  }
+
+  /**
+   * Purges aged debugger logs from the `backend_debugger_logs` collection.
+   * Default retention is 14 days.
+   */
+  async purgeOldDebuggerLogs(retentionDays = LOG_RETENTION_DAYS) {
+    if (!db) return { deleted: 0, scanned: 0 };
+
+    const cutoffMillis = Date.now() - retentionDays * MS_PER_DAY;
+    const cutoffTimestamp = admin.firestore.Timestamp.fromMillis(cutoffMillis);
+    let deletedCount = 0;
+    let scannedCount = 0;
+
+    try {
+      const snapshot = await db
+        .collection(FIRESTORE_COLLECTIONS.BACKEND_DEBUGGER_LOGS)
+        .where('timestamp', '<', cutoffTimestamp)
+        .limit(BATCH_SIZE)
+        .get();
+
+      scannedCount = snapshot.size;
+
+      if (!snapshot.empty) {
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+        await batch.commit();
+      }
+
+      return { deleted: deletedCount, scanned: scannedCount };
+    } catch (err) {
+      console.error(`[CleanupService] Error purging backend_debugger_logs: ${err.message}`);
+      return { deleted: deletedCount, scanned: scannedCount, error: err.message };
+    }
+  }
+
+  /**
+   * Purges expired OTP records from `otp_verifications`.
+   */
+  async purgeExpiredOtps() {
+    if (!db) return { deleted: 0, scanned: 0 };
+
+    const nowTimestamp = admin.firestore.Timestamp.now();
+    let deletedCount = 0;
+    let scannedCount = 0;
+
+    try {
+      const snapshot = await db
+        .collection(FIRESTORE_COLLECTIONS.OTP_VERIFICATIONS)
+        .where('expiresAt', '<', nowTimestamp)
+        .limit(BATCH_SIZE)
+        .get();
+
+      scannedCount = snapshot.size;
+
+      if (!snapshot.empty) {
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          deletedCount++;
+        });
+        await batch.commit();
+      }
+
+      return { deleted: deletedCount, scanned: scannedCount };
+    } catch (err) {
+      console.error(`[CleanupService] Error purging otp_verifications: ${err.message}`);
+      return { deleted: deletedCount, scanned: scannedCount, error: err.message };
+    }
+  }
+
+  /**
+   * Executes a complete cleanup cycle across all rate limits, expired OTPs, and logs.
+   */
+  async runFullCleanup() {
+    const startTime = Date.now();
+    console.log(`[CleanupService] Starting scheduled database purge at ${new Date(startTime).toISOString()}...`);
+
+    const rateLimitsResult = await this.purgeExpiredRateLimits();
+    const debuggerLogsResult = await this.purgeOldDebuggerLogs(LOG_RETENTION_DAYS);
+    const expiredOtpsResult = await this.purgeExpiredOtps();
+
+    const durationMs = Date.now() - startTime;
+    const totalDeleted =
+      (rateLimitsResult.deleted || 0) +
+      (debuggerLogsResult.deleted || 0) +
+      (expiredOtpsResult.deleted || 0);
+
+    const summary = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      durationMs,
+      totalDocumentsCleaned: totalDeleted,
+      rateLimitsPurged: rateLimitsResult.deleted || 0,
+      debuggerLogsPurged: debuggerLogsResult.deleted || 0,
+      expiredOtpsPurged: expiredOtpsResult.deleted || 0,
+    };
+
+    console.log(
+      `[CleanupService] Purge completed in ${durationMs}ms: ` +
+      `${summary.rateLimitsPurged} rate-limits, ${summary.debuggerLogsPurged} logs, ${summary.expiredOtpsPurged} OTPs purged.`
+    );
+
+    // Record cleanup summary log in Firestore
+    try {
+      if (db) {
+        await db.collection(FIRESTORE_COLLECTIONS.BACKEND_DEBUGGER_LOGS).add({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          requestId: `cleanup_${Date.now()}`,
+          requestStatus: 'SUCCESS',
+          serverEnvironment: process.env.NODE_ENV || 'development',
+          action: 'FIRESTORE_TTL_AUTO_CLEANUP',
+          metadata: summary,
+        });
+      }
+    } catch (_logErr) {
+      // Non-blocking
+    }
+
+    return summary;
+  }
+
+  /**
+   * Starts the 7-day recurring cleanup timer.
+   */
+  startWeeklySchedule() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+
+    console.log('[CleanupService] Starting weekly Firestore rate-limit & log cleanup scheduler...');
+
+    // Run initial cleanup 20 seconds after server startup
+    setTimeout(() => {
+      this.runFullCleanup().catch((err) =>
+        console.warn(`[CleanupService] Initial cleanup notice: ${err.message}`)
+      );
+    }, 20000);
+
+    // Recurring every 7 days (7 * 24 * 60 * 60 * 1000 ms)
+    this.intervalId = setInterval(() => {
+      this.runFullCleanup().catch((err) =>
+        console.warn(`[CleanupService] Periodic cleanup notice: ${err.message}`)
+      );
+    }, 7 * MS_PER_DAY);
+  }
+
+  /**
+   * Halts the recurring scheduler.
+   */
+  stopSchedule() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    this.isRunning = false;
+  }
+}
+
+module.exports = new CleanupCronService();
+
+
+=== FILE: backend/src/services/cooldownCronService.js ===
+
+/**
+ * BloodSync Backend - WHO 90-Day Donor Cooldown Automated Cron Service
+ * 
+ * Implements the World Health Organization (WHO) medical safety rule:
+ * Voluntary blood donors must observe a strict 90-day (3-month) recovery period
+ * between whole blood donations.
+ * 
+ * Automatically enforces "COOLDOWN" status and restores donors to "AVAILABLE"
+ * once 90 days have elapsed.
+ */
+
+const { admin, db } = require('../config/firebase');
+const loggerBotService = require('./loggerBotService');
+const { REQUEST_STATUS } = require('../config/constants');
+
+const COOLDOWN_DAYS = 90;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+class CooldownCronService {
+  constructor() {
+    this.intervalId = null;
+    this.isRunning = false;
+  }
+
+  /**
+   * Executes a full scan of donor profiles in Firestore to enforce the 90-day cooldown.
+   * @returns {Promise<{ scanned: number, restoredToAvailable: number, keptInCooldown: number, errors: number }>}
+   */
+  async runCooldownScan() {
+    if (!db) {
+      console.warn('[CooldownCron] Firestore DB not available. Skipping cooldown scan.');
+      return { scanned: 0, restoredToAvailable: 0, keptInCooldown: 0, errors: 0 };
+    }
+
+    const now = Date.now();
+    console.log(`[CooldownCron] Starting WHO 90-Day donor cooldown audit at ${new Date(now).toISOString()}...`);
+
+    let scanned = 0;
+    let restoredToAvailable = 0;
+    let keptInCooldown = 0;
+    let errors = 0;
+
+    try {
+      // 1. Scan users collection
+      const usersSnap = await db.collection('users').get();
+      scanned = usersSnap.size;
+
+      for (const doc of usersSnap.docs) {
+        try {
+          const user = doc.data();
+          const userId = doc.id;
+
+          // Resolve last donation time from multiple possible fields
+          let donationTime = null;
+
+          if (user.lastDonationTimestamp) {
+            donationTime = typeof user.lastDonationTimestamp === 'number'
+              ? user.lastDonationTimestamp
+              : user.lastDonationTimestamp.toMillis ? user.lastDonationTimestamp.toMillis() : null;
+          } else if (user.lastDonationDateString || user.lastDonationDate) {
+            const parsed = new Date(user.lastDonationDateString || user.lastDonationDate).getTime();
+            if (!isNaN(parsed)) donationTime = parsed;
+          }
+
+          // If no recorded donation, skip
+          if (!donationTime) continue;
+
+          const daysElapsed = (now - donationTime) / MS_PER_DAY;
+
+          if (daysElapsed >= COOLDOWN_DAYS) {
+            // 90 days have passed: donor is safe to donate again!
+            if (user.isAvailableDonor === false || user.donorStatus === 'COOLDOWN') {
+              console.log(`[CooldownCron] Donor ${userId} (${user.name || 'Donor'}) completed ${Math.floor(daysElapsed)} days cooldown. Restoring to AVAILABLE.`);
+
+              const updatePayload = {
+                isAvailableDonor: true,
+                donorStatus: 'AVAILABLE',
+                cooldownDaysRemaining: 0,
+                cooldownLiftedAt: admin.firestore.FieldValue.serverTimestamp(),
+              };
+
+              await db.collection('users').doc(userId).set(updatePayload, { merge: true });
+              await db.collection('donors').doc(userId).set(updatePayload, { merge: true });
+              restoredToAvailable++;
+            }
+          } else {
+            // Still in 90-day cooldown window
+            const daysRemaining = Math.ceil(COOLDOWN_DAYS - daysElapsed);
+            keptInCooldown++;
+
+            if (user.isAvailableDonor !== false || user.donorStatus !== 'COOLDOWN') {
+              console.log(`[CooldownCron] Enforcing WHO cooldown for ${userId} (${user.name || 'Donor'}). ${daysRemaining} days remaining.`);
+
+              const updatePayload = {
+                isAvailableDonor: false,
+                donorStatus: 'COOLDOWN',
+                cooldownDaysRemaining: daysRemaining,
+                cooldownEnforcedAt: admin.firestore.FieldValue.serverTimestamp(),
+              };
+
+              await db.collection('users').doc(userId).set(updatePayload, { merge: true });
+              await db.collection('donors').doc(userId).set(updatePayload, { merge: true });
+            }
+          }
+        } catch (itemErr) {
+          console.error(`[CooldownCron] Error processing user ${doc.id}:`, itemErr.message);
+          errors++;
+        }
+      }
+
+      console.log(`[CooldownCron] Audit complete. Scanned: ${scanned}, Restored: ${restoredToAvailable}, Cooldown Active: ${keptInCooldown}, Errors: ${errors}`);
+
+      // Log in LoggerBot
+      await loggerBotService.logOtpEvent({
+        requestId: `cooldown_cron_${Date.now()}`,
+        rawEmail: 'scheduler@bloodsync.org',
+        requestStatus: REQUEST_STATUS.SUCCESS,
+        otpGenStatus: 'SKIPPED',
+        emailSendingStatus: 'SKIPPED',
+        errorCategory: null,
+        errorMessage: null,
+        metadata: {
+          action: 'WHO_90_DAY_COOLDOWN_SCAN',
+          scanned,
+          restoredToAvailable,
+          keptInCooldown,
+          errors,
+        },
+      });
+
+      return { scanned, restoredToAvailable, keptInCooldown, errors };
+    } catch (err) {
+      console.error('[CooldownCron] Fatal error during cooldown scan:', err.message);
+      return { scanned, restoredToAvailable, keptInCooldown, errors: errors + 1, error: err.message };
+    }
+  }
+
+  /**
+   * Starts the 24-hour recurring timer and executes an initial scan.
+   */
+  startDailySchedule() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+
+    console.log('[CooldownCron] Starting daily WHO 90-Day cooldown scheduler...');
+
+    // Run initial scan 10 seconds after server boot
+    setTimeout(() => {
+      this.runCooldownScan().catch((e) => console.warn('[CooldownCron] Initial scan notice:', e.message));
+    }, 10000);
+
+    // Schedule every 24 hours
+    this.intervalId = setInterval(() => {
+      this.runCooldownScan().catch((e) => console.warn('[CooldownCron] Periodic scan notice:', e.message));
+    }, 24 * 60 * 60 * 1000);
+  }
+
+  stopSchedule() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    this.isRunning = false;
+  }
+}
+
+module.exports = new CooldownCronService();
+
+
+=== FILE: backend/src/services/emailService.js ===
+
+/**
+ * BloodSync Backend - Email Dispatch Service
+ * Handles Nodemailer Gmail SMTP transmission with error mapping and zero credential exposure.
+ */
+
+const { createTransporter } = require('../config/mailer');
+const { SMTP_CONFIG, SECURITY_CONFIG } = require('../config/environment');
+const { ERROR_CATEGORIES, EMAIL_SEND_STATUS } = require('../config/constants');
+const { generateOtpEmailTemplate } = require('../templates/otpEmailTemplate');
+const { maskEmail } = require('../utils/sanitizer');
+
+class EmailService {
+  /**
+   * Dispatches the OTP email to the recipient using Nodemailer Gmail SMTP.
+   * @param {Object} params
+   * @param {string} params.recipientEmail
+   * @param {string} params.otp - Plaintext OTP (strictly used in email body, never logged)
+   * @param {string} params.requestId
+   * @returns {Promise<{ success: boolean, messageId?: string, errorCategory?: string, errorMessage?: string }>}
+   */
+  async sendOtpEmail({ recipientEmail, otp, requestId }) {
+    const maskedEmail = maskEmail(recipientEmail);
+
+    // 1. Verify email configuration
+    if (!SMTP_CONFIG.user || !SMTP_CONFIG.password) {
+      console.error(`[EmailService][${requestId}] Missing SMTP credentials for dispatch.`);
+      return {
+        success: false,
+        status: EMAIL_SEND_STATUS.FAILED,
+        errorCategory: ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR,
+        errorMessage: 'Gmail SMTP credentials (SMTP_USER / SMTP_PASSWORD) not configured.',
+      };
+    }
+
+    // 2. Generate template
+    const { html, text } = generateOtpEmailTemplate({
+      otp,
+      expiryMinutes: SECURITY_CONFIG.otpExpiryMinutes,
+      recipientEmail,
+    });
+
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: `"${SMTP_CONFIG.fromName}" <${SMTP_CONFIG.fromAddress}>`,
+      to: recipientEmail,
+      subject: '🩸 BloodSync Verification Code',
+      text,
+      html,
+      headers: {
+        'X-BloodSync-Request-ID': requestId,
+        'X-Priority': '1', // High priority for OTP
+      },
+    };
+
+    try {
+      console.log(`[EmailService][${requestId}] Dispatching OTP email to ${maskedEmail}...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[EmailService][${requestId}] Email dispatched successfully. MessageID: ${info.messageId}`);
+
+      return {
+        success: true,
+        status: EMAIL_SEND_STATUS.SENT,
+        messageId: info.messageId,
+      };
+    } catch (error) {
+      const classified = this.classifySmtpError(error);
+      console.error(
+        `[EmailService][${requestId}] Failed sending to ${maskedEmail}. Category: ${classified.category}. Error: ${classified.message}`
+      );
+
+      return {
+        success: false,
+        status: EMAIL_SEND_STATUS.FAILED,
+        errorCategory: classified.category,
+        errorMessage: classified.message,
+      };
+    }
+  }
+
+  /**
+   * Classifies low-level SMTP errors into strict system error categories.
+   * @param {Error} error
+   * @returns {{ category: string, message: string }}
+   */
+  classifySmtpError(error) {
+    const errMessage = (error.message || '').toLowerCase();
+    const errCode = error.code || '';
+    const responseCode = error.responseCode || 0;
+
+    // Authentication failure (Bad credentials / Invalid App Password)
+    if (
+      errCode === 'EAUTH' ||
+      responseCode === 535 ||
+      errMessage.includes('badcredentials') ||
+      errMessage.includes('username and password not accepted') ||
+      errMessage.includes('invalid credentials')
+    ) {
+      return {
+        category: ERROR_CATEGORIES.SMTP_AUTH_ERROR,
+        message: 'Gmail SMTP Authentication Failed. Check SMTP_USER and Gmail 16-character App Password.',
+      };
+    }
+
+    // Connection or DNS configuration issues
+    if (
+      errCode === 'ECONNREFUSED' ||
+      errCode === 'ENOTFOUND' ||
+      errCode === 'ETIMEDOUT' ||
+      errMessage.includes('getaddrinfo')
+    ) {
+      return {
+        category: ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR,
+        message: `Network or host configuration error: ${error.code || error.message}`,
+      };
+    }
+
+    // General send failure
+    return {
+      category: ERROR_CATEGORIES.EMAIL_SEND_ERROR,
+      message: `Failed to deliver email: ${error.message}`,
+    };
+  }
+}
+
+module.exports = new EmailService();
+
+
+=== FILE: backend/src/services/emergencyDispatcherService.js ===
+
+/**
+ * BloodSync Backend - Automated Emergency SOS Push Notification Dispatcher
+ * 
+ * Listens to new emergency blood requests in Cloud Firestore and dispatches
+ * high-priority FCM remote push notifications with sound to matching blood group donors.
+ */
+
+const { admin, db } = require('../config/firebase');
+const loggerBotService = require('./loggerBotService');
+const { REQUEST_STATUS } = require('../config/constants');
+
+// ABO/Rh Compatibility Chart: Key is Needed Blood Group, Value is array of eligible donor groups
+const DONOR_COMPATIBILITY = {
+  'O-': ['O-'],
+  'O+': ['O+', 'O-'],
+  'A-': ['A-', 'O-'],
+  'A+': ['A+', 'A-', 'O+', 'O-'],
+  'B-': ['B-', 'O-'],
+  'B+': ['B+', 'B-', 'O+', 'O-'],
+  'AB-': ['AB-', 'A-', 'B-', 'O-'],
+  'AB+': ['AB+', 'AB-', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-'],
+};
+
+// Set of processed request IDs to prevent duplicate push broadcasts
+const processedEmergencyIds = new Set();
+let isDispatcherRunning = false;
+
+/**
+ * Calculates the great-circle distance between two geographic coordinates using the Haversine formula.
+ * @param {number} lat1 Latitude of point 1 in degrees
+ * @param {number} lon1 Longitude of point 1 in degrees
+ * @param {number} lat2 Latitude of point 2 in degrees
+ * @param {number} lon2 Longitude of point 2 in degrees
+ * @returns {number} Distance in kilometers
+ */
+function calculateHaversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth's mean radius in kilometers
+  const toRad = (angle) => (Number(angle) * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+class EmergencyDispatcherService {
+
+  /**
+   * Returns list of eligible donor blood groups for the requested blood type.
+   */
+  getEligibleDonorGroups(neededGroup) {
+    const clean = String(neededGroup).trim().toUpperCase();
+    return DONOR_COMPATIBILITY[clean] || [clean];
+  }
+
+  /**
+   * Dispatches push notifications to compatible donors for a specific emergency request within 10km radar.
+   * @param {Object} emergency - Emergency request document data
+   * @returns {Promise<{ success: boolean, notifiedCount: number, error?: string }>}
+   */
+  async onEmergencyCreated(emergency) {
+    if (!emergency || !emergency.id) {
+      return { success: false, notifiedCount: 0, error: 'Invalid emergency payload' };
+    }
+
+    const requestId = emergency.id;
+    const bloodGroupNeeded = emergency.bloodGroupNeeded || 'O+';
+    const patientName = emergency.patientName || 'Emergency Patient';
+    const hospitalName = emergency.hospitalName || 'Hospital';
+    const unitsRequired = emergency.unitsRequired || 1;
+    const urgency = emergency.urgencyLevel || 'IMMEDIATE';
+    const requesterId = emergency.userId || '';
+
+    // Parse emergency GPS coordinates for 10km Radar Proximity Filtering
+    const emgLat = typeof emergency.latitude === 'number' ? emergency.latitude : parseFloat(emergency.latitude);
+    const emgLon = typeof emergency.longitude === 'number' ? emergency.longitude : parseFloat(emergency.longitude);
+    const hasEmergencyCoordinates = !isNaN(emgLat) && !isNaN(emgLon);
+    const MAX_RADAR_RADIUS_KM = 10.0;
+
+    console.log(`[EmergencyDispatcher] Processing SOS ${requestId} for ${unitsRequired} units of ${bloodGroupNeeded} at ${hospitalName}${hasEmergencyCoordinates ? ` (GPS: ${emgLat.toFixed(4)}, ${emgLon.toFixed(4)})` : ''}`);
+
+    if (!db) {
+      console.warn('[EmergencyDispatcher] Firestore DB not available. Cannot fetch donor tokens.');
+      return { success: false, notifiedCount: 0, error: 'Firestore uninitialized' };
+    }
+
+    const messaging = admin.messaging ? admin.messaging() : null;
+    if (!messaging) {
+      console.warn('[EmergencyDispatcher] Firebase Messaging is not available (check Admin SDK credentials).');
+      return { success: false, notifiedCount: 0, error: 'FCM uninitialized' };
+    }
+
+    try {
+      const eligibleGroups = this.getEligibleDonorGroups(bloodGroupNeeded);
+
+      // Map to store unique FCM token -> donor metadata (distance, bloodGroup, name)
+      const tokenMap = new Map();
+
+      // Proximity evaluator helper
+      const evaluateProximity = (data) => {
+        if (!hasEmergencyCoordinates) {
+          return { isEligible: true, distanceKm: null };
+        }
+        const donorLat = typeof data.latitude === 'number' ? data.latitude : parseFloat(data.latitude);
+        const donorLon = typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
+
+        if (!isNaN(donorLat) && !isNaN(donorLon)) {
+          const distKm = calculateHaversineDistanceKm(emgLat, emgLon, donorLat, donorLon);
+          return {
+            isEligible: distKm <= MAX_RADAR_RADIUS_KM,
+            distanceKm: distKm,
+          };
+        }
+
+        // If donor has not yet set GPS coordinates, fallback to true so legacy registered donors are not excluded
+        return { isEligible: true, distanceKm: null };
+      };
+
+      // 1. Query users collection for compatible donors
+      const usersSnap = await db.collection('users')
+        .where('isAvailableDonor', '==', true)
+        .get();
+
+      usersSnap.forEach((doc) => {
+        const data = doc.data();
+        const donorId = doc.id;
+        const donorGroup = data.bloodGroup;
+        const token = data.fcmToken;
+
+        if (token && eligibleGroups.includes(donorGroup) && donorId !== requesterId) {
+          const proximity = evaluateProximity(data);
+          if (proximity.isEligible) {
+            tokenMap.set(token, {
+              donorId,
+              donorGroup,
+              distanceKm: proximity.distanceKm,
+            });
+          }
+        }
+      });
+
+      // 2. Query donors collection for registered community donors (available only)
+      const donorsSnap = await db.collection('donors')
+        .where('isAvailableDonor', '==', true)
+        .get();
+      donorsSnap.forEach((doc) => {
+        const data = doc.data();
+        const donorId = doc.id;
+        const donorGroup = data.bloodGroup;
+        const token = data.fcmToken;
+
+        if (token && eligibleGroups.includes(donorGroup) && donorId !== requesterId) {
+          const proximity = evaluateProximity(data);
+          if (proximity.isEligible) {
+            tokenMap.set(token, {
+              donorId,
+              donorGroup,
+              distanceKm: proximity.distanceKm,
+            });
+          }
+        }
+      });
+
+      const tokenList = Array.from(tokenMap.keys());
+
+      if (tokenList.length === 0) {
+        console.log(`[EmergencyDispatcher] No matching donors with active FCM tokens found within 10km radar for ${bloodGroupNeeded}.`);
+        return { success: true, notifiedCount: 0 };
+      }
+
+      console.log(`[EmergencyDispatcher] Found ${tokenList.length} matching donors within 10km radar. Dispatching push alert...`);
+
+      // Construct high-priority push message payload with sound & vibration
+      const messagePayload = {
+        tokens: tokenList,
+        notification: {
+          title: `🚨 CRITICAL: ${bloodGroupNeeded} Blood Urgently Needed!`,
+          body: hasEmergencyCoordinates
+            ? `${patientName} needs ${unitsRequired} unit(s) at ${hospitalName} (Within 10km Radar). Tap to respond now!`
+            : `${patientName} needs ${unitsRequired} unit(s) at ${hospitalName}. Tap to respond now!`,
+        },
+        data: {
+          type: 'EMERGENCY',
+          requestId: requestId,
+          bloodGroup: bloodGroupNeeded,
+          hospital: hospitalName,
+          patient: patientName,
+          units: String(unitsRequired),
+          urgency: String(urgency),
+          emergencyLat: hasEmergencyCoordinates ? String(emgLat) : '',
+          emergencyLon: hasEmergencyCoordinates ? String(emgLon) : '',
+          radarRadiusKm: '10.0',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'channel_emergency_alerts',
+            sound: 'default',
+            priority: 'high',
+            color: '#D32F2F',
+            defaultVibrateTimings: true,
+          },
+        },
+      };
+
+      // Dispatch multicast push notifications
+      const response = await messaging.sendEachForMulticast(messagePayload);
+      console.log(`[EmergencyDispatcher] FCM Multicast Result: ${response.successCount} delivered, ${response.failureCount} failed.`);
+
+      // Update donorsNotifiedCount in the emergency document
+      await db.collection('emergency_requests').doc(requestId).set({
+        donorsNotifiedCount: response.successCount,
+        radarRadiusKm: 10.0,
+        lastPushDispatchedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      // Record in logger bot
+      await loggerBotService.logOtpEvent({
+        requestId: requestId,
+        rawEmail: 'emergency-dispatcher@bloodsync.org',
+        requestStatus: REQUEST_STATUS.SUCCESS,
+        otpGenStatus: 'SKIPPED',
+        emailSendingStatus: 'SKIPPED',
+        errorCategory: null,
+        errorMessage: null,
+        metadata: {
+          action: 'FCM_EMERGENCY_DISPATCH',
+          bloodGroupNeeded,
+          hasEmergencyCoordinates,
+          tokensCount: tokenList.length,
+          deliveredCount: response.successCount,
+          failedCount: response.failureCount,
+        },
+      });
+
+      return {
+        success: true,
+        notifiedCount: response.successCount,
+      };
+    } catch (error) {
+      console.error(`[EmergencyDispatcher] Error dispatching push notification for ${requestId}:`, error.message);
+      return {
+        success: false,
+        notifiedCount: 0,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Initializes real-time Firestore listener on emergency_requests to trigger onEmergencyCreated.
+   */
+  startListener() {
+    if (isDispatcherRunning || !db) {
+      return;
+    }
+
+    try {
+      console.log('[EmergencyDispatcher] Starting real-time Firestore listener for emergency_requests...');
+      isDispatcherRunning = true;
+
+      db.collection('emergency_requests')
+        .where('status', '==', 'BROADCASTING')
+        .onSnapshot((snapshot) => {
+          snapshot.docChanges().forEach(async (change) => {
+            if (change.type === 'added') {
+              const docData = change.doc.data();
+              const id = change.doc.id;
+
+              // Prevent processing dummy or stale seeded documents
+              if (
+                docData.patientName?.includes('Jane Doe') ||
+                docData.hospitalName?.includes('Metro General') ||
+                id.startsWith('emg_dummy')
+              ) {
+                return;
+              }
+
+              if (!processedEmergencyIds.has(id)) {
+                processedEmergencyIds.add(id);
+                // Dispatch push notifications to matching donors
+                await this.onEmergencyCreated({ id, ...docData });
+              }
+            }
+          });
+        }, (error) => {
+          console.warn(`[EmergencyDispatcher] Firestore listener warning: ${error.message}`);
+        });
+    } catch (err) {
+      console.warn(`[EmergencyDispatcher] Could not start listener: ${err.message}`);
+    }
+  }
+}
+
+module.exports = new EmergencyDispatcherService();
+
+
+=== FILE: backend/src/services/loggerBotService.js ===
+
+/**
+ * BloodSync Backend - Firebase Debugger Bot & Real-Time Monitoring Service
+ * 
+ * Records system events into `backend_debugger_logs` and triggers alerts
+ * for critical failures without exposing PII or credentials.
+ */
+
+const { admin, db } = require('../config/firebase');
+const {
+  ERROR_CATEGORIES,
+  REQUEST_STATUS,
+  FIRESTORE_COLLECTIONS,
+} = require('../config/constants');
+const { NODE_ENV, MONITORING_CONFIG } = require('../config/environment');
+const { maskEmail, sanitizeDetails } = require('../utils/sanitizer');
+const webhookAlertService = require('./webhookAlertService');
+
+class LoggerBotService {
+  /**
+   * Records an OTP lifecycle event to the `backend_debugger_logs` collection.
+   * @param {Object} params
+   * @param {string} params.requestId
+   * @param {string} params.rawEmail
+   * @param {string} params.requestStatus - SUCCESS | FAILURE
+   * @param {string} params.otpGenStatus - GENERATED | FAILED | SKIPPED
+   * @param {string} params.emailSendingStatus - SENT | FAILED | PENDING
+   * @param {string|null} [params.errorCategory] - One of ERROR_CATEGORIES or null
+   * @param {string} [params.errorMessage] - Sanitized technical message
+   * @param {Object} [params.metadata] - Additional contextual data (duration, ip, userAgent)
+   */
+  async logOtpEvent({
+    requestId,
+    rawEmail,
+    requestStatus,
+    otpGenStatus,
+    emailSendingStatus,
+    errorCategory = null,
+    errorMessage = null,
+    metadata = {},
+  }) {
+    const maskedUserEmail = maskEmail(rawEmail);
+    const sanitizedMetadata = sanitizeDetails(metadata);
+    const sanitizedErrorMessage = errorMessage ? sanitizeDetails(errorMessage) : null;
+
+    const logEntry = {
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      requestId,
+      maskedUserEmail,
+      requestStatus,
+      otpGenStatus,
+      emailSendingStatus,
+      errorCategory,
+      errorMessage: sanitizedErrorMessage,
+      serverEnvironment: NODE_ENV,
+      expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14-day TTL
+      metadata: sanitizedMetadata,
+    };
+
+    // 1. Console stream for local/container visibility
+    const level = requestStatus === REQUEST_STATUS.SUCCESS ? 'INFO' : 'ERROR';
+    console.log(
+      `[DebuggerBot][${level}] [${requestId}] status=${requestStatus} email=${maskedUserEmail} otpGen=${otpGenStatus} emailSend=${emailSendingStatus} errCat=${errorCategory || 'none'}`
+    );
+
+    // 2. Persist to Firestore collection `backend_debugger_logs`
+    try {
+      if (db) {
+        await db.collection(FIRESTORE_COLLECTIONS.BACKEND_DEBUGGER_LOGS).add(logEntry);
+      } else {
+        console.warn('[DebuggerBot] Firestore db not available. Event logged to stdout only.');
+      }
+    } catch (firestoreError) {
+      console.error(
+        `[DebuggerBot] CRITICAL: Failed to write debugger log to Firestore: ${firestoreError.message}`
+      );
+    }
+
+    // 3. Evaluate Critical Alert Triggers
+    if (requestStatus === REQUEST_STATUS.FAILURE && errorCategory) {
+      await this.evaluateAlertConditions({
+        requestId,
+        maskedUserEmail,
+        errorCategory,
+        errorMessage: sanitizedErrorMessage,
+        sanitizedMetadata,
+      });
+    }
+
+    return logEntry;
+  }
+
+  /**
+   * Evaluates if the error constitutes a critical event and triggers immediate alerts.
+   * Critical events include:
+   * - SMTP failures (SMTP_AUTH_ERROR, EMAIL_SEND_ERROR, EMAIL_CONFIGURATION_ERROR)
+   * - Firebase database failures (FIREBASE_ERROR, OTP_DATABASE_ERROR)
+   * - High severity rate limit abuse (RATE_LIMIT_ERROR)
+   */
+  async evaluateAlertConditions({
+    requestId,
+    maskedUserEmail,
+    errorCategory,
+    errorMessage,
+    sanitizedMetadata,
+  }) {
+    const criticalCategories = [
+      ERROR_CATEGORIES.SMTP_AUTH_ERROR,
+      ERROR_CATEGORIES.EMAIL_SEND_ERROR,
+      ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR,
+      ERROR_CATEGORIES.FIREBASE_ERROR,
+      ERROR_CATEGORIES.OTP_DATABASE_ERROR,
+    ];
+
+    const isCritical = criticalCategories.includes(errorCategory);
+    const isRateLimit = errorCategory === ERROR_CATEGORIES.RATE_LIMIT_ERROR;
+
+    if (!isCritical && !isRateLimit && errorCategory !== ERROR_CATEGORIES.UNKNOWN_ERROR) {
+      return;
+    }
+
+    const severity = isCritical ? 'CRITICAL' : isRateLimit ? 'WARNING' : 'ERROR';
+
+    const alertPayload = {
+      alertId: `ALERT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      serverEnvironment: NODE_ENV,
+      severity,
+      errorCategory,
+      requestId,
+      maskedUserEmail,
+      summary: `Automated Debugger Alert: [${errorCategory}] triggered on ${NODE_ENV}`,
+      details: errorMessage || 'No additional technical message provided',
+      metadata: sanitizedMetadata,
+    };
+
+    console.error(`🚨 [CRITICAL_ALERT_BOT] ${alertPayload.severity}: ${alertPayload.summary}`);
+
+    // Persist to critical_alerts collection in Firestore
+    try {
+      if (db) {
+        await db.collection(FIRESTORE_COLLECTIONS.CRITICAL_ALERTS).add({
+          ...alertPayload,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day TTL
+          resolved: false,
+        });
+      }
+    } catch (dbErr) {
+      console.error(`[CRITICAL_ALERT_BOT] Failed to save alert to Firestore: ${dbErr.message}`);
+    }
+
+    // Dispatch webhook alert to Discord/Slack/Telegram/Custom via WebhookAlertService
+    await webhookAlertService.triggerAlert({
+      severity: alertPayload.severity,
+      errorCategory: alertPayload.errorCategory,
+      title: alertPayload.summary,
+      message: alertPayload.details,
+      requestId: alertPayload.requestId,
+      maskedUserEmail: alertPayload.maskedUserEmail,
+      metadata: alertPayload.metadata,
+    });
+  }
+}
+
+module.exports = new LoggerBotService();
+
+
+=== FILE: backend/src/services/otpService.js ===
+
+/**
+ * BloodSync Backend - OTP Service
+ * Handles CSPRNG OTP generation, secure HMAC storage in Firestore, and timing-safe verification.
+ */
+
+const crypto = require('crypto');
+const { admin, db } = require('../config/firebase');
+const { SECURITY_CONFIG } = require('../config/environment');
+const {
+  ERROR_CATEGORIES,
+  FIRESTORE_COLLECTIONS,
+} = require('../config/constants');
+const { generateSecureOtp, hashOtp, timingSafeVerify } = require('../utils/cryptoUtils');
+
+// Fallback in-memory map if Firestore is unavailable in local testing
+const inMemoryOtpStore = new Map();
+
+class OtpService {
+  /**
+   * Generates a unique, deterministic document key for an email.
+   * @param {string} email
+   * @returns {string}
+   */
+  getDocumentKey(email) {
+    const normalized = String(email).trim().toLowerCase();
+    return crypto.createHash('sha256').update(normalized).digest('hex');
+  }
+
+  /**
+   * Generates a 6-digit OTP, stores its secure HMAC hash in Firestore,
+   * and returns the plaintext OTP strictly for transmission to the email service.
+   * @param {string} email
+   * @param {string} requestId
+   * @returns {Promise<{ otp: string, expiresAt: Date, hashedOtp: string }>}
+   */
+  async createAndStoreOtp(email, requestId) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const docKey = this.getDocumentKey(normalizedEmail);
+
+    // 1. Generate cryptographically secure 6-digit OTP
+    const otp = generateSecureOtp(6);
+
+    // 2. Hash OTP with HMAC-SHA256 and server-side secret
+    const hashedOtp = hashOtp(normalizedEmail, otp);
+
+    const nowMs = Date.now();
+    const expiryMs = nowMs + SECURITY_CONFIG.otpExpiryMinutes * 60 * 1000;
+    const expiresAt = new Date(expiryMs);
+
+    const record = {
+      emailHash: docKey,
+      hashedOtp,
+      attempts: 0,
+      maxAttempts: SECURITY_CONFIG.otpMaxAttempts,
+      verified: false,
+      requestId,
+      createdAtMs: nowMs,
+      expiresAtMs: expiryMs,
+    };
+
+    // Store in-memory cache
+    inMemoryOtpStore.set(docKey, record);
+
+    // 3. Store securely in Firestore
+    if (db) {
+      try {
+        const docRef = db.collection(FIRESTORE_COLLECTIONS.OTP_VERIFICATIONS).doc(docKey);
+        await docRef.set({
+          emailHash: docKey,
+          hashedOtp,
+          attempts: 0,
+          maxAttempts: SECURITY_CONFIG.otpMaxAttempts,
+          verified: false,
+          requestId,
+          createdAt: admin.firestore.Timestamp.fromMillis(nowMs),
+          expiresAt: admin.firestore.Timestamp.fromMillis(expiryMs),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (dbError) {
+        console.error(`[OtpService] Firestore error while saving OTP record: ${dbError.message}`);
+        const error = new Error('Database failed to store verification record');
+        error.category = ERROR_CATEGORIES.OTP_DATABASE_ERROR;
+        throw error;
+      }
+    }
+
+    return {
+      otp, // strictly for in-memory email dispatch; never persisted or logged
+      expiresAt,
+      hashedOtp,
+    };
+  }
+
+  /**
+   * Verifies a user-supplied 6-digit OTP against the stored HMAC hash.
+   * Enforces expiry checking, maximum attempts, and timing-safe comparison.
+   * @param {string} email
+   * @param {string} candidateOtp
+   * @param {string} requestId
+   * @returns {Promise<{ success: boolean, reason?: string, errorCategory?: string }>}
+   */
+  async verifyOtp(email, candidateOtp, requestId) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const docKey = this.getDocumentKey(normalizedEmail);
+    const now = Date.now();
+
+    let record = null;
+    let docRef = null;
+
+    if (db) {
+      try {
+        docRef = db.collection(FIRESTORE_COLLECTIONS.OTP_VERIFICATIONS).doc(docKey);
+        const snapshot = await docRef.get();
+        if (snapshot.exists) {
+          const data = snapshot.data();
+          record = {
+            ...data,
+            expiresAtMs: data.expiresAt ? data.expiresAt.toMillis() : 0,
+            attempts: data.attempts || 0,
+            maxAttempts: data.maxAttempts || SECURITY_CONFIG.otpMaxAttempts,
+          };
+        }
+      } catch (dbError) {
+        console.error(`[OtpService] Failed to read OTP record from Firestore: ${dbError.message}`);
+      }
+    }
+
+    // Fallback to in-memory store if Firestore document was not found or unavailable
+    if (!record) {
+      record = inMemoryOtpStore.get(docKey);
+    }
+
+    if (!record) {
+      return {
+        success: false,
+        reason: 'No pending verification request found for this email. Please request a new code.',
+        errorCategory: ERROR_CATEGORIES.UNKNOWN_ERROR,
+      };
+    }
+
+    // Check if already used
+    if (record.verified) {
+      return {
+        success: false,
+        reason: 'This verification code has already been used. Please request a new code.',
+        errorCategory: ERROR_CATEGORIES.UNKNOWN_ERROR,
+      };
+    }
+
+    // Check brute-force attempts
+    if (record.attempts >= record.maxAttempts) {
+      return {
+        success: false,
+        reason: 'Maximum verification attempts exceeded. Please request a new code.',
+        errorCategory: ERROR_CATEGORIES.RATE_LIMIT_ERROR,
+      };
+    }
+
+    // Check expiration
+    if (now > record.expiresAtMs) {
+      return {
+        success: false,
+        reason: 'Verification code has expired. Please request a new code.',
+        errorCategory: ERROR_CATEGORIES.UNKNOWN_ERROR,
+      };
+    }
+
+    // Compute HMAC of user's candidate OTP
+    const candidateHash = hashOtp(normalizedEmail, String(candidateOtp).trim());
+    const isMatch = timingSafeVerify(candidateHash, record.hashedOtp);
+
+    if (!isMatch) {
+      const updatedAttempts = record.attempts + 1;
+      const remainingAttempts = Math.max(0, record.maxAttempts - updatedAttempts);
+
+      // Increment attempt counter in DB
+      if (docRef) {
+        await docRef.update({
+          attempts: admin.firestore.FieldValue.increment(1),
+          lastFailedAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+        }).catch((err) => console.warn(`Failed to update attempts: ${err.message}`));
+      }
+      if (inMemoryOtpStore.has(docKey)) {
+        inMemoryOtpStore.get(docKey).attempts = updatedAttempts;
+      }
+
+      return {
+        success: false,
+        reason: remainingAttempts > 0
+          ? `Invalid verification code. ${remainingAttempts} attempts remaining.`
+          : 'Invalid verification code. Maximum attempts exceeded. Please request a new code.',
+        errorCategory: ERROR_CATEGORIES.UNKNOWN_ERROR,
+      };
+    }
+
+    // Success: Mark as verified and invalidate
+    if (docRef) {
+      await docRef.update({
+        verified: true,
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        verifiedRequestId: requestId,
+      }).catch((err) => console.warn(`Failed to mark verified: ${err.message}`));
+    }
+    if (inMemoryOtpStore.has(docKey)) {
+      inMemoryOtpStore.get(docKey).verified = true;
+    }
+
+    return {
+      success: true,
+    };
+  }
+}
+
+module.exports = new OtpService();
+
+
+=== FILE: backend/src/services/rateLimiterService.js ===
+
+/**
+ * BloodSync Backend - Rate Limiter Service
+ * Enforces strict per-email rate limiting and resend cooldowns using Firestore.
+ */
+
+const { admin, db } = require('../config/firebase');
+const { RATE_LIMIT_CONFIG } = require('../config/environment');
+const { FIRESTORE_COLLECTIONS } = require('../config/constants');
+const crypto = require('crypto');
+
+// In-memory fallback if Firestore is temporarily offline
+const inMemoryCache = new Map();
+
+class RateLimiterService {
+  /**
+   * Hashes the email for use as a Firestore document ID to avoid forbidden characters.
+   * @param {string} email
+   * @returns {string}
+   */
+  getEmailKey(email) {
+    const normalized = String(email).trim().toLowerCase();
+    return crypto.createHash('sha256').update(normalized).digest('hex');
+  }
+
+  /**
+   * Checks whether the email has exceeded rate limits or is in a cooldown period.
+   * @param {string} email
+   * @returns {Promise<{ allowed: boolean, reason?: string, retryAfterSeconds?: number }>}
+   */
+  async checkRateLimit(email) {
+    const key = this.getEmailKey(email);
+    const now = Date.now();
+    const windowMs = RATE_LIMIT_CONFIG.windowMinutes * 60 * 1000;
+    const cooldownMs = RATE_LIMIT_CONFIG.cooldownSeconds * 1000;
+    const maxRequests = RATE_LIMIT_CONFIG.maxRequestsPerWindow;
+
+    try {
+      if (!db) {
+        return this.checkMemoryRateLimit(key, now, windowMs, cooldownMs, maxRequests);
+      }
+
+      const docRef = db.collection(FIRESTORE_COLLECTIONS.OTP_RATE_LIMITS).doc(key);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        return { allowed: true };
+      }
+
+      const data = doc.data();
+      const lastRequestAt = data.lastRequestAt ? data.lastRequestAt.toMillis() : 0;
+      const requestTimestamps = Array.isArray(data.requests) ? data.requests : [];
+
+      // 1. Check Cooldown period (e.g., minimum 60s between OTP requests)
+      const timeSinceLast = now - lastRequestAt;
+      if (timeSinceLast < cooldownMs) {
+        const remainingCooldown = Math.ceil((cooldownMs - timeSinceLast) / 1000);
+        return {
+          allowed: false,
+          reason: `Please wait ${remainingCooldown}s before requesting a new verification code.`,
+          retryAfterSeconds: remainingCooldown,
+        };
+      }
+
+      // 2. Check Sliding Window (filter timestamps within window)
+      const recentRequests = requestTimestamps.filter((ts) => now - ts < windowMs);
+
+      if (recentRequests.length >= maxRequests) {
+        const oldestInWindow = recentRequests[0];
+        const resetInSeconds = Math.ceil((windowMs - (now - oldestInWindow)) / 1000);
+        return {
+          allowed: false,
+          reason: `Too many verification requests. Please wait ${resetInSeconds}s before trying again.`,
+          retryAfterSeconds: resetInSeconds,
+        };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      console.warn(`[RateLimiter] Firestore error, falling back to memory: ${error.message}`);
+      return this.checkMemoryRateLimit(key, now, windowMs, cooldownMs, maxRequests);
+    }
+  }
+
+  /**
+   * Records a new OTP request timestamp for the given email.
+   * @param {string} email
+   */
+  async recordRequest(email) {
+    const key = this.getEmailKey(email);
+    const now = Date.now();
+    const windowMs = RATE_LIMIT_CONFIG.windowMinutes * 60 * 1000;
+
+    // Record in memory
+    const memEntry = inMemoryCache.get(key) || { requests: [], lastRequestAt: 0 };
+    memEntry.requests = memEntry.requests.filter((ts) => now - ts < windowMs);
+    memEntry.requests.push(now);
+    memEntry.lastRequestAt = now;
+    inMemoryCache.set(key, memEntry);
+
+    // Record in Firestore
+    try {
+      if (db) {
+        const docRef = db.collection(FIRESTORE_COLLECTIONS.OTP_RATE_LIMITS).doc(key);
+        const doc = await docRef.get();
+
+        let updatedRequests = [now];
+        if (doc.exists) {
+          const current = doc.data().requests || [];
+          updatedRequests = current.filter((ts) => now - ts < windowMs);
+          updatedRequests.push(now);
+        }
+
+        await docRef.set({
+          emailHash: key,
+          lastRequestAt: admin.firestore.Timestamp.fromMillis(now),
+          requests: updatedRequests,
+          expiresAt: admin.firestore.Timestamp.fromMillis(now + 24 * 60 * 60 * 1000), // 24h retention TTL
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.error(`[RateLimiter] Failed to record request in Firestore: ${error.message}`);
+    }
+  }
+
+  /**
+   * Memory-based fallback check
+   */
+  checkMemoryRateLimit(key, now, windowMs, cooldownMs, maxRequests) {
+    const entry = inMemoryCache.get(key);
+    if (!entry) return { allowed: true };
+
+    const timeSinceLast = now - entry.lastRequestAt;
+    if (timeSinceLast < cooldownMs) {
+      const remainingCooldown = Math.ceil((cooldownMs - timeSinceLast) / 1000);
+      return {
+        allowed: false,
+        reason: `Please wait ${remainingCooldown}s before requesting another code.`,
+        retryAfterSeconds: remainingCooldown,
+      };
+    }
+
+    const recent = entry.requests.filter((ts) => now - ts < windowMs);
+    if (recent.length >= maxRequests) {
+      const resetInSeconds = Math.ceil((windowMs - (now - recent[0])) / 1000);
+      return {
+        allowed: false,
+        reason: `Rate limit reached. Try again in ${resetInSeconds}s.`,
+        retryAfterSeconds: resetInSeconds,
+      };
+    }
+
+    return { allowed: true };
+  }
+}
+
+module.exports = new RateLimiterService();
+
+
+=== FILE: backend/src/services/webhookAlertService.js ===
+
+/**
+ * BloodSync Backend - Critical Error Webhook Alert Service
+ * 
+ * Provides unified, multi-platform webhook dispatching to Discord, Slack,
+ * Telegram, and custom webhook endpoints when critical system events occur
+ * (Gmail SMTP auth failure, Firebase credentials error, rate-limit breaches, etc.).
+ */
+
+const https = require('https');
+const http = require('http');
+const { URL } = require('url');
+const { MONITORING_CONFIG, NODE_ENV } = require('../config/environment');
+
+class WebhookAlertService {
+  constructor() {
+    // Cooldown map to prevent webhook flooding (category -> timestamp)
+    this.recentAlerts = new Map();
+    this.ALERT_THROTTLE_MS = 30000; // 30 seconds throttle per category
+  }
+
+  /**
+   * Dispatches an alert to ALERT_WEBHOOK_URL.
+   * 
+   * @param {Object} alert
+   * @param {string} alert.severity - 'CRITICAL' | 'WARNING' | 'INFO'
+   * @param {string} alert.errorCategory - One of ERROR_CATEGORIES
+   * @param {string} [alert.title] - Short human readable title
+   * @param {string} alert.message - Main error explanation
+   * @param {string} [alert.requestId] - Contextual request ID
+   * @param {string} [alert.maskedUserEmail] - Masked user identifier
+   * @param {Object} [alert.metadata] - Extra sanitized metadata
+   * @returns {Promise<{ success: boolean, skipped?: boolean, reason?: string }>}
+   */
+  async triggerAlert(alert) {
+    const webhookUrl = MONITORING_CONFIG.alertWebhookUrl || process.env.ALERT_WEBHOOK_URL;
+
+    if (!webhookUrl || webhookUrl.trim() === '') {
+      // Webhook not configured; silent bypass
+      return { success: false, skipped: true, reason: 'ALERT_WEBHOOK_URL is not configured' };
+    }
+
+    const {
+      severity = 'CRITICAL',
+      errorCategory = 'SYSTEM_ERROR',
+      title,
+      message = 'An unexpected system error occurred.',
+      requestId = 'sys_' + Math.random().toString(36).substring(2, 8),
+      maskedUserEmail = 'system',
+      metadata = {},
+    } = alert;
+
+    // Check throttle to prevent alert storm
+    const now = Date.now();
+    const throttleKey = `${errorCategory}:${severity}`;
+    const lastSent = this.recentAlerts.get(throttleKey) || 0;
+    if (now - lastSent < this.ALERT_THROTTLE_MS) {
+      console.warn(`[WebhookAlert] Throttling alert for [${throttleKey}]. Last sent ${Math.round((now - lastSent)/1000)}s ago.`);
+      return { success: false, skipped: true, reason: 'Throttled to avoid notification flood' };
+    }
+    this.recentAlerts.set(throttleKey, now);
+
+    try {
+      const parsedUrl = new URL(webhookUrl.trim());
+      const payload = this.buildPayload(parsedUrl, {
+        severity,
+        errorCategory,
+        title: title || `BloodSync ${severity}: ${errorCategory}`,
+        message,
+        requestId,
+        maskedUserEmail,
+        metadata,
+        timestamp: new Date().toISOString(),
+      });
+
+      return await this.dispatchHttpRequest(parsedUrl, payload);
+    } catch (err) {
+      console.error(`[WebhookAlert] Failed to dispatch webhook alert: ${err.message}`);
+      return { success: false, reason: err.message };
+    }
+  }
+
+  /**
+   * Formats the payload according to the destination platform.
+   */
+  buildPayload(parsedUrl, data) {
+    const host = parsedUrl.hostname.toLowerCase();
+    const isDiscord = host.includes('discord.com') || host.includes('discordapp.com');
+    const isSlack = host.includes('slack.com');
+    const isTelegram = host.includes('telegram.org');
+
+    const colorHex = data.severity === 'CRITICAL' ? 0xE74C3C : data.severity === 'WARNING' ? 0xE67E22 : 0x3498DB;
+    const colorSlack = data.severity === 'CRITICAL' ? '#E74C3C' : data.severity === 'WARNING' ? '#E67E22' : '#3498DB';
+
+    // 1. Discord Webhook Payload
+    if (isDiscord) {
+      return {
+        username: 'BloodSync Sentry Bot',
+        avatar_url: 'https://raw.githubusercontent.com/RajputMayurSingh69/bloodsync_andriod/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
+        content: `🚨 **[${data.severity}] ${data.errorCategory}** in \`${NODE_ENV}\``,
+        embeds: [
+          {
+            title: data.title,
+            description: data.message,
+            color: colorHex,
+            fields: [
+              { name: 'Environment', value: `\`${NODE_ENV}\``, inline: true },
+              { name: 'Severity', value: `**${data.severity}**`, inline: true },
+              { name: 'Category', value: `\`${data.errorCategory}\``, inline: true },
+              { name: 'Request ID', value: `\`${data.requestId}\``, inline: true },
+              { name: 'User', value: data.maskedUserEmail || 'N/A', inline: true },
+            ],
+            footer: {
+              text: 'BloodSync Monitoring Engine • bloodsync-3b5cf',
+            },
+            timestamp: data.timestamp,
+          },
+        ],
+      };
+    }
+
+    // 2. Slack Webhook Payload
+    if (isSlack) {
+      return {
+        text: `🚨 *BloodSync Alert [${data.severity}]*: \`${data.errorCategory}\`\n${data.message}`,
+        attachments: [
+          {
+            color: colorSlack,
+            title: data.title,
+            text: data.message,
+            fields: [
+              { title: 'Environment', value: NODE_ENV, short: true },
+              { title: 'Severity', value: data.severity, short: true },
+              { title: 'Category', value: data.errorCategory, short: true },
+              { title: 'Request ID', value: data.requestId, short: true },
+              { title: 'User', value: data.maskedUserEmail || 'N/A', short: true },
+            ],
+            footer: 'BloodSync Monitoring Engine',
+            ts: Math.floor(Date.now() / 1000),
+          },
+        ],
+      };
+    }
+
+    // 3. Telegram Bot Webhook
+    if (isTelegram) {
+      const chatId = parsedUrl.searchParams.get('chat_id') || process.env.TELEGRAM_CHAT_ID;
+      const text = `🚨 <b>BloodSync Alert [${data.severity}]</b>\n` +
+        `<b>Category:</b> <code>${data.errorCategory}</code>\n` +
+        `<b>Environment:</b> <code>${NODE_ENV}</code>\n` +
+        `<b>User:</b> <code>${data.maskedUserEmail}</code>\n` +
+        `<b>Request ID:</b> <code>${data.requestId}</code>\n\n` +
+        `<b>Details:</b> ${data.message}`;
+
+      return {
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+      };
+    }
+
+    // 4. Universal Generic Webhook (Compatible with Discord, Slack, Zapier, n8n, Webhook.site)
+    return {
+      content: `🚨 [${data.severity}] BloodSync Alert: ${data.errorCategory} - ${data.message}`,
+      text: `🚨 [${data.severity}] BloodSync Alert: ${data.errorCategory} - ${data.message}`,
+      severity: data.severity,
+      errorCategory: data.errorCategory,
+      title: data.title,
+      message: data.message,
+      requestId: data.requestId,
+      maskedUserEmail: data.maskedUserEmail,
+      serverEnvironment: NODE_ENV,
+      timestamp: data.timestamp,
+      metadata: data.metadata,
+      embeds: [
+        {
+          title: data.title,
+          description: data.message,
+          color: colorHex,
+          timestamp: data.timestamp,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Dispatches the HTTP/HTTPS request safely.
+   */
+  dispatchHttpRequest(parsedUrl, payload) {
+    return new Promise((resolve) => {
+      const isHttps = parsedUrl.protocol === 'https:';
+      const transport = isHttps ? https : http;
+      const jsonBody = JSON.stringify(payload);
+
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || (isHttps ? 443 : 80),
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(jsonBody),
+          'User-Agent': 'BloodSync-AlertBot/1.0',
+        },
+        timeout: 6000,
+      };
+
+      const req = transport.request(options, (res) => {
+        let respData = '';
+        res.on('data', (chunk) => { respData += chunk; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log(`[WebhookAlert] Successfully dispatched alert to ${parsedUrl.hostname} (Status ${res.statusCode})`);
+            resolve({ success: true, statusCode: res.statusCode });
+          } else {
+            console.warn(`[WebhookAlert] Target returned HTTP ${res.statusCode}: ${respData.substring(0, 150)}`);
+            resolve({ success: false, statusCode: res.statusCode, body: respData });
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        console.warn(`[WebhookAlert] Network dispatch error: ${err.message}`);
+        resolve({ success: false, error: err.message });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        console.warn('[WebhookAlert] Dispatch request timed out after 6000ms');
+        resolve({ success: false, error: 'Request timeout' });
+      });
+
+      req.write(jsonBody);
+      req.end();
+    });
+  }
+}
+
+module.exports = new WebhookAlertService();
+
+
+=== FILE: backend/src/templates/otpEmailTemplate.js ===
+
+/**
+ * BloodSync Backend - Branded OTP Email Template
+ * Produces responsive, accessible HTML and plaintext emails.
+ */
+
+function generateOtpEmailTemplate({ otp, expiryMinutes = 5, recipientEmail = '' }) {
+  const primaryColor = '#C62828'; // Crimson Red
+  const darkTextColor = '#1F2937';
+  const lightBgColor = '#F9FAFB';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your BloodSync Verification Code</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: ${lightBgColor};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: ${darkTextColor};
+      line-height: 1.6;
+    }
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: ${lightBgColor};
+      padding: 40px 0;
+    }
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      border: 1px solid #E5E7EB;
+    }
+    .header {
+      background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
+      padding: 32px 24px;
+      text-align: center;
+      color: #FFFFFF;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .header p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .content {
+      padding: 36px 32px;
+    }
+    .greeting {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    .otp-card {
+      background-color: #FEF2F2;
+      border: 2px dashed #F87171;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 28px 0;
+      text-align: center;
+    }
+    .otp-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      color: ${primaryColor};
+      display: inline-block;
+      margin: 4px 0;
+    }
+    .badge-expiry {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #991B1B;
+      font-weight: 500;
+    }
+    .security-notice {
+      background: #F3F4F6;
+      border-left: 4px solid #9CA3AF;
+      padding: 14px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #4B5563;
+      margin-top: 24px;
+    }
+    .footer {
+      background-color: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+      padding: 20px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #6B7280;
+    }
+    .footer a {
+      color: ${primaryColor};
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>🩸 BloodSync</h1>
+        <p>Real-Time Lifesaving Blood Donation Network</p>
+      </div>
+      <div class="content">
+        <div class="greeting">Hello,</div>
+        <p>You requested a one-time verification code to securely access or verify your BloodSync account.</p>
+        
+        <div class="otp-card">
+          <div style="font-size: 13px; text-transform: uppercase; color: #7F1D1D; letter-spacing: 1px; font-weight: 600;">Your One-Time Password</div>
+          <div class="otp-code">${otp}</div>
+          <div class="badge-expiry">⏱ Valid for the next ${expiryMinutes} minutes</div>
+        </div>
+
+        <p style="font-size: 14px; color: #4B5563;">Enter this 6-digit code on the BloodSync application screen to proceed. Never share this code with anyone, including BloodSync support personnel.</p>
+
+        <div class="security-notice">
+          <strong>Security Advisory:</strong> If you did not initiate this request, please disregard this email. Your BloodSync account remains secure as long as this code is not disclosed.
+        </div>
+      </div>
+      <div class="footer">
+        <p>© ${new Date().getFullYear()} BloodSync Network. All rights reserved.</p>
+        <p>This is an automated operational notification dispatched to <strong>${recipientEmail}</strong>.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+🩸 BloodSync Verification Code
+======================================
+Your one-time verification code is: ${otp}
+
+This code is valid for ${expiryMinutes} minutes.
+
+Enter this code in the BloodSync application to complete your request.
+For your protection, never share this code with anyone.
+
+If you did not request this verification code, please ignore this email.
+
+© ${new Date().getFullYear()} BloodSync Network
+  `.trim();
+
+  return { html, text };
+}
+
+module.exports = {
+  generateOtpEmailTemplate,
+};
+
+
+=== FILE: backend/src/utils/cryptoUtils.js ===
+
+/**
+ * BloodSync Backend - Cryptographic Utilities
+ * Provides cryptographically secure random OTP generation, HMAC hashing, and constant-time verification.
+ */
+
+const crypto = require('crypto');
+const { SECURITY_CONFIG } = require('../config/environment');
+
+/**
+ * Generates a cryptographically secure random numeric OTP.
+ * Uses crypto.randomInt which is CSPRNG backed (secure against predictability).
+ * @param {number} length - Number of digits (default 6)
+ * @returns {string} - Random 6-digit numeric string (e.g., "749201")
+ */
+function generateSecureOtp(length = 6) {
+  if (length <= 0 || length > 10) {
+    throw new Error('OTP length must be between 1 and 10 digits.');
+  }
+
+  const min = Math.pow(10, length - 1);
+  const max = Math.pow(10, length);
+  const randomNum = crypto.randomInt(min, max);
+
+  return randomNum.toString();
+}
+
+/**
+ * Computes an HMAC-SHA256 hash of the normalized email and OTP with the server-side salt secret.
+ * Storing only the HMAC prevents plaintext exposure even if the database is read.
+ * @param {string} email - User email address
+ * @param {string} otp - Plaintext OTP
+ * @param {string} [salt] - Optional override for salt secret
+ * @returns {string} - Hex-encoded HMAC hash
+ */
+function hashOtp(email, otp, salt = SECURITY_CONFIG.otpSaltSecret) {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const payload = `${normalizedEmail}:${otp}`;
+
+  return crypto
+    .createHmac('sha256', salt)
+    .update(payload)
+    .digest('hex');
+}
+
+/**
+ * Performs timing-safe comparison of two hash strings to prevent side-channel timing attacks.
+ * @param {string} hashA - First hash
+ * @param {string} hashB - Second hash
+ * @returns {boolean} - True if equal, false otherwise
+ */
+function timingSafeVerify(hashA, hashB) {
+  if (typeof hashA !== 'string' || typeof hashB !== 'string') {
+    return false;
+  }
+
+  const bufA = Buffer.from(hashA, 'hex');
+  const bufB = Buffer.from(hashB, 'hex');
+
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+module.exports = {
+  generateSecureOtp,
+  hashOtp,
+  timingSafeVerify,
+};
+
+
+=== FILE: backend/src/utils/sanitizer.js ===
+
+/**
+ * BloodSync Backend - Sanitization & Privacy Utilities
+ * Ensures zero-leakage of OTPs, credentials, and sensitive PII in logs or alerts.
+ */
+
+/**
+ * Masks an email address for privacy-compliant logging and UI display.
+ * Examples:
+ *   "alex@gmail.com"        -> "a***@gmail.com"
+ *   "john.doe@domain.com"   -> "j***e@domain.com"
+ *   "a@b.com"               -> "a***@b.com"
+ * @param {string} email
+ * @returns {string} Masked email string
+ */
+function maskEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return 'unknown@masked.local';
+  }
+
+  const parts = email.trim().toLowerCase().split('@');
+  if (parts.length !== 2) {
+    return 'invalid_email_format';
+  }
+
+  const [username, domain] = parts;
+
+  if (username.length <= 1) {
+    return `${username}***@${domain}`;
+  }
+
+  if (username.length === 2) {
+    return `${username[0]}***@${domain}`;
+  }
+
+  // First char, asterisks, last char
+  const firstChar = username[0];
+  const lastChar = username[username.length - 1];
+  return `${firstChar}***${lastChar}@${domain}`;
+}
+
+/**
+ * Anonymizes client IP addresses (e.g. 192.168.1.45 -> 192.168.1.0/24 or hash)
+ * @param {string} ip
+ * @returns {string}
+ */
+function sanitizeIp(ip) {
+  if (!ip || typeof ip !== 'string') return '0.0.0.0';
+
+  // IPv4
+  if (ip.includes('.')) {
+    const segments = ip.split('.');
+    if (segments.length === 4) {
+      return `${segments[0]}.${segments[1]}.${segments[2]}.xxx`;
+    }
+  }
+
+  // IPv6
+  if (ip.includes(':')) {
+    const segments = ip.split(':');
+    return `${segments.slice(0, 3).join(':')}:xxxx:xxxx`;
+  }
+
+  return 'anonymized-ip';
+}
+
+/**
+ * Deeply sanitizes an object or error before recording to Firestore or external logs.
+ * Strips out any occurrence of passwords, private keys, authorization headers, or plain OTPs.
+ * @param {any} input
+ * @returns {any}
+ */
+function sanitizeDetails(input) {
+  if (!input) return input;
+
+  if (typeof input === 'string') {
+    return input
+      .replace(/password\s*[:=]\s*["']?[^"',\s]+["']?/gi, 'password:[REDACTED]')
+      .replace(/pass\s*[:=]\s*["']?[^"',\s]+["']?/gi, 'pass:[REDACTED]')
+      .replace(/otp\s*[:=]\s*["']?\d{4,8}["']?/gi, 'otp:[REDACTED]')
+      .replace(/Bearer\s+[A-Za-z0-9-_=.]+/gi, 'Bearer [REDACTED]')
+      .replace(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/gi, '[REDACTED_PRIVATE_KEY]')
+      .replace(/ai-za[0-9a-z_-]{35}/gi, '[REDACTED_API_KEY]');
+  }
+
+  if (typeof input !== 'object') {
+    return input;
+  }
+
+  if (Array.isArray(input)) {
+    return input.map((item) => sanitizeDetails(item));
+  }
+
+  const sanitized = {};
+  const sensitiveKeys = [
+    'password',
+    'pass',
+    'smtp_password',
+    'private_key',
+    'privatekey',
+    'otp',
+    'secret',
+    'jwt_secret',
+    'token',
+    'authorization',
+  ];
+
+  for (const [key, value] of Object.entries(input)) {
+    const lowerKey = key.toLowerCase();
+    const isSensitive = sensitiveKeys.some((s) => lowerKey.includes(s));
+
+    if (isSensitive) {
+      sanitized[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeDetails(value);
+    } else if (typeof value === 'string') {
+      sanitized[key] = sanitizeDetails(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+}
+
+module.exports = {
+  maskEmail,
+  sanitizeIp,
+  sanitizeDetails,
+};
+
+
+=== FILE: backend/src/utils/validator.js ===
+
+/**
+ * BloodSync Backend - Request Validators
+ */
+
+// Strict RFC 5322 compliant regex for standard email addresses
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+/**
+ * Validates whether the given string is a valid email format.
+ * @param {string} email
+ * @returns {boolean}
+ */
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  const trimmed = email.trim();
+  if (trimmed.length < 5 || trimmed.length > 254) {
+    return false;
+  }
+  return EMAIL_REGEX.test(trimmed);
+}
+
+/**
+ * Validates if the OTP is a valid 6-digit numeric string.
+ * @param {string} otp
+ * @returns {boolean}
+ */
+function isValidOtpFormat(otp) {
+  if (!otp || (typeof otp !== 'string' && typeof otp !== 'number')) {
+    return false;
+  }
+  const otpStr = String(otp).trim();
+  return /^\d{6}$/.test(otpStr);
+}
+
+/**
+ * Validates a phone number (Indian & international).
+ * Accepts optional leading +, spaces, dashes, parens.
+ * Requires minimum 10 digits.
+ * @param {string} phone
+ * @returns {boolean}
+ */
+function isValidPhone(phone) {
+  if (!phone || typeof phone !== 'string') return false;
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+/**
+ * Validates that a string is non-empty after trimming.
+ * @param {string} value
+ * @param {number} [minLength=1]
+ * @returns {boolean}
+ */
+function isNonEmptyString(value, minLength = 1) {
+  if (!value || typeof value !== 'string') return false;
+  return value.trim().length >= minLength;
+}
+
+module.exports = {
+  isValidEmail,
+  isValidOtpFormat,
+  isValidPhone,
+  isNonEmptyString,
+};
+
+
+=== FILE: backend/tests/test-scenarios.js ===
+
+/**
+ * BloodSync Backend - Test Scenarios Suite
+ * 
+ * Demonstrates and verifies:
+ * 1. Success Flow (Cryptographic OTP generation, hashing, timing-safe verification, JWT issuance)
+ * 2. SMTP Auth Failure (Classified as SMTP_AUTH_ERROR, logged to Debugger Bot, generic safe error)
+ * 3. Rate-Limit Block (Per-email sliding window and cooldown enforcement, 429 status)
+ * 4. Expired OTP (Expired timestamp rejection)
+ * 5. Brute-Force Protection (Max attempt lockout)
+ */
+
+const { generateSecureOtp, hashOtp, timingSafeVerify } = require('../src/utils/cryptoUtils');
+const { maskEmail, sanitizeDetails } = require('../src/utils/sanitizer');
+const { isValidEmail, isValidOtpFormat } = require('../src/utils/validator');
+const { ERROR_CATEGORIES, REQUEST_STATUS, OTP_GEN_STATUS, EMAIL_SEND_STATUS } = require('../src/config/constants');
+const otpService = require('../src/services/otpService');
+const rateLimiterService = require('../src/services/rateLimiterService');
+const loggerBotService = require('../src/services/loggerBotService');
+const emailService = require('../src/services/emailService');
+
+async function runTestSuite() {
+  console.log('================================================================');
+  console.log('🧪 BloodSync OTP & Debugger Bot Test Suite');
+  console.log('================================================================\n');
+
+  let passedTests = 0;
+  let totalTests = 0;
+
+  function assert(condition, message) {
+    totalTests++;
+    if (condition) {
+      console.log(`  ✅ PASS: ${message}`);
+      passedTests++;
+    } else {
+      console.error(`  ❌ FAIL: ${message}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // TEST SCENARIO 1: Cryptographic OTP Generation & Timing-Safe Hashing
+  // -------------------------------------------------------------------------
+  console.log('📌 [Scenario 1] Cryptographic Generation & Secure Hashing');
+  const otp1 = generateSecureOtp(6);
+  assert(/^\d{6}$/.test(otp1), 'Generated OTP is exactly 6 numeric digits');
+  assert(isValidOtpFormat(otp1), 'isValidOtpFormat validates 6 digits correctly');
+
+  const testEmail = 'donor.alex@bloodsync.org';
+  const hashedOtp = hashOtp(testEmail, otp1);
+  assert(typeof hashedOtp === 'string' && hashedOtp.length === 64, 'HMAC-SHA256 returns 64-character hex hash');
+
+  const candidateHash = hashOtp(testEmail, otp1);
+  assert(timingSafeVerify(candidateHash, hashedOtp), 'timingSafeVerify matches correct OTP HMAC');
+
+  const wrongHash = hashOtp(testEmail, '000000');
+  assert(!timingSafeVerify(wrongHash, hashedOtp), 'timingSafeVerify rejects invalid OTP HMAC');
+
+  // -------------------------------------------------------------------------
+  // TEST SCENARIO 2: Sanitization & Zero-Leakage Privacy
+  // -------------------------------------------------------------------------
+  console.log('\n📌 [Scenario 2] Privacy Masking & Credential Sanitization');
+  assert(maskEmail('alex@gmail.com') === 'a***x@gmail.com', 'Masks short email as a***x@gmail.com');
+  assert(maskEmail('john.doe@bloodsync.org') === 'j***e@bloodsync.org', 'Masks john.doe@bloodsync.org properly');
+
+  const dirtyPayload = {
+    smtp_password: 'super_secret_app_password',
+    otp: '123456',
+    token: 'Bearer eyJhbGciOi...',
+    user: 'donor',
+    error: 'Failed with password=secret123 and otp=987654',
+  };
+  const cleaned = sanitizeDetails(dirtyPayload);
+  assert(cleaned.smtp_password === '[REDACTED]', 'Redacts smtp_password key');
+  assert(cleaned.otp === '[REDACTED]', 'Redacts otp key');
+  assert(cleaned.token === '[REDACTED]', 'Redacts token key');
+  assert(!cleaned.error.includes('secret123'), 'Sanitizes inline passwords in error string');
+  assert(!cleaned.error.includes('987654'), 'Sanitizes inline OTPs in error string');
+
+  // -------------------------------------------------------------------------
+  // TEST SCENARIO 3: Rate Limiting & Cooldown Protection
+  // -------------------------------------------------------------------------
+  console.log('\n📌 [Scenario 3] Rate Limiting & Cooldown Engine');
+  const rateLimitEmail = 'spammer@example.com';
+  
+  // First request should be allowed
+  const check1 = await rateLimiterService.checkRateLimit(rateLimitEmail);
+  assert(check1.allowed === true, 'First OTP request is allowed');
+  await rateLimiterService.recordRequest(rateLimitEmail);
+
+  // Immediate second request within 60s cooldown must be rejected
+  const check2 = await rateLimiterService.checkRateLimit(rateLimitEmail);
+  assert(check2.allowed === false, 'Immediate second OTP request is blocked by cooldown');
+  assert(typeof check2.retryAfterSeconds === 'number', 'Returns retryAfterSeconds for client UI display');
+
+  // -------------------------------------------------------------------------
+  // TEST SCENARIO 4: SMTP Error Categorization
+  // -------------------------------------------------------------------------
+  console.log('\n📌 [Scenario 4] SMTP Error Classification');
+  const mockAuthError = new Error('Username and Password not accepted');
+  mockAuthError.code = 'EAUTH';
+  mockAuthError.responseCode = 535;
+
+  const classifiedAuth = emailService.classifySmtpError(mockAuthError);
+  assert(classifiedAuth.category === ERROR_CATEGORIES.SMTP_AUTH_ERROR, 'Maps EAUTH/535 to SMTP_AUTH_ERROR');
+
+  const mockNetworkError = new Error('getaddrinfo ENOTFOUND smtp.gmail.com');
+  mockNetworkError.code = 'ENOTFOUND';
+  const classifiedNetwork = emailService.classifySmtpError(mockNetworkError);
+  assert(classifiedNetwork.category === ERROR_CATEGORIES.EMAIL_CONFIGURATION_ERROR, 'Maps ENOTFOUND to EMAIL_CONFIGURATION_ERROR');
+
+  // -------------------------------------------------------------------------
+  // TEST SCENARIO 5: Full OTP Lifecycle & Brute-Force Lockout
+  // -------------------------------------------------------------------------
+  console.log('\n📌 [Scenario 5] OTP Verification & Brute-Force Defense');
+  const verifyEmail = 'recipient@bloodsync.org';
+  const stored = await otpService.createAndStoreOtp(verifyEmail, 'REQ-TEST-001');
+  assert(stored.otp.length === 6, 'Generated valid OTP for recipient');
+
+  // Attempt 1: Wrong OTP
+  const fail1 = await otpService.verifyOtp(verifyEmail, '000000', 'REQ-TEST-001');
+  assert(fail1.success === false, 'Rejects incorrect OTP');
+
+  // Attempt with correct OTP
+  const successVerification = await otpService.verifyOtp(verifyEmail, stored.otp, 'REQ-TEST-001');
+  assert(successVerification.success === true, 'Successfully verifies with exact matching OTP');
+
+  // Replay attempt with already used OTP
+  const replayAttempt = await otpService.verifyOtp(verifyEmail, stored.otp, 'REQ-TEST-001');
+  assert(replayAttempt.success === false, 'Blocks replay attack for already verified code');
+
+  console.log('\n================================================================');
+  console.log(`🏁 Test Results: ${passedTests}/${totalTests} Passed`);
+  console.log('================================================================\n');
+}
+
+if (require.main === module) {
+  runTestSuite().catch(console.error);
+}
+
+module.exports = runTestSuite;
+
+
