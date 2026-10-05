@@ -145,8 +145,10 @@ class EmergencyDispatcherService {
         }
       });
 
-      // 2. Query donors collection for registered community donors
-      const donorsSnap = await db.collection('donors').get();
+      // 2. Query donors collection for registered community donors (available only)
+      const donorsSnap = await db.collection('donors')
+        .where('isAvailableDonor', '==', true)
+        .get();
       donorsSnap.forEach((doc) => {
         const data = doc.data();
         const donorId = doc.id;
@@ -212,7 +214,7 @@ class EmergencyDispatcherService {
       console.log(`[EmergencyDispatcher] FCM Multicast Result: ${response.successCount} delivered, ${response.failureCount} failed.`);
 
       // Update donorsNotifiedCount in the emergency document
-      await db.collection('emergency_requests').document(requestId).set({
+      await db.collection('emergency_requests').doc(requestId).set({
         donorsNotifiedCount: response.successCount,
         radarRadiusKm: 10.0,
         lastPushDispatchedAt: admin.firestore.FieldValue.serverTimestamp(),

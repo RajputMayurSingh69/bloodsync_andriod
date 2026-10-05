@@ -70,12 +70,22 @@ object NotificationHelper {
         }
     }
 
+    /**
+     * Posts a system status-bar notification.
+     *
+     * @param extras Optional FCM data map. For EMERGENCY notifications this should contain
+     *               requestId, bloodGroup, hospital, patient, units, urgency, emergencyLat,
+     *               emergencyLon so that tapping the notification deep-links into
+     *               EmergencyLiveTrackingScreen for the correct emergency request rather than
+     *               just opening the app home screen.
+     */
     fun sendSystemNotification(
         context: Context,
         notificationId: Int,
         title: String,
         message: String,
-        type: NotificationType
+        type: NotificationType,
+        extras: Map<String, String> = emptyMap()
     ) {
         // If Android 13+, check POST_NOTIFICATIONS
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -97,12 +107,16 @@ object NotificationHelper {
             NotificationType.SYSTEM -> CHANNEL_HEALTH
         }
 
+        // Build the tap Intent and forward all FCM data extras so MainActivity can
+        // read requestId (and other fields) to navigate to the correct emergency screen
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            extras.forEach { (key, value) -> putExtra(key, value) }
         }
+
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            notificationId, // Use notificationId as request code to keep PendingIntents distinct
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
