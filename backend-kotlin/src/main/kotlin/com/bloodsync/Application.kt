@@ -29,5 +29,6 @@ fun Application.module() {
         anyHost() 
     }
     
+    configureExceptionHandling()
     configureRouting()
 }
