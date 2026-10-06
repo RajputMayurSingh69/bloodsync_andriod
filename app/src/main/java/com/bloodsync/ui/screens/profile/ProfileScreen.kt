@@ -55,7 +55,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             BloodSyncTopBar(
-                title = strings.donorProfileTitle,
+                title = if (profile.role == "blood_bank") "Bank Profile" else strings.donorProfileTitle,
                 subtitle = if (isEditing) strings.editProfile else strings.personalContactInfo,
                 showBackButton = true,
                 onBackClick = {
@@ -117,17 +117,75 @@ fun ProfileScreen(
             // ==============================================================
             // 1. HERO IDENTITY CARD (Blood Group, Name, Verified, Metrics)
             // ==============================================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            if (profile.role == "blood_bank") {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Bank Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .background(BloodRedPrimary, CircleShape)
+                                .border(3.dp, appColors.border, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalHospital,
+                                contentDescription = "Bank",
+                                tint = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = profile.name.ifBlank { "Registered Blood Bank" },
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = appColors.textPrimary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Verified Bank",
+                                tint = StatusEligibleGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "${profile.city.ifBlank { "Registered City" }} • Official Partner",
+                            fontSize = 13.sp,
+                            color = appColors.textSecondary,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                     // Blood Group Avatar
                     Box(
                         modifier = Modifier
@@ -219,6 +277,7 @@ fun ProfileScreen(
                         )
                     }
                 }
+            }
             }
 
             // ==============================================================
@@ -586,18 +645,20 @@ fun ProfileScreen(
                         color = appColors.textPrimary
                     )
 
-                    PreferenceSwitchRow(
-                        title = "Available for Emergency Calls",
-                        subtitle = "Notify nearby patients and hospitals that you are ready to donate",
-                        isChecked = profile.isAvailableDonor,
-                        onCheckedChange = {
-                            repository.updateUserProfile(profile.copy(isAvailableDonor = it))
-                        },
-                        textColor = appColors.textPrimary,
-                        subColor = appColors.textSecondary
-                    )
+                    if (profile.role != "blood_bank") {
+                        PreferenceSwitchRow(
+                            title = "Available for Emergency Calls",
+                            subtitle = "Notify nearby patients and hospitals that you are ready to donate",
+                            isChecked = profile.isAvailableDonor,
+                            onCheckedChange = {
+                                repository.updateUserProfile(profile.copy(isAvailableDonor = it))
+                            },
+                            textColor = appColors.textPrimary,
+                            subColor = appColors.textSecondary
+                        )
 
-                    HorizontalDivider(color = appColors.divider)
+                        HorizontalDivider(color = appColors.divider)
+                    }
 
                     PreferenceSwitchRow(
                         title = "Push Notifications & Alerts",

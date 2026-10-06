@@ -177,7 +177,8 @@ fun BloodSyncApp(
                             currentDestination = currentNavDestination,
                             onNavigate = { destination ->
                                 currentNavDestination = destination
-                            }
+                            },
+                            role = repository.userProfile.value?.role ?: "user"
                         )
                     }
                 ) { innerPadding ->
@@ -186,17 +187,29 @@ fun BloodSyncApp(
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        val isBank = repository.userProfile.value.-role == "blood_bank"
+                        val isBank = repository.userProfile.value?.role == "blood_bank"
                         if (isBank) {
                             when (currentNavDestination) {
                                 AppNavDestination.HOME -> {
-                                    com.bloodsync.ui.screens.home.BankDashboardScreen(repository = repository)
+                                    com.bloodsync.ui.screens.home.BankDashboardScreen(
+                                        repository = repository,
+                                        onNavigateToRequests = { currentNavDestination = AppNavDestination.HISTORY },
+                                        onNavigateToInventory = { currentNavDestination = AppNavDestination.HEALTH },
+                                        onNavigateToAppointments = { currentNavDestination = AppNavDestination.APPOINTMENTS },
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
                                 }
                                 AppNavDestination.HISTORY -> {
-                                    com.bloodsync.ui.screens.emergency.BankRequestsScreen(repository = repository)
+                                    com.bloodsync.ui.screens.emergency.BankRequestsScreen(
+                                        repository = repository,
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
                                 }
                                 AppNavDestination.HEALTH -> {
-                                    com.bloodsync.ui.screens.health.BankInventoryScreen(repository = repository)
+                                    com.bloodsync.ui.screens.health.BankInventoryScreen(
+                                        repository = repository,
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
                                 }
                                 AppNavDestination.APPOINTMENTS -> {
                                     AppointmentScreen(

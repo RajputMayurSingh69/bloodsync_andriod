@@ -1017,7 +1017,7 @@
     /* ==========================================================
        VALIDATION HELPERS
     ========================================================== */
-    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const EMAIL_RE = /^[^\s@]+@gmail\.com$/i;
 
     function setField(inputId, errorDivId, errMsgId, valid, msg) {
       const inp = document.getElementById(inputId);
@@ -1067,7 +1067,7 @@
     function validateUserEmail() {
       const v = document.getElementById('userEmail').value.trim();
       if (!v)              return setField('userEmail','userEmailError','userEmailErrMsg',false,'Email is required.');
-      if (!EMAIL_RE.test(v)) return setField('userEmail','userEmailError','userEmailErrMsg',false,'Please enter a valid email address.');
+      if (!EMAIL_RE.test(v)) return setField('userEmail','userEmailError','userEmailErrMsg',false,'Invalid email format! Only @gmail.com is allowed.');
       return setField('userEmail','userEmailError',null,true,'');
     }
 
@@ -1135,7 +1135,7 @@
     function validateBankEmail() {
       const v = document.getElementById('bankEmail').value.trim();
       if (!v)              return setField('bankEmail','bankEmailError','bankEmailErrMsg',false,'Email is required.');
-      if (!EMAIL_RE.test(v)) return setField('bankEmail','bankEmailError','bankEmailErrMsg',false,'Enter a valid email address.');
+      if (!EMAIL_RE.test(v)) return setField('bankEmail','bankEmailError','bankEmailErrMsg',false,'Invalid email format! Only @gmail.com is allowed.');
       return setField('bankEmail','bankEmailError',null,true,'');
     }
 

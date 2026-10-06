@@ -6,12 +6,14 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.bloodsync.data.firebase.FirebaseSyncService
 import com.bloodsync.data.model.*
 import com.bloodsync.data.notification.NotificationHelper
+import com.bloodsync.util.ValidationHelper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -69,34 +71,49 @@ class BloodSyncRepository(private val context: Context) {
     val userProfile: State<UserProfile> = _userProfile
 
     private val _donationHistory = mutableStateListOf<DonationRecord>()
-    val donationHistory: List<DonationRecord> = _donationHistory
+    val donationHistory: List<DonationRecord> get() = _donationHistory.toList()
 
     private val _certificates = mutableStateListOf<Certificate>()
-    val certificates: List<Certificate> = _certificates
+    val certificates: List<Certificate> get() = _certificates.toList()
 
     private val _emergencyRequests = mutableStateListOf<EmergencyRequest>()
-    val emergencyRequests: List<EmergencyRequest> = _emergencyRequests
+    val emergencyRequests: List<EmergencyRequest> get() = _emergencyRequests.toList()
 
     private val _healthRecord = mutableStateOf(HealthRecord())
     val healthRecord: State<HealthRecord> = _healthRecord
 
     private val _appointments = mutableStateListOf<Appointment>()
-    val appointments: List<Appointment> = _appointments
+    val appointments: List<Appointment> get() = _appointments.toList()
 
     private val _bloodBanks = mutableStateListOf<BloodBank>()
-    val bloodBanks: List<BloodBank> = _bloodBanks
+    val bloodBanks: List<BloodBank> get() = _bloodBanks.toList()
 
     private val _donors = mutableStateListOf<UserProfile>()
-    val donors: List<UserProfile> = _donors
+    val donors: List<UserProfile> get() = _donors.toList()
 
     private val _notifications = mutableStateListOf<AppNotification>()
-    val notifications: List<AppNotification> = _notifications
+    val notifications: List<AppNotification> get() = _notifications.toList()
 
     private val _unreadNotificationCount = mutableIntStateOf(0)
     val unreadNotificationCount: State<Int> = _unreadNotificationCount
 
     private val _isUserLoggedIn = mutableStateOf(false)
     val isUserLoggedIn: State<Boolean> = _isUserLoggedIn
+
+    // Blood Bank Inventory Live Reactive State
+    private val _bloodStock = mutableStateMapOf<String, Int>()
+    val bloodStock: Map<String, Int> get() = _bloodStock
+
+    val bloodStockCapacities: Map<String, Int> = mapOf(
+        "A+" to 400,
+        "A-" to 100,
+        "B+" to 300,
+        "B-" to 80,
+        "AB+" to 150,
+        "AB-" to 60,
+        "O+" to 450,
+        "O-" to 120
+    )
 
     init {
         // Initialize notification channels
@@ -138,6 +155,17 @@ class BloodSyncRepository(private val context: Context) {
         }
         saveEmergencyToPrefs()
 
+        // Purge legacy login/sign-in/registration/portal-connected notifications from inbox
+        val removedLoginNotifs = _notifications.removeAll {
+            it.title.contains("Blood Bank Portal Connected", ignoreCase = true) ||
+            it.title.contains("Blood Bank Sign-In", ignoreCase = true) ||
+            it.title.contains("New Donor Registered!", ignoreCase = true)
+        }
+        if (removedLoginNotifs) {
+            updateUnreadCount()
+            saveNotificationsToPrefs()
+        }
+
         // Certified Indian Blood Banks fallback for offline emergencies
         if (_bloodBanks.isEmpty()) {
             _bloodBanks.addAll(
@@ -160,6 +188,22 @@ class BloodSyncRepository(private val context: Context) {
                 it.hospitalName.equals("no one", ignoreCase = true) ||
                 it.id.startsWith("emg_dummy")
             }
+
+            // Check if any of MY requests just got fulfilled
+            cleanList.forEach { incomingReq ->
+                if (incomingReq.requesterId == _userProfile.value.id && incomingReq.status == EmergencyStatus.FULFILLED) {
+                    val oldReq = _emergencyRequests.find { it.id == incomingReq.id }
+                    if (oldReq != null && oldReq.status != EmergencyStatus.FULFILLED) {
+                        postNotification(
+                            title = "✅ Request Accepted!",
+                            message = "Your emergency request for ${incomingReq.patientName} has been fulfilled by a Blood Bank.",
+                            type = NotificationType.SYSTEM,
+                            targetScreen = "history"
+                        )
+                    }
+                }
+            }
+
             _emergencyRequests.clear()
             _emergencyRequests.addAll(cleanList)
             saveEmergencyToPrefs()
@@ -678,13 +722,6 @@ class BloodSyncRepository(private val context: Context) {
 
         // 1. Direct registration to Firebase Firestore Cloud
         firebaseService.registerNewDonorInCloud(profile)
-
-        // 2. Immediate push & in-app registration alert message
-        postNotification(
-            title = "🚨 New Donor Registered!",
-            message = "${profile.name.ifBlank { "Voluntary Donor" }} (${profile.bloodGroup}) registered from ${profile.city.ifBlank { "Local" }}. Phone: ${profile.phone}",
-            type = NotificationType.SYSTEM
-        )
     }
 
     fun addBloodBank(bloodBank: BloodBank) {
@@ -707,8 +744,8 @@ class BloodSyncRepository(private val context: Context) {
             try {
                 val cleanEmail = email.trim()
                 val cleanPass = pass.trim()
-                if (cleanEmail.isBlank()) {
-                    onFailure("Please enter your email address.")
+                if (cleanEmail.isBlank() || !ValidationHelper.isValidGmail(cleanEmail)) {
+                    onFailure("Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com).")
                     return
                 }
                 if (cleanPass.length < 6) {
@@ -771,6 +808,10 @@ class BloodSyncRepository(private val context: Context) {
             try {
                 val cleanEmail = profile.email.trim()
                 val cleanPass = pass.trim()
+                if (cleanEmail.isBlank() || !ValidationHelper.isValidGmail(cleanEmail)) {
+                    onFailure("Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com).")
+                    return
+                }
                 if (cleanPass.length < 6) {
                     onFailure("Password must be at least 6 characters.")
                     return
@@ -840,12 +881,6 @@ class BloodSyncRepository(private val context: Context) {
 
         // Direct registration to Firebase Firestore Cloud
         firebaseService.registerNewDonorInCloud(profile)
-
-        postNotification(
-            title = "🚨 New Donor Registered!",
-            message = "${name.ifBlank { "New Donor" }} ($bloodGroup) registered from ${profile.city.ifBlank { "BloodSync Network" }}. Contact: $phone",
-            type = NotificationType.SYSTEM
-        )
     }
 
     fun loginWithGoogleAccount(displayName: String, email: String) {
@@ -897,19 +932,15 @@ class BloodSyncRepository(private val context: Context) {
             phone = phone,
             bloodGroup = "All Types (Blood Bank)",
             city = city.ifBlank { "National Network" },
-            isAvailableDonor = false
+            isAvailableDonor = false,
+            role = "blood_bank"
         )
         _userProfile.value = profile
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
         fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
-
-        postNotification(
-            title = "🏥 Blood Bank Portal Connected",
-            message = "$bankName has been registered and verified on BloodSync Network.",
-            type = NotificationType.SYSTEM
-        )
+        attachCloudListeners()
     }
 
     fun loginBloodBankInstitution(
@@ -926,19 +957,15 @@ class BloodSyncRepository(private val context: Context) {
             phone = existing?.phone ?: "",
             bloodGroup = "All Types (Blood Bank)",
             city = "Registered Institution",
-            isAvailableDonor = false
+            isAvailableDonor = false,
+            role = "blood_bank"
         )
         _userProfile.value = profile
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
         fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
-
-        postNotification(
-            title = "🏥 Blood Bank Sign-In",
-            message = "Welcome back, $name.",
-            type = NotificationType.SYSTEM
-        )
+        attachCloudListeners()
     }
 
     fun setLoggedIn(loggedIn: Boolean) {
@@ -976,12 +1003,8 @@ class BloodSyncRepository(private val context: Context) {
         val auth = firebaseService.getFirebaseAuth()
         if (auth != null) {
             val cleanEmail = email.trim().lowercase()
-            if (cleanEmail.isBlank()) {
-                onFailure("Please enter your registered email address.")
-                return
-            }
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
-                onFailure("Please enter a valid email address.")
+            if (cleanEmail.isBlank() || !ValidationHelper.isValidGmail(cleanEmail)) {
+                onFailure("Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com).")
                 return
             }
             try {
@@ -1056,6 +1079,7 @@ class BloodSyncRepository(private val context: Context) {
             put("isAvailableDonor", p.isAvailableDonor)
             put("isNotificationEnabled", p.isNotificationEnabled)
             put("isEmergencyVolunteer", p.isEmergencyVolunteer)
+            put("role", p.role)
             if (p.latitude != null) put("latitude", p.latitude)
             if (p.longitude != null) put("longitude", p.longitude)
         }
@@ -1223,6 +1247,7 @@ class BloodSyncRepository(private val context: Context) {
                     isAvailableDonor = obj.optBoolean("isAvailableDonor", true),
                     isNotificationEnabled = obj.optBoolean("isNotificationEnabled", true),
                     isEmergencyVolunteer = obj.optBoolean("isEmergencyVolunteer", true),
+                    role = obj.optString("role", "user"),
                     latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
                     longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
                 )
@@ -1386,6 +1411,14 @@ class BloodSyncRepository(private val context: Context) {
                 _notifications.clear()
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
+                    val title = obj.getString("title")
+                    // Filter out legacy login/portal connection/new donor notifications
+                    if (title.contains("Blood Bank Portal Connected", ignoreCase = true) ||
+                        title.contains("Blood Bank Sign-In", ignoreCase = true) ||
+                        title.contains("New Donor Registered!", ignoreCase = true)
+                    ) {
+                        continue
+                    }
                     _notifications.add(
                         AppNotification(
                             id = obj.getString("id"),
@@ -1400,8 +1433,95 @@ class BloodSyncRepository(private val context: Context) {
                     )
                 }
             }
+
+            // Blood Bank Inventory Stock
+            prefs.getString("blood_stock_json", null)?.let {
+                val obj = JSONObject(it)
+                _bloodStock.clear()
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    _bloodStock[key] = obj.getInt(key)
+                }
+            }
+            initializeDefaultStockIfEmpty()
         } catch (_: Exception) {
             // Ignore parse errors on corrupted prefs
+        }
+    }
+
+    fun initializeDefaultStockIfEmpty() {
+        if (_bloodStock.isEmpty()) {
+            val defaults = mapOf(
+                "A+" to 287,
+                "A-" to 48,
+                "B+" to 193,
+                "B-" to 29,
+                "AB+" to 112,
+                "AB-" to 8,
+                "O+" to 334,
+                "O-" to 53
+            )
+            _bloodStock.putAll(defaults)
+            saveStockToPrefs()
+        }
+    }
+
+    fun updateBloodStock(bloodGroup: String, units: Int) {
+        val maxCap = bloodStockCapacities[bloodGroup] ?: 500
+        val clamped = units.coerceIn(0, maxCap)
+        _bloodStock[bloodGroup] = clamped
+        saveStockToPrefs()
+        syncStockWithFirebase(bloodGroup, clamped)
+    }
+
+    fun incrementStock(bloodGroup: String, delta: Int) {
+        val current = _bloodStock[bloodGroup] ?: 0
+        updateBloodStock(bloodGroup, current + delta)
+    }
+
+    private fun syncStockWithFirebase(bloodGroup: String, units: Int) {
+        val user = _userProfile.value
+        if (user.role == "blood_bank" && user.id.isNotBlank()) {
+            val statusSummary = _bloodStock.entries.joinToString(", ") { "${it.key}: ${it.value}" }
+            firebaseService.updateBankStock(
+                bankId = user.id,
+                stockMap = mapOf(
+                    "bloodStockStatus" to statusSummary,
+                    "stock_${bloodGroup.replace("+", "Pos").replace("-", "Neg")}" to units,
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun saveStockToPrefs() {
+        try {
+            val obj = JSONObject()
+            _bloodStock.forEach { (grp, qty) ->
+                obj.put(grp, qty)
+            }
+            prefs.edit().putString("blood_stock_json", obj.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    fun refreshEmergencyRequests(onComplete: (Int) -> Unit = {}) {
+        firebaseService.fetchEmergencyRequests { fetched ->
+            if (fetched.isNotEmpty()) {
+                val cleanList = fetched.filterNot {
+                    it.patientName.contains("Jane Doe", ignoreCase = true) ||
+                    it.hospitalName.contains("Metro General", ignoreCase = true) ||
+                    it.patientName.equals("any one", ignoreCase = true) ||
+                    it.hospitalName.equals("no one", ignoreCase = true) ||
+                    it.id.startsWith("emg_dummy")
+                }
+                _emergencyRequests.clear()
+                _emergencyRequests.addAll(cleanList)
+                saveEmergencyToPrefs()
+                onComplete(_emergencyRequests.size)
+            } else {
+                onComplete(_emergencyRequests.size)
+            }
         }
     }
 

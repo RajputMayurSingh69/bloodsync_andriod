@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 object ValidationHelper {
 
     private val PHONE_PATTERN: Pattern = Pattern.compile("^(\\+?[0-9]{1,4}[\\s-]?)?([0-9]{10,12})$")
-    private val EMAIL_PATTERN: Pattern = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")
+    private val GMAIL_PATTERN: Pattern = Pattern.compile("^[A-Za-z0-9._%+-]+@gmail\\.com$", Pattern.CASE_INSENSITIVE)
     private val VALID_BLOOD_GROUPS = setOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
 
     /**
@@ -19,6 +19,14 @@ object ValidationHelper {
         return input.trim()
             .replace(Regex("[\\x00-\\x1F\\x7F]"), "") // Strip non-printable ASCII control characters
             .take(maxLength)
+    }
+
+    /**
+     * Checks if email address has valid @gmail.com format.
+     */
+    fun isValidGmail(email: String): Boolean {
+        val clean = email.trim()
+        return clean.isNotEmpty() && GMAIL_PATTERN.matcher(clean).matches()
     }
 
     /**
@@ -51,17 +59,17 @@ object ValidationHelper {
     }
 
     /**
-     * Validates email address (optional if blank, but if present must be valid).
+     * Validates email address (strictly requires @gmail.com extension).
      */
     fun validateEmail(email: String, required: Boolean = false): ValidationResult {
         val clean = email.trim()
         if (clean.isEmpty()) {
             return if (required) ValidationResult(false, "Email is required.") else ValidationResult(true)
         }
-        return if (EMAIL_PATTERN.matcher(clean).matches()) {
+        return if (isValidGmail(clean)) {
             ValidationResult(true)
         } else {
-            ValidationResult(false, "Please enter a valid email address.")
+            ValidationResult(false, "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com).")
         }
     }
 

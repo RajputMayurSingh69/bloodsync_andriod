@@ -206,6 +206,90 @@ class FirebaseSyncService(private val context: Context) {
     }
 
     /**
+     * Manually fetch fresh emergency requests from Firestore on demand (Pull-to-refresh / Refresh button).
+     */
+    fun fetchEmergencyRequests(onResult: (List<EmergencyRequest>) -> Unit) {
+        val db = firestore
+        if (db == null) {
+            onResult(emptyList())
+            return
+        }
+        db.collection("emergency_requests").get()
+            .addOnSuccessListener { snapshot ->
+                val list = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val patient = doc.getString("patientName") ?: ""
+                        val hospital = doc.getString("hospitalName") ?: ""
+                        val id = doc.getString("id") ?: doc.id
+
+                        if (patient.contains("Jane Doe", ignoreCase = true) ||
+                            hospital.contains("Metro General", ignoreCase = true) ||
+                            patient.equals("any one", ignoreCase = true) ||
+                            hospital.equals("no one", ignoreCase = true) ||
+                            id.startsWith("emg_dummy")
+                        ) {
+                            doc.reference.delete()
+                            return@mapNotNull null
+                        }
+
+                        EmergencyRequest(
+                            id = id,
+                            patientName = patient.ifBlank { "Emergency Patient" },
+                            bloodGroupNeeded = doc.getString("bloodGroupNeeded") ?: "O+",
+                            unitsRequired = (doc.getLong("unitsRequired") ?: 1L).toInt(),
+                            hospitalName = hospital.ifBlank { "Medical Center" },
+                            hospitalAddress = doc.getString("hospitalAddress") ?: "Hospital Ward",
+                            contactPhone = doc.getString("contactPhone") ?: "",
+                            urgencyLevel = try {
+                                UrgencyLevel.valueOf(doc.getString("urgencyLevel") ?: "IMMEDIATE")
+                            } catch (e: Exception) {
+                                UrgencyLevel.IMMEDIATE
+                            },
+                            status = try {
+                                EmergencyStatus.valueOf(doc.getString("status") ?: "BROADCASTING")
+                            } catch (e: Exception) {
+                                EmergencyStatus.BROADCASTING
+                            },
+                            additionalNotes = doc.getString("additionalNotes") ?: "",
+                            requestedAt = doc.getString("requestedAt") ?: "Just now",
+                            donorsNotifiedCount = (doc.getLong("donorsNotifiedCount") ?: 1L).toInt(),
+                            responders = emptyList(),
+                            latitude = doc.getDouble("latitude"),
+                            longitude = doc.getDouble("longitude"),
+                            requesterId = doc.getString("userId") ?: doc.getString("requesterId") ?: ""
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                onResult(list)
+            }
+            .addOnFailureListener { e ->
+                Log.e(tag, "Failed to fetch emergency requests on demand", e)
+                onResult(emptyList())
+            }
+    }
+
+    /**
+     * Update blood inventory stock in Firestore for the active blood bank.
+     */
+    fun updateBankStock(bankId: String, stockMap: Map<String, Any>) {
+        val db = firestore ?: return
+        try {
+            db.collection("blood_banks").document(bankId)
+                .set(stockMap, SetOptions.merge())
+                .addOnSuccessListener {
+                    Log.d(tag, "Blood bank stock updated on server for $bankId")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(tag, "Failed to update blood bank stock on server", e)
+                }
+        } catch (e: Exception) {
+            Log.e(tag, "Error updating bank stock", e)
+        }
+    }
+
+    /**
      * Listen for real-time Blood Banks from Firebase server.
      */
     fun listenToBloodBanks(onUpdate: (List<BloodBank>) -> Unit) {
@@ -316,6 +400,7 @@ class FirebaseSyncService(private val context: Context) {
             "totalDonations" to profile.totalDonations,
             "livesSaved" to profile.livesSaved,
             "isAvailableDonor" to profile.isAvailableDonor,
+            "role" to profile.role,
             "lastUpdated" to FieldValue.serverTimestamp()
         )
         if (profile.latitude != null) privateData["latitude"] = profile.latitude
@@ -547,7 +632,8 @@ class FirebaseSyncService(private val context: Context) {
                             livesSaved = (doc.getLong("livesSaved") ?: 0L).toInt(),
                             isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true,
                             latitude = doc.getDouble("latitude"),
-                            longitude = doc.getDouble("longitude")
+                            longitude = doc.getDouble("longitude"),
+                            role = doc.getString("role") ?: "user"
                         )
                         onResult(profile)
                     } catch (_: Exception) {

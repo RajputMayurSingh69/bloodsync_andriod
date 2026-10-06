@@ -80,6 +80,9 @@ fun AppointmentScreen(
     val healthRecord by repository.healthRecord
     val unreadNotifs by repository.unreadNotificationCount
 
+    val userProfile by repository.userProfile
+    val isBank = userProfile?.role == "blood_bank"
+
     // 3-Month Donation Gap Rule Calculations
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
     val nextEligibleDateMillis = remember(healthRecord) { healthRecord.getNextEligibleDateMillis() }
@@ -125,12 +128,14 @@ fun AppointmentScreen(
                 unreadCount = unreadNotifs,
                 onNotificationClick = onNotificationClick,
                 actions = {
-                    IconButton(onClick = { isBookingTab = !isBookingTab }) {
-                        Icon(
-                            imageVector = if (isBookingTab) Icons.Default.DateRange else Icons.Default.Add,
-                            contentDescription = "Toggle View",
-                            tint = BloodRedPrimary
-                        )
+                    if (!isBank) {
+                        IconButton(onClick = { isBookingTab = !isBookingTab }) {
+                            Icon(
+                                imageVector = if (isBookingTab) Icons.Default.DateRange else Icons.Default.Add,
+                                contentDescription = "Toggle View",
+                                tint = BloodRedPrimary
+                            )
+                        }
                     }
                 }
             )
@@ -143,56 +148,58 @@ fun AppointmentScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Tab Switcher (My Appointments vs Book Slot) - Pill Shaped
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(50.dp),
-                color = appColors.surfaceVariant,
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-            ) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(if (!isBookingTab) appColors.cardBackground else Color.Transparent)
-                            .clickable { isBookingTab = false },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "My Appointments (${upcomingAppointments.size})",
-                            fontWeight = if (!isBookingTab) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isBookingTab) BloodRedPrimary else appColors.textSecondary,
-                            fontSize = 13.sp
-                        )
-                    }
+            if (!isBank) {
+                // Tab Switcher (My Appointments vs Book Slot) - Pill Shaped
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    color = appColors.surfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                ) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(4.dp)
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(if (!isBookingTab) appColors.cardBackground else Color.Transparent)
+                                .clickable { isBookingTab = false },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "My Appointments (${upcomingAppointments.size})",
+                                fontWeight = if (!isBookingTab) FontWeight.Bold else FontWeight.Medium,
+                                color = if (!isBookingTab) BloodRedPrimary else appColors.textSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(if (isBookingTab) appColors.cardBackground else Color.Transparent)
-                            .clickable { isBookingTab = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "+ Book New Slot",
-                            fontWeight = if (isBookingTab) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isBookingTab) BloodRedPrimary else appColors.textSecondary,
-                            fontSize = 13.sp
-                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(4.dp)
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(if (isBookingTab) appColors.cardBackground else Color.Transparent)
+                                .clickable { isBookingTab = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "+ Book New Slot",
+                                fontWeight = if (isBookingTab) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isBookingTab) BloodRedPrimary else appColors.textSecondary,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
             }
 
-            if (isBookingTab) {
+            if (isBookingTab && !isBank) {
                 // Booking Form
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -659,10 +666,10 @@ fun AppointmentScreen(
                         item {
                             EmptyStateView(
                                 title = "No Upcoming Appointments",
-                                message = "You have no upcoming donation bookings.",
+                                message = if (isBank) "There are no upcoming appointments scheduled at your blood bank." else "You have no upcoming donation bookings.",
                                 icon = Icons.Default.EventAvailable,
-                                actionText = "Book Donation Slot",
-                                onActionClick = { isBookingTab = true }
+                                actionText = if (isBank) "" else "Book Donation Slot",
+                                onActionClick = { if (!isBank) isBookingTab = true }
                             )
                         }
                     } else {

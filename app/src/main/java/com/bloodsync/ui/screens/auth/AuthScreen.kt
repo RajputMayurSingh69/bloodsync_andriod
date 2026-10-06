@@ -162,6 +162,11 @@ fun AuthScreen(
                 val email = account.email ?: ""
                 val idToken = account.idToken
 
+                if (!ValidationHelper.isValidGmail(email)) {
+                    errorMessage = "Invalid email format! Only @gmail.com accounts are allowed."
+                    return@rememberLauncherForActivityResult
+                }
+
                 if (!idToken.isNullOrBlank()) {
                     isLoading = true
                     val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -244,7 +249,7 @@ fun AuthScreen(
     )
 
     val emailPattern = remember {
-        "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+        "^[A-Za-z0-9._%+-]+@gmail\\.com$".toRegex(RegexOption.IGNORE_CASE)
     }
 
     Scaffold(
@@ -553,7 +558,7 @@ fun AuthScreen(
                                 OutlinedTextField(
                                     value = userEmailInput,
                                     onValueChange = { userEmailInput = it },
-                                    placeholder = { Text("user@bloodsync.com") },
+                                    placeholder = { Text("user@gmail.com") },
                                     leadingIcon = {
                                         Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
                                     },
@@ -857,7 +862,7 @@ fun AuthScreen(
                                     // User Sign In logic
                                     val cleanEmail = userEmailInput.trim()
                                     if (cleanEmail.isBlank() || !emailPattern.matches(cleanEmail)) {
-                                        errorMessage = "Please enter a valid email address."
+                                        errorMessage = "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com)."
                                         return@Button
                                     }
                                     if (userPassword.length < 6) {
@@ -885,7 +890,7 @@ fun AuthScreen(
                                         return@Button
                                     }
                                     if (cleanEmail.isBlank() || !emailPattern.matches(cleanEmail)) {
-                                        errorMessage = "Please enter a valid email address."
+                                        errorMessage = "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com)."
                                         return@Button
                                     }
                                     if (userPassword.length < 6) {
@@ -1198,7 +1203,7 @@ fun AuthScreen(
                                 OutlinedTextField(
                                     value = bankEmailInput,
                                     onValueChange = { bankEmailInput = it },
-                                    placeholder = { Text("admin@citybloodbank.org") },
+                                    placeholder = { Text("bankname@gmail.com") },
                                     leadingIcon = {
                                         Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
                                     },
@@ -1335,7 +1340,7 @@ fun AuthScreen(
                                 OutlinedTextField(
                                     value = bankLoginEmail,
                                     onValueChange = { bankLoginEmail = it },
-                                    placeholder = { Text("admin@citybloodbank.org") },
+                                    placeholder = { Text("bankname@gmail.com") },
                                     leadingIcon = {
                                         Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
                                     },
@@ -1438,7 +1443,7 @@ fun AuthScreen(
                                     }
                                     val email = bankEmailInput.trim()
                                     if (email.isBlank() || !emailPattern.matches(email)) {
-                                        errorMessage = "A valid official email is required."
+                                        errorMessage = "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com)."
                                         return@Button
                                     }
                                     val phoneVal = ValidationHelper.validatePhone(bankPhoneInput)
@@ -1515,7 +1520,7 @@ fun AuthScreen(
                                     // Blood Bank Sign In
                                     val email = bankLoginEmail.trim()
                                     if (email.isBlank() || !emailPattern.matches(email)) {
-                                        errorMessage = "Please enter a valid official email address."
+                                        errorMessage = "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com)."
                                         return@Button
                                     }
                                     if (bankLoginPassword.length < 6) {
@@ -1591,60 +1596,6 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // =================================================================
-            // 4. WEB AUTHENTICATION PORTAL DIRECT LINK
-            // =================================================================
-            Surface(
-                onClick = {
-                    try {
-                        val browserIntent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("http://10.0.2.2:5000/bloodsync-auth.html?role=${if (selectedPortal == AuthPortalRole.USER) "user" else "bank"}")
-                        )
-                        context.startActivity(browserIntent)
-                    } catch (e: Exception) {
-                        errorMessage = "Cannot open browser. Access bloodsync-auth.html in your web root."
-                    }
-                },
-                shape = RoundedCornerShape(16.dp),
-                color = appColors.surfaceVariant.copy(alpha = 0.7f),
-                border = BorderStroke(1.dp, appColors.border),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Language,
-                        contentDescription = null,
-                        tint = Color(0xFFC9382B),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Web Authentication Portal",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = appColors.textPrimary
-                        )
-                        Text(
-                            text = "Open full split-screen portal in browser (bloodsync-auth.html)",
-                            fontSize = 10.sp,
-                            color = appColors.textSecondary
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.OpenInNew,
-                        contentDescription = null,
-                        tint = appColors.textMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
 
             // Healthcare privacy note
             Row(
@@ -1765,8 +1716,8 @@ fun AuthScreen(
                             resetMessage = "Please enter your email."
                             return@Button
                         }
-                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(clean).matches()) {
-                            resetMessage = "Please enter a valid email address format."
+                        if (!emailPattern.matches(clean)) {
+                            resetMessage = "Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com)."
                             return@Button
                         }
                         isSendingReset = true
