@@ -440,7 +440,8 @@ class BloodSyncRepository(private val context: Context) {
             donorsNotifiedCount = 1,
             responders = emptyList(),
             latitude = latitude,
-            longitude = longitude
+            longitude = longitude,
+            requesterId = _userProfile.value.id
         )
 
         _emergencyRequests.add(0, request)
@@ -867,11 +868,6 @@ class BloodSyncRepository(private val context: Context) {
         // Sync to Firebase Cloud
         firebaseService.registerNewDonorInCloud(profile)
 
-        postNotification(
-            title = "🚨 Google Sign-In Successful!",
-            message = "$displayName ($email) registered and signed in via Google.",
-            type = NotificationType.SYSTEM
-        )
     }
 
     fun registerBloodBankInstitution(
@@ -1377,7 +1373,8 @@ class BloodSyncRepository(private val context: Context) {
                             donorsNotifiedCount = obj.optInt("donorsNotifiedCount", 1),
                             responders = emptyList(),
                             latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
-                            longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
+                            longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null,
+                            requesterId = obj.optString("requesterId", "")
                         )
                     )
                 }

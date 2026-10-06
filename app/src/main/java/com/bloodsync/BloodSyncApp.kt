@@ -186,60 +186,91 @@ fun BloodSyncApp(
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        when (currentNavDestination) {
-                            AppNavDestination.HOME -> {
-                                HomeScreen(
-                                    repository = repository,
-                                    onNavigateToEmergency = { currentScreen = Screen.EmergencyRequest },
-                                    onNavigateToLiveTracking = { requestId ->
-                                        currentScreen = Screen.EmergencyLiveTracking(requestId)
-                                    },
-                                    onNavigateToHistory = { currentNavDestination = AppNavDestination.HISTORY },
-                                    onNavigateToCertificates = { currentScreen = Screen.CertificateView(null) },
-                                    onNavigateToHealth = { currentNavDestination = AppNavDestination.HEALTH },
-                                    onNavigateToAppointments = { currentNavDestination = AppNavDestination.APPOINTMENTS },
-                                    onNavigateToNotifications = { currentScreen = Screen.Notifications },
-                                    onNavigateToSettings = { currentScreen = Screen.Settings },
-                                    onNavigateToDonors = { currentScreen = Screen.DonorsDirectory }
-                                )
+                        val isBank = repository.userProfile.value.-role == "blood_bank"
+                        if (isBank) {
+                            when (currentNavDestination) {
+                                AppNavDestination.HOME -> {
+                                    com.bloodsync.ui.screens.home.BankDashboardScreen(repository = repository)
+                                }
+                                AppNavDestination.HISTORY -> {
+                                    com.bloodsync.ui.screens.emergency.BankRequestsScreen(repository = repository)
+                                }
+                                AppNavDestination.HEALTH -> {
+                                    com.bloodsync.ui.screens.health.BankInventoryScreen(repository = repository)
+                                }
+                                AppNavDestination.APPOINTMENTS -> {
+                                    AppointmentScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
+                                }
+                                AppNavDestination.PROFILE -> {
+                                    ProfileScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onLogout = { currentScreen = Screen.Auth },
+                                        onNotificationClick = { currentScreen = Screen.Notifications },
+                                        onNavigateToSettings = { currentScreen = Screen.Settings }
+                                    )
+                                }
                             }
+                        } else {
+                            when (currentNavDestination) {
+                                AppNavDestination.HOME -> {
+                                    HomeScreen(
+                                        repository = repository,
+                                        onNavigateToEmergency = { currentScreen = Screen.EmergencyRequest },
+                                        onNavigateToLiveTracking = { requestId ->
+                                            currentScreen = Screen.EmergencyLiveTracking(requestId)
+                                        },
+                                        onNavigateToHistory = { currentNavDestination = AppNavDestination.HISTORY },
+                                        onNavigateToCertificates = { currentScreen = Screen.CertificateView(null) },
+                                        onNavigateToHealth = { currentNavDestination = AppNavDestination.HEALTH },
+                                        onNavigateToAppointments = { currentNavDestination = AppNavDestination.APPOINTMENTS },
+                                        onNavigateToNotifications = { currentScreen = Screen.Notifications },
+                                        onNavigateToSettings = { currentScreen = Screen.Settings },
+                                        onNavigateToDonors = { currentScreen = Screen.DonorsDirectory }
+                                    )
+                                }
 
-                            AppNavDestination.HISTORY -> {
-                                DonationHistoryScreen(
-                                    repository = repository,
-                                    onBackClick = { currentNavDestination = AppNavDestination.HOME },
-                                    onViewCertificate = { certId ->
-                                        currentScreen = Screen.CertificateView(certId)
-                                    },
-                                    onNotificationClick = { currentScreen = Screen.Notifications }
-                                )
-                            }
+                                AppNavDestination.HISTORY -> {
+                                    DonationHistoryScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onViewCertificate = { certId ->
+                                            currentScreen = Screen.CertificateView(certId)
+                                        },
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
+                                }
 
-                            AppNavDestination.HEALTH -> {
-                                HealthTrackerScreen(
-                                    repository = repository,
-                                    onBackClick = { currentNavDestination = AppNavDestination.HOME },
-                                    onBookAppointment = { currentNavDestination = AppNavDestination.APPOINTMENTS },
-                                    onNotificationClick = { currentScreen = Screen.Notifications }
-                                )
-                            }
+                                AppNavDestination.HEALTH -> {
+                                    HealthTrackerScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onBookAppointment = { currentNavDestination = AppNavDestination.APPOINTMENTS },
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
+                                }
 
-                            AppNavDestination.APPOINTMENTS -> {
-                                AppointmentScreen(
-                                    repository = repository,
-                                    onBackClick = { currentNavDestination = AppNavDestination.HOME },
-                                    onNotificationClick = { currentScreen = Screen.Notifications }
-                                )
-                            }
+                                AppNavDestination.APPOINTMENTS -> {
+                                    AppointmentScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onNotificationClick = { currentScreen = Screen.Notifications }
+                                    )
+                                }
 
-                            AppNavDestination.PROFILE -> {
-                                ProfileScreen(
-                                    repository = repository,
-                                    onBackClick = { currentNavDestination = AppNavDestination.HOME },
-                                    onLogout = { currentScreen = Screen.Auth },
-                                    onNotificationClick = { currentScreen = Screen.Notifications },
-                                    onNavigateToSettings = { currentScreen = Screen.Settings }
-                                )
+                                AppNavDestination.PROFILE -> {
+                                    ProfileScreen(
+                                        repository = repository,
+                                        onBackClick = { currentNavDestination = AppNavDestination.HOME },
+                                        onLogout = { currentScreen = Screen.Auth },
+                                        onNotificationClick = { currentScreen = Screen.Notifications },
+                                        onNavigateToSettings = { currentScreen = Screen.Settings }
+                                    )
+                                }
                             }
                         }
                     }

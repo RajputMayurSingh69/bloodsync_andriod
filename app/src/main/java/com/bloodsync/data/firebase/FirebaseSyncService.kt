@@ -189,7 +189,8 @@ class FirebaseSyncService(private val context: Context) {
                                     donorsNotifiedCount = (doc.getLong("donorsNotifiedCount") ?: 1L).toInt(),
                                     responders = emptyList(),
                                     latitude = doc.getDouble("latitude"),
-                                    longitude = doc.getDouble("longitude")
+                                    longitude = doc.getDouble("longitude"),
+                                    requesterId = doc.getString("userId") ?: doc.getString("requesterId") ?: ""
                                 )
                             } catch (e: Exception) {
                                 null

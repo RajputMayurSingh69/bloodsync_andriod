@@ -148,6 +148,7 @@ fun AuthScreen(
         } catch (_: Throwable) {
             null
         }
+    
     }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
@@ -976,9 +977,19 @@ fun AuthScreen(
                                 errorMessage = null
                                 if (googleSignInClient != null) {
                                     try {
-                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                        googleSignInClient.signOut().addOnCompleteListener {
+                                            try {
+                                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                            } catch (e: Exception) {
+                                                errorMessage = "Google Play Services error: ${e.localizedMessage ?: "Unavailable"}"
+                                            }
+                                        }
                                     } catch (e: Exception) {
-                                        errorMessage = "Google Play Services unavailable on this device."
+                                        try {
+                                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                        } catch (e2: Exception) {
+                                            errorMessage = "Google Play Services error: ${e2.localizedMessage ?: "Unavailable"}"
+                                        }
                                     }
                                 } else {
                                     errorMessage = "Google Sign-In is unavailable on this device."

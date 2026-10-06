@@ -27,22 +27,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.ui.theme.*
 
-enum class AppNavDestination(val title: String, val icon: ImageVector) {
-    HOME("Home", Icons.Default.Home),
-    HISTORY("History", Icons.Default.DateRange),
-    HEALTH("Safety", Icons.Default.Favorite),
-    APPOINTMENTS("Book", Icons.Default.CalendarToday),
-    PROFILE("Profile", Icons.Default.Person)
+enum class AppNavDestination(val icon: ImageVector, val bankIcon: ImageVector) {
+    HOME(Icons.Default.Home, Icons.Default.Home),
+    HISTORY(Icons.Default.DateRange, Icons.Default.Notifications),
+    HEALTH(Icons.Default.Favorite, Icons.Default.List),
+    APPOINTMENTS(Icons.Default.CalendarToday, Icons.Default.CalendarToday),
+    PROFILE(Icons.Default.Person, Icons.Default.Person)
 }
 
 @Composable
 fun BloodSyncBottomNav(
     currentDestination: AppNavDestination,
     onNavigate: (AppNavDestination) -> Unit,
+    role: String = "user",
     modifier: Modifier = Modifier
 ) {
     val appColors = BloodSyncTheme.colors
     val strings = com.bloodsync.util.LocalAppStrings.current
+    val isBank = role == "blood_bank"
 
     Box(
         modifier = modifier
@@ -74,10 +76,10 @@ fun BloodSyncBottomNav(
                 AppNavDestination.entries.forEach { destination ->
                     val isSelected = destination == currentDestination
                     val label = when (destination) {
-                        AppNavDestination.HOME -> strings.navHome
-                        AppNavDestination.HISTORY -> strings.navHistory
-                        AppNavDestination.HEALTH -> strings.navSafety
-                        AppNavDestination.APPOINTMENTS -> strings.navBook
+                        AppNavDestination.HOME -> if (isBank) "Dashboard" else strings.navHome
+                        AppNavDestination.HISTORY -> if (isBank) "SOS Requests" else strings.navHistory
+                        AppNavDestination.HEALTH -> if (isBank) "Inventory" else strings.navSafety
+                        AppNavDestination.APPOINTMENTS -> if (isBank) "Schedule" else strings.navBook
                         AppNavDestination.PROFILE -> strings.navProfile
                     }
                     val scale by animateFloatAsState(
@@ -107,7 +109,7 @@ fun BloodSyncBottomNav(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Icon(
-                            imageVector = destination.icon,
+                            imageVector = if (isBank) destination.bankIcon else destination.icon,
                             contentDescription = label,
                             tint = iconTint,
                             modifier = Modifier.size(20.dp)

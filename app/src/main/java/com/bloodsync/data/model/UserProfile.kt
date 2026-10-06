@@ -17,5 +17,6 @@ data class UserProfile(
     val isNotificationEnabled: Boolean = true,
     val isEmergencyVolunteer: Boolean = true,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val role: String = "user"
 )

@@ -358,19 +358,6 @@ fun EmergencyRequestScreen(
                         )
 
                         OutlinedTextField(
-                            value = hospitalName,
-                            onValueChange = { hospitalName = it },
-                            label = { Text("Hospital Name *") },
-                            placeholder = { Text("e.g. City General Hospital", color = appColors.textMuted) },
-                            leadingIcon = {
-                                Icon(Icons.Default.LocalHospital, contentDescription = null, tint = BloodRedPrimary)
-                            },
-                            singleLine = true,
-                            colors = textFieldColors,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        OutlinedTextField(
                             value = contactPhone,
                             onValueChange = { contactPhone = it },
                             label = { Text("Emergency Contact Phone *") },
@@ -389,16 +376,6 @@ fun EmergencyRequestScreen(
                             onValueChange = { hospitalAddress = it },
                             label = { Text("Hospital Address / Ward (Optional)") },
                             placeholder = { Text("e.g. Ward 4, Ring Road", color = appColors.textMuted) },
-                            singleLine = true,
-                            colors = textFieldColors,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        OutlinedTextField(
-                            value = patientName,
-                            onValueChange = { patientName = it },
-                            label = { Text("Patient Name (Optional)") },
-                            placeholder = { Text("e.g. Amit Kumar", color = appColors.textMuted) },
                             singleLine = true,
                             colors = textFieldColors,
                             modifier = Modifier.fillMaxWidth()
@@ -525,11 +502,7 @@ fun EmergencyRequestScreen(
                             validationError = "Please select the urgency level (Immediate, Urgent, or 24 Hours)."
                             return@Button
                         }
-                        val hospitalValidation = ValidationHelper.validateHospitalName(hospitalName)
-                        if (!hospitalValidation.isValid) {
-                            validationError = hospitalValidation.errorMessage
-                            return@Button
-                        }
+
                         val phoneValidation = ValidationHelper.validatePhone(contactPhone)
                         if (!phoneValidation.isValid) {
                             validationError = phoneValidation.errorMessage
@@ -544,8 +517,8 @@ fun EmergencyRequestScreen(
                         validationError = null
                         isSubmitting = true
 
-                        val cleanPatientName = if (patientName.isNotBlank()) ValidationHelper.sanitizeText(patientName, 60) else "Emergency Patient"
-                        val cleanHospitalName = ValidationHelper.sanitizeText(hospitalName, 100)
+                        val cleanPatientName = "Emergency Patient"
+                        val cleanHospitalName = "Medical Center"
                         val cleanAddress = ValidationHelper.sanitizeText(hospitalAddress, 150)
                         val cleanPhone = contactPhone.filter { it.isDigit() || it == '+' }.take(15)
 

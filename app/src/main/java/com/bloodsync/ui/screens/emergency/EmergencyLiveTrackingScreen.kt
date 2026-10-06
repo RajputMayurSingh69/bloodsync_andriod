@@ -211,8 +211,25 @@ fun EmergencyLiveTrackingScreen(
 
                 // Donor Action Card: Respond / Accept SOS
                 item {
+                    val isOwner = request.requesterId == currentUserId || (request.contactPhone.isNotBlank() && request.contactPhone == repository.userProfile.value.phone)
                     val isBroadcasting = request.status == EmergencyStatus.BROADCASTING
-                    if (hasAlreadyResponded) {
+                    
+                    if (isOwner && isBroadcasting) {
+                        Button(
+                            onClick = { 
+                                repository.cancelEmergencyRequest(request.id) 
+                                android.widget.Toast.makeText(context, "Emergency SOS Cancelled", android.widget.Toast.LENGTH_SHORT).show()
+                                onBackClick()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = appColors.redLight)
+                        ) {
+                            Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = BloodRedPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("CANCEL EMERGENCY SOS", color = BloodRedPrimary, fontWeight = FontWeight.Bold)
+                        }
+                    } else if (hasAlreadyResponded) {
                         Surface(
                             color = appColors.greenLight,
                             shape = RoundedCornerShape(16.dp),

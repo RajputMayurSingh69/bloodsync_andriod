@@ -40,5 +40,6 @@ data class EmergencyRequest(
     val donorsNotifiedCount: Int = 1,
     val responders: List<EmergencyResponder> = emptyList(),
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val requesterId: String = ""
 )
