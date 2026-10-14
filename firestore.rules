@@ -68,7 +68,7 @@ service cloud.firestore {
          request.resource.data.unitsRequired <= 10) &&
         (request.resource.data.patientName is string &&
          request.resource.data.patientName.size() <= 60);
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated();
 
       // Responders subcollection: authenticated donors can record and update their response
       match /responders/{donorId} {

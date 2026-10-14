@@ -7,12 +7,16 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bloodsync.MainActivity
+import com.bloodsync.R
 import com.bloodsync.data.model.NotificationType
+import com.bloodsync.service.EmergencySirenService
 
 object NotificationHelper {
 
@@ -26,7 +30,7 @@ object NotificationHelper {
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
-            // 1. Emergency Channel (High Importance with Heads-up vibration)
+            // 1. Emergency Channel (High Importance with Heads-up vibration and alarm audio)
             val emergencyChannel = NotificationChannel(
                 CHANNEL_EMERGENCY,
                 "Emergency Blood Requests",
@@ -35,6 +39,14 @@ object NotificationHelper {
                 description = "Urgent alerts for emergency blood requests near you"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 400, 200, 400)
+                try {
+                    val soundUri = Uri.parse("android.resource://" + context.packageName + "/" + R.raw.emergency_siren)
+                    val audioAttrs = AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                    setSound(soundUri, audioAttrs)
+                } catch (_: Exception) {}
             }
 
             // 2. Appointments Channel
@@ -134,16 +146,40 @@ object NotificationHelper {
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPublicVersion(publicNotification)
             .setPriority(
                 if (type == NotificationType.EMERGENCY)
-                    NotificationCompat.PRIORITY_HIGH
+                    NotificationCompat.PRIORITY_MAX
                 else
                     NotificationCompat.PRIORITY_DEFAULT
             )
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+
+        if (type == NotificationType.EMERGENCY) {
+            builder.setCategory(NotificationCompat.CATEGORY_ALARM)
+            builder.setFullScreenIntent(pendingIntent, true)
+            builder.addAction(
+                com.bloodsync.R.mipmap.ic_launcher,
+                "View Emergency Request",
+                pendingIntent
+            )
+            val silenceIntent = Intent(context, EmergencySirenService::class.java).apply {
+                action = EmergencySirenService.ACTION_STOP_SIREN
+            }
+            val silencePendingIntent = PendingIntent.getService(
+                context,
+                995,
+                silenceIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "Silence Siren",
+                silencePendingIntent
+            )
+        }
 
         try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())

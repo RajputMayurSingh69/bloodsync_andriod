@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,9 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,7 +54,7 @@ fun BloodSyncBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 4.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -58,68 +62,93 @@ fun BloodSyncBottomNav(
                 .fillMaxWidth()
                 .shadow(
                     elevation = 12.dp,
-                    shape = RoundedCornerShape(36.dp),
-                    ambientColor = Color(0x15000000),
-                    spotColor = Color(0x20000000)
+                    shape = RoundedCornerShape(28.dp),
+                    ambientColor = Color.Black.copy(0.03f),
+                    spotColor = BloodRedPrimary.copy(alpha = 0.14f)
                 ),
-            shape = RoundedCornerShape(36.dp),
-            color = appColors.cardBackground,
-            border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+            shape = RoundedCornerShape(28.dp),
+            color = appColors.bottomNavBackground,
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = appColors.border
+            )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 5.dp, horizontal = 4.dp),
+                    .padding(vertical = 8.dp, horizontal = 6.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AppNavDestination.entries.forEach { destination ->
                     val isSelected = destination == currentDestination
                     val label = when (destination) {
-                        AppNavDestination.HOME -> if (isBank) "Dashboard" else strings.navHome
-                        AppNavDestination.HISTORY -> if (isBank) "SOS Requests" else strings.navHistory
-                        AppNavDestination.HEALTH -> if (isBank) "Inventory" else strings.navSafety
+                        AppNavDestination.HOME         -> if (isBank) "Dashboard" else strings.navHome
+                        AppNavDestination.HISTORY      -> if (isBank) "SOS" else strings.navHistory
+                        AppNavDestination.HEALTH       -> if (isBank) "Inventory" else strings.navSafety
                         AppNavDestination.APPOINTMENTS -> if (isBank) "Schedule" else strings.navBook
-                        AppNavDestination.PROFILE -> strings.navProfile
+                        AppNavDestination.PROFILE      -> strings.navProfile
                     }
+
                     val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.05f else 1.0f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        targetValue = if (isSelected) 1.08f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
                         label = "tabScale"
                     )
+
                     val iconTint by animateColorAsState(
-                        targetValue = if (isSelected) BloodRedPrimary else appColors.textMuted,
+                        targetValue = if (isSelected) appColors.primary else appColors.textMuted,
+                        animationSpec = tween(200),
                         label = "iconTint"
+                    )
+
+                    val bgAlpha by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0f,
+                        animationSpec = tween(200),
+                        label = "bgAlpha"
                     )
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .scale(scale)
-                            .clip(RoundedCornerShape(50.dp))
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .clip(RoundedCornerShape(20.dp))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
                                 onClick = { onNavigate(destination) }
                             )
-                            .background(
-                                color = if (isSelected) appColors.redLight else Color.Transparent,
-                                shape = RoundedCornerShape(50.dp)
-                            )
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .drawBehind {
+                                if (bgAlpha > 0f) {
+                                    drawRoundRect(
+                                        color = appColors.primaryLight.copy(alpha = bgAlpha),
+                                        cornerRadius = CornerRadius(40f, 40f)
+                                    )
+                                }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isBank) destination.bankIcon else destination.icon,
-                            contentDescription = label,
-                            tint = iconTint,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isBank) destination.bankIcon else destination.icon,
+                                contentDescription = label,
+                                tint = iconTint,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = label,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) BloodRedPrimary else appColors.textSecondary
+                            color = if (isSelected) appColors.primary else appColors.textMuted,
+                            letterSpacing = 0.1.sp
                         )
                     }
                 }

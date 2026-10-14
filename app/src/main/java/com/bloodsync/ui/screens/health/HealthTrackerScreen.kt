@@ -1,5 +1,10 @@
 package com.bloodsync.ui.screens.health
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,23 +13,31 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.data.model.EligibilityResult
 import com.bloodsync.data.model.EligibilityStatus
 import com.bloodsync.data.model.HealthRecord
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodSyncTopBar
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
 
+/**
+ * Redesigned Health Tracker & 90-Day Eligibility Screen.
+ * Soft Medical Red & White theme, animated WHO circular recovery gauge,
+ * green eligible banner / amber cooldown banner, and interactive pre-donation checklist.
+ */
 @Composable
 fun HealthTrackerScreen(
     repository: BloodSyncRepository,
@@ -49,17 +62,17 @@ fun HealthTrackerScreen(
                 onNotificationClick = onNotificationClick
             )
         },
-        contentWindowInsets = WindowInsets.statusBars,
+        contentWindowInsets = WindowInsets.systemBars,
         containerColor = appColors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Dynamic Eligibility Status Card with Countdown
+            // ── 1. Dynamic Eligibility Status Card with WHO Circular Gauge ─
             item {
                 EligibilityStatusBanner(
                     result = eligibilityResult,
@@ -68,101 +81,139 @@ fun HealthTrackerScreen(
                 )
             }
 
-            // 2. Medical Checklist & Deferral Screen
+            // ── 2. Medical Checklist & Deferral Screen ───────────────────
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Health Deferral Checklist",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = appColors.textPrimary
-                        )
-                        Text(
-                            text = "Red Cross & WHO donation pre-screening checklist",
-                            fontSize = 11.sp,
-                            color = appColors.textSecondary
-                        )
-
-                        ChecklistRow(
-                            label = "Tattoo or body piercing in last 6 months",
-                            isChecked = healthRecord.hasTattooRecent,
-                            onToggle = {
-                                repository.updateHealthRecord(healthRecord.copy(hasTattooRecent = it))
-                            }
-                        )
-
-                        ChecklistRow(
-                            label = "Active cold, flu, sore throat, or fever in last 14 days",
-                            isChecked = healthRecord.hasColdFeverRecent,
-                            onToggle = {
-                                repository.updateHealthRecord(healthRecord.copy(hasColdFeverRecent = it))
-                            }
-                        )
-
-                        ChecklistRow(
-                            label = "Antibiotics taken within the past 7 days",
-                            isChecked = healthRecord.hasAntibioticsRecent,
-                            onToggle = {
-                                repository.updateHealthRecord(healthRecord.copy(hasAntibioticsRecent = it))
-                            }
-                        )
-
-                        if (healthRecord.gender.equals("Female", ignoreCase = true)) {
-                            ChecklistRow(
-                                label = "Currently pregnant or within 6 months postpartum",
-                                isChecked = healthRecord.isPregnant,
-                                onToggle = {
-                                    repository.updateHealthRecord(healthRecord.copy(isPregnant = it))
-                                }
+                BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(appColors.redLight, RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.FactCheck,
+                                contentDescription = null,
+                                tint = BloodRedPrimary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Health Deferral Checklist",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "WHO clinical pre-donation assessment",
+                                fontSize = 12.sp,
+                                color = appColors.textMuted
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = appColors.border, thickness = 0.75.dp)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    ChecklistRow(
+                        label = "Tattoo or body piercing in last 6 months",
+                        isChecked = healthRecord.hasTattooRecent,
+                        onToggle = {
+                            repository.updateHealthRecord(healthRecord.copy(hasTattooRecent = it))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    ChecklistRow(
+                        label = "Active cold, flu, sore throat, or fever in last 14 days",
+                        isChecked = healthRecord.hasColdFeverRecent,
+                        onToggle = {
+                            repository.updateHealthRecord(healthRecord.copy(hasColdFeverRecent = it))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    ChecklistRow(
+                        label = "Antibiotics taken within the past 7 days",
+                        isChecked = healthRecord.hasAntibioticsRecent,
+                        onToggle = {
+                            repository.updateHealthRecord(healthRecord.copy(hasAntibioticsRecent = it))
+                        }
+                    )
+
+                    if (healthRecord.gender.equals("Female", ignoreCase = true)) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ChecklistRow(
+                            label = "Currently pregnant or within 6 months postpartum",
+                            isChecked = healthRecord.isPregnant,
+                            onToggle = {
+                                repository.updateHealthRecord(healthRecord.copy(isPregnant = it))
+                            }
+                        )
                     }
                 }
             }
 
-            // 3. Pre-Donation Clinical Health Tips
+            // ── 3. Pre-Donation Clinical Health Guidelines ───────────────
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = appColors.greenLight),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(appColors.greenLight, RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.HealthAndSafety,
+                                imageVector = Icons.Rounded.HealthAndSafety,
                                 contentDescription = null,
                                 tint = StatusEligibleGreen,
                                 modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
                             Text(
-                                text = "Donor Preparation Guidelines",
+                                text = "Clinical Preparation Guidelines",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = StatusEligibleGreen
+                                fontSize = 16.sp,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "Recommended medical steps before giving blood",
+                                fontSize = 12.sp,
+                                color = appColors.textMuted
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        HealthTipItem("💧 Hydrate", "Drink 500ml (16 oz) of water or fruit juice before your donation.")
-                        HealthTipItem("🥗 Boost Iron", "Eat iron-rich foods (spinach, beans, eggs, whole grains) 24h prior.")
-                        HealthTipItem("🚫 Avoid Fatty Foods", "Avoid fatty foods before donation as they affect blood testing.")
-                        HealthTipItem("😴 Rest Well", "Get at least 7-8 hours of sound sleep the night before donation.")
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    HealthTipItem(
+                        icon = "💧",
+                        title = "Hydrate Well",
+                        description = "Drink 500ml (16 oz) of water or juice 1-2 hours before donation."
+                    )
+                    HealthTipItem(
+                        icon = "🥗",
+                        title = "Iron-Rich Foods",
+                        description = "Consume spinach, beans, eggs, or lentils to maintain optimal hemoglobin."
+                    )
+                    HealthTipItem(
+                        icon = "🚫",
+                        title = "Avoid Fatty Meals",
+                        description = "Skip burgers, fried food, or heavy creams as fats interfere with blood screening."
+                    )
+                    HealthTipItem(
+                        icon = "😴",
+                        title = "Adequate Sleep",
+                        description = "Get at least 7-8 hours of sound sleep the night prior to your appointment."
+                    )
                 }
             }
         }
@@ -176,155 +227,170 @@ fun EligibilityStatusBanner(
     onBookAppointment: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    Card(
+    val accentColor = when (result.status) {
+        EligibilityStatus.ELIGIBLE -> StatusEligibleGreen
+        EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmber
+        EligibilityStatus.NOT_ELIGIBLE -> BloodRedPrimary
+    }
+    val containerBg = when (result.status) {
+        EligibilityStatus.ELIGIBLE -> appColors.greenLight
+        EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmberLight
+        EligibilityStatus.NOT_ELIGIBLE -> appColors.redLight
+    }
+
+    BloodSyncCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when (result.status) {
-                EligibilityStatus.ELIGIBLE -> appColors.greenLight
-                EligibilityStatus.ELIGIBLE_FUTURE -> appColors.yellowLight
-                EligibilityStatus.NOT_ELIGIBLE -> appColors.redLight
-            }
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            when (result.status) {
-                EligibilityStatus.ELIGIBLE -> StatusEligibleGreen.copy(alpha = 0.4f)
-                EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmber.copy(alpha = 0.4f)
-                EligibilityStatus.NOT_ELIGIBLE -> StatusUrgentRed.copy(alpha = 0.4f)
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        backgroundColor = containerBg,
+        borderColor = accentColor.copy(alpha = 0.35f)
     ) {
         Column(
-            modifier = Modifier
-                .padding(18.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(
-                        when (result.status) {
-                            EligibilityStatus.ELIGIBLE -> StatusEligibleGreen
-                            EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmber
-                            EligibilityStatus.NOT_ELIGIBLE -> StatusUrgentRed
-                        },
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = when (result.status) {
-                        EligibilityStatus.ELIGIBLE -> Icons.Default.Check
-                        EligibilityStatus.ELIGIBLE_FUTURE -> Icons.Default.HourglassEmpty
-                        EligibilityStatus.NOT_ELIGIBLE -> Icons.Default.Close
-                    },
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
+            // WHO Circular Gauge / Status Badge
+            if (result.status == EligibilityStatus.ELIGIBLE_FUTURE) {
+                val targetProgress = ((90 - result.daysRemaining).coerceIn(0, 90) / 90f)
+                val animatedProgress by animateFloatAsState(
+                    targetValue = targetProgress,
+                    animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+                    label = "gapProgress"
                 )
+
+                Box(
+                    modifier = Modifier.size(110.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { 1f },
+                        modifier = Modifier.fillMaxSize(),
+                        color = appColors.border,
+                        strokeWidth = 9.dp
+                    )
+                    CircularProgressIndicator(
+                        progress = { animatedProgress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = StatusWarningAmber,
+                        strokeWidth = 9.dp,
+                        strokeCap = StrokeCap.Round
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${result.daysRemaining}",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = StatusWarningAmber
+                        )
+                        Text(
+                            text = "days left",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = appColors.textSecondary
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(accentColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = when (result.status) {
+                            EligibilityStatus.ELIGIBLE -> Icons.Rounded.Check
+                            else -> Icons.Rounded.Close
+                        },
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
                 text = when (result.status) {
-                    EligibilityStatus.ELIGIBLE -> "YOU ARE ELIGIBLE TO DONATE"
-                    EligibilityStatus.ELIGIBLE_FUTURE -> "ELIGIBLE ON ${result.nextEligibleDate.uppercase()}"
+                    EligibilityStatus.ELIGIBLE -> "ELIGIBLE TO DONATE"
+                    EligibilityStatus.ELIGIBLE_FUTURE -> "COOLDOWN: ${result.daysRemaining} DAYS REMAINING"
                     EligibilityStatus.NOT_ELIGIBLE -> "TEMPORARILY INELIGIBLE"
                 },
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp,
-                color = when (result.status) {
-                    EligibilityStatus.ELIGIBLE -> StatusEligibleGreen
-                    EligibilityStatus.ELIGIBLE_FUTURE -> StatusWarningAmber
-                    EligibilityStatus.NOT_ELIGIBLE -> StatusUrgentRed
-                }
+                letterSpacing = 0.3.sp,
+                color = accentColor
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = when (result.status) {
-                    EligibilityStatus.ELIGIBLE -> "Your health parameters meet all medical standards. You have satisfied the 3-month gap rule and can donate today."
-                    EligibilityStatus.ELIGIBLE_FUTURE -> "3-Month Medical Gap Rule: Donors can only donate once every 3 months (90 days). ${result.daysRemaining} days remaining until your next eligible donation."
+                    EligibilityStatus.ELIGIBLE -> "Your health parameters meet all medical standards. You have satisfied the 3-month gap rule and can donate blood today."
+                    EligibilityStatus.ELIGIBLE_FUTURE -> "WHO 90-Day Medical Gap Rule: Donors can only donate once every 90 days to ensure full red-blood-cell and iron replenishment."
                     EligibilityStatus.NOT_ELIGIBLE -> "One or more health vitals or checklist items require attention before donating."
                 },
                 fontSize = 13.sp,
                 color = appColors.textPrimary,
-                modifier = Modifier.padding(horizontal = 8.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                modifier = Modifier.padding(horizontal = 12.dp),
+                textAlign = TextAlign.Center,
+                lineHeight = 18.sp
             )
 
             if (result.status == EligibilityStatus.ELIGIBLE_FUTURE) {
-                Spacer(modifier = Modifier.height(12.dp))
-                // Progress Bar for 90-day gap
-                val progress = ((90 - result.daysRemaining).coerceIn(0, 90) / 90f)
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = StatusWarningAmber,
-                    trackColor = appColors.yellowLight,
-                )
-                Text(
-                    text = "${90 - result.daysRemaining} of 90 recovery days elapsed",
-                    fontSize = 11.sp,
-                    color = appColors.textSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+                StatusPillBadge(
+                    text = "Next Eligible Date: ${result.nextEligibleDate}",
+                    backgroundColor = appColors.cardBackground,
+                    contentColor = StatusWarningAmber,
+                    showBeacon = true
                 )
             }
 
             if (result.reasons.isNotEmpty() && result.status == EligibilityStatus.NOT_ELIGIBLE) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(appColors.cardBackground, RoundedCornerShape(8.dp))
-                        .padding(10.dp)
+                        .background(appColors.cardBackground, RoundedCornerShape(14.dp))
+                        .border(1.dp, appColors.border, RoundedCornerShape(14.dp))
+                        .padding(14.dp)
                 ) {
                     Text(
                         text = "Specific Deferral Factors:",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = StatusUrgentRed
+                        fontSize = 13.sp,
+                        color = BloodRedPrimary
                     )
+                    Spacer(modifier = Modifier.height(6.dp))
                     result.reasons.forEach { reason ->
                         Row(
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(6.dp)
-                                    .background(StatusUrgentRed, CircleShape)
+                                    .background(BloodRedPrimary, CircleShape)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = reason, fontSize = 11.sp, color = appColors.textPrimary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = reason, fontSize = 12.sp, color = appColors.textPrimary)
                         }
                     }
                 }
             }
 
             if (result.status == EligibilityStatus.ELIGIBLE) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Button(
+                Spacer(modifier = Modifier.height(18.dp))
+                BloodSyncButton(
+                    text = "Schedule Donation Appointment",
                     onClick = onBookAppointment,
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusEligibleGreen),
-                    shape = RoundedCornerShape(50.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Schedule Donation Appointment", fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                    icon = Icons.Rounded.CalendarToday,
+                    height = 50.dp,
+                    gradient = Brush.horizontalGradient(
+                        listOf(Color(0xFF2E9E5B), Color(0xFF1E7E45))
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -337,36 +403,74 @@ fun ChecklistRow(
     onToggle: (Boolean) -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    Row(
+    val bgCol by animateColorAsState(
+        targetValue = if (isChecked) appColors.redLight else Color.Transparent,
+        label = "checkBg"
+    )
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .clickable { onToggle(!isChecked) }
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onToggle(!isChecked) },
+        color = bgCol,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, if (isChecked) BloodRedPrimary.copy(alpha = 0.35f) else appColors.border)
     ) {
-        Checkbox(
-            checked = isChecked,
-            onCheckedChange = onToggle,
-            colors = CheckboxDefaults.colors(checkedColor = BloodRedPrimary)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = label,
-            fontSize = 13.sp,
-            color = if (isChecked) StatusUrgentRed else appColors.textPrimary,
-            fontWeight = if (isChecked) FontWeight.SemiBold else FontWeight.Normal,
-            lineHeight = 17.sp
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isChecked,
+                onCheckedChange = onToggle,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = BloodRedPrimary,
+                    checkmarkColor = Color.White,
+                    uncheckedColor = appColors.border
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                color = if (isChecked) BloodRedPrimary else appColors.textPrimary,
+                fontWeight = if (isChecked) FontWeight.SemiBold else FontWeight.Normal,
+                lineHeight = 18.sp
+            )
+        }
     }
 }
 
 @Composable
-fun HealthTipItem(title: String, description: String) {
+fun HealthTipItem(
+    icon: String,
+    title: String,
+    description: String
+) {
     val appColors = BloodSyncTheme.colors
-    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = StatusEligibleGreen)
-        Text(text = description, fontSize = 11.sp, color = appColors.textSecondary, lineHeight = 16.sp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(text = icon, fontSize = 20.sp, modifier = Modifier.padding(top = 1.dp))
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = appColors.textPrimary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = appColors.textSecondary,
+                lineHeight = 17.sp
+            )
+        }
     }
 }
-

@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -15,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.bloodsync.data.repository.BloodSyncRepository
 import com.bloodsync.ui.components.AppNavDestination
 import com.bloodsync.ui.components.BloodSyncBottomNav
@@ -33,6 +37,8 @@ import com.bloodsync.ui.screens.history.DonationHistoryScreen
 import com.bloodsync.ui.screens.home.HomeScreen
 import com.bloodsync.ui.screens.notifications.NotificationCenterScreen
 import com.bloodsync.ui.screens.profile.ProfileScreen
+import com.bloodsync.data.emergency.EmergencyAlertManager
+import com.bloodsync.ui.components.EmergencyAlertPopup
 import com.bloodsync.ui.screens.settings.SettingsScreen
 import com.bloodsync.ui.screens.splash.SplashScreen
 import com.bloodsync.ui.theme.BloodSyncTheme
@@ -63,6 +69,22 @@ fun BloodSyncApp(
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash) }
     var currentNavDestination by remember { mutableStateOf(AppNavDestination.HOME) }
     var showExitDialog by remember { mutableStateOf(false) }
+
+    // Emergency Alert System states
+    val isAlertActive by EmergencyAlertManager.isAlertActive.collectAsState()
+    val currentAlertRequest by EmergencyAlertManager.currentAlertRequest.collectAsState()
+    val unseenEmergencyCount by EmergencyAlertManager.unseenCount.collectAsState()
+    val highlightedEmergencyRequestId by EmergencyAlertManager.highlightedRequestId.collectAsState()
+    val userProfile by repository.userProfile
+    val isBank = userProfile?.role == "blood_bank"
+
+    // When a notification or full-screen intent targets an emergency request, auto-navigate to History (Emergency Requests)
+    LaunchedEffect(highlightedEmergencyRequestId) {
+        if (!highlightedEmergencyRequestId.isNullOrBlank() && isBank) {
+            currentScreen = Screen.Main
+            currentNavDestination = AppNavDestination.HISTORY
+        }
+    }
 
     CompositionLocalProvider(
         LocalAppStrings provides currentStrings
@@ -112,7 +134,12 @@ fun BloodSyncApp(
     AnimatedContent(
         targetState = currentScreen,
         modifier = Modifier.fillMaxSize(),
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        transitionSpec = {
+            (fadeIn(animationSpec = tween(320, easing = FastOutSlowInEasing)) +
+             androidx.compose.animation.slideInVertically(animationSpec = tween(320, easing = FastOutSlowInEasing)) { it / 24 }) togetherWith
+            (fadeOut(animationSpec = tween(240, easing = FastOutSlowInEasing)) +
+             androidx.compose.animation.slideOutVertically(animationSpec = tween(240, easing = FastOutSlowInEasing)) { -it / 24 })
+        },
         label = "AppScreenTransition"
     ) { screen ->
         when (screen) {
@@ -202,6 +229,11 @@ fun BloodSyncApp(
                                 AppNavDestination.HISTORY -> {
                                     com.bloodsync.ui.screens.emergency.BankRequestsScreen(
                                         repository = repository,
+                                        highlightedRequestId = highlightedEmergencyRequestId,
+                                        onAcknowledgeRequest = { reqId ->
+                                            EmergencyAlertManager.markRequestSeen(context, reqId)
+                                            EmergencyAlertManager.clearGlow(reqId)
+                                        },
                                         onNotificationClick = { currentScreen = Screen.Notifications }
                                     )
                                 }
@@ -284,6 +316,15 @@ fun BloodSyncApp(
                                         onNavigateToSettings = { currentScreen = Screen.Settings }
                                     )
                                 }
+                            }
+
+                            if (currentNavDestination != AppNavDestination.HOME) {
+                                EmergencyFloatingButton(
+                                    onClick = { currentScreen = Screen.EmergencyRequest },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 16.dp, bottom = 12.dp)
+                                )
                             }
                         }
                     }
@@ -371,6 +412,19 @@ fun BloodSyncApp(
                 )
             }
         }
+    }
+
+    // Global Emergency Alert Popup - Appears over ANY screen of the Blood Bank Portal
+    if (isBank && isAlertActive && currentAlertRequest != null) {
+        EmergencyAlertPopup(
+            request = currentAlertRequest,
+            totalUnseenCount = unseenEmergencyCount,
+            onViewEmergencyRequest = { reqId ->
+                EmergencyAlertManager.acknowledgeAndNavigate(context, reqId)
+                currentScreen = Screen.Main
+                currentNavDestination = AppNavDestination.HISTORY
+            }
+        )
     }
 }
 }

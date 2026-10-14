@@ -17,20 +17,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.bloodsync.ui.theme.BloodRedPrimary
 import com.bloodsync.ui.theme.BloodSyncTheme
 
 /**
- * Beautiful exit confirmation dialog displayed when the user presses the system Back button
- * from the app's root screen.
+ * Beautiful rounded confirmation dialog displayed for app exit, logout, or cache clearing.
+ * Styled with soft medical red palette and 50dp pill buttons.
  */
 @Composable
 fun ExitConfirmationDialog(
-    onConfirmExit: () -> Unit,
-    onDismiss: () -> Unit
+    onConfirmExit: () -> Unit = {},
+    onDismiss: () -> Unit,
+    title: String? = null,
+    message: String? = null,
+    confirmText: String? = null,
+    dismissText: String? = null,
+    onConfirm: (() -> Unit)? = null
 ) {
     val colors = BloodSyncTheme.colors
     val strings = com.bloodsync.util.LocalAppStrings.current
+
+    val effectiveTitle = title ?: strings.exitAppTitle
+    val effectiveMessage = message ?: strings.exitAppMessage
+    val effectiveConfirmText = confirmText ?: strings.yesExit
+    val effectiveDismissText = dismissText ?: strings.noStay
+    val effectiveConfirmAction = onConfirm ?: onConfirmExit
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -39,26 +49,27 @@ fun ExitConfirmationDialog(
             dismissOnClickOutside = true
         ),
         shape = RoundedCornerShape(24.dp),
-        containerColor = colors.cardBackground,
+        containerColor = colors.surface,
+        modifier = Modifier.padding(16.dp),
         icon = {
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(BloodRedPrimary.copy(alpha = 0.12f)),
+                    .background(colors.primaryLight),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Exit App",
-                    tint = BloodRedPrimary,
+                    contentDescription = effectiveTitle,
+                    tint = colors.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
         },
         title = {
             Text(
-                text = strings.exitAppTitle,
+                text = effectiveTitle,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary,
@@ -68,7 +79,7 @@ fun ExitConfirmationDialog(
         },
         text = {
             Text(
-                text = strings.exitAppMessage,
+                text = effectiveMessage,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 color = colors.textSecondary,
@@ -78,43 +89,52 @@ fun ExitConfirmationDialog(
             )
         },
         confirmButton = {
-            Button(
-                onClick = onConfirmExit,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = BloodRedPrimary,
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(50.dp),
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(46.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = strings.yesExit,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
+                if (effectiveDismissText.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(50.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = colors.textPrimary
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.border),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                    ) {
+                        Text(
+                            text = effectiveDismissText,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = colors.textPrimary
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = effectiveConfirmAction,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.primary,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = effectiveConfirmText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
             }
         },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(50.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = colors.textPrimary
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, colors.border),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-            ) {
-                Text(
-                    text = strings.noStay,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    color = colors.textPrimary
-                )
-            }
-        }
+        dismissButton = {}
     )
 }

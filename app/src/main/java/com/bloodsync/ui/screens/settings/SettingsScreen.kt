@@ -1,10 +1,7 @@
 package com.bloodsync.ui.screens.settings
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,13 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.data.repository.BloodSyncRepository
 import com.bloodsync.data.repository.ThemeMode
-import com.bloodsync.ui.components.BloodSyncTopBar
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
 import com.bloodsync.util.LocalAppStrings
 
@@ -34,15 +30,15 @@ fun SettingsScreen(
     repository: BloodSyncRepository,
     onBackClick: () -> Unit
 ) {
-    val currentTheme by repository.themeMode
     val strings = LocalAppStrings.current
+    val currentThemeMode by repository.themeMode
     val healthRecord by repository.healthRecord
     val profile by repository.userProfile
     val eligibilityResult = remember(healthRecord) { healthRecord.calculateEligibility() }
     val daysLeft = eligibilityResult.daysRemaining
 
     var emergencyAlertsEnabled by remember { mutableStateOf(profile.isAvailableDonor) }
-    var eligibilityAlertsEnabled by remember { mutableStateOf(true) }
+    var cooldownAlertsEnabled by remember { mutableStateOf(true) }
     var appointmentAlertsEnabled by remember { mutableStateOf(true) }
 
     var showResetDialog by remember { mutableStateOf(false) }
@@ -55,12 +51,12 @@ fun SettingsScreen(
         topBar = {
             BloodSyncTopBar(
                 title = strings.settingsTitle,
-                subtitle = strings.appearanceSection,
+                subtitle = "App Preferences & Safety",
                 showBackButton = true,
                 onBackClick = onBackClick
             )
         },
-        contentWindowInsets = WindowInsets.systemBars,
+        contentWindowInsets = WindowInsets.statusBars,
         containerColor = appColors.background
     ) { innerPadding ->
         Column(
@@ -69,114 +65,107 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ==========================================
-            // 1. Theme & Appearance (Light & Dark Only)
+            // 1. App Theme Preference
             // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
+                                .size(42.dp)
+                                .background(appColors.primaryLight, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Palette,
                                 contentDescription = null,
-                                tint = BloodRedPrimary,
-                                modifier = Modifier.size(20.dp)
+                                tint = appColors.primary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "App Theme",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = appColors.textPrimary
-                            )
-                            Text(
-                                text = "Choose your preferred display mode",
-                                fontSize = 12.sp,
-                                color = appColors.textSecondary
-                            )
-                        }
+                        Text(
+                            text = "App Theme",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = appColors.textPrimary
+                        )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Interactive Theme Selection Tiles
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         ThemeOptionTile(
-                            title = "Light",
-                            icon = Icons.Default.WbSunny,
-                            isSelected = currentTheme == ThemeMode.LIGHT,
+                            title = "Light Mode",
+                            icon = Icons.Default.LightMode,
+                            isSelected = currentThemeMode == ThemeMode.LIGHT,
                             onClick = { repository.setThemeMode(ThemeMode.LIGHT) }
                         )
 
                         ThemeOptionTile(
-                            title = "Dark",
-                            icon = Icons.Default.Nightlight,
-                            isSelected = currentTheme == ThemeMode.DARK,
+                            title = "Dark Mode",
+                            icon = Icons.Default.DarkMode,
+                            isSelected = currentThemeMode == ThemeMode.DARK,
                             onClick = { repository.setThemeMode(ThemeMode.DARK) }
                         )
                     }
                 }
             }
 
-
-
             // ==========================================
             // 2. Notification Preferences
             // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
+                                .size(40.dp)
+                                .background(appColors.primaryLight, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = null,
-                                tint = BloodRedPrimary,
-                                modifier = Modifier.size(20.dp)
+                                tint = appColors.primary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Notification Preferences",
+                                text = "Notification Switches",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "Emergency alerts & appointment updates",
+                                text = "Emergency alarms & clinical interval updates",
                                 fontSize = 12.sp,
                                 color = appColors.textSecondary
                             )
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Switch 1: Emergency SOS
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -185,15 +174,15 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
                                 text = "Emergency SOS Broadcasts",
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = appColors.textPrimary
                             )
                             Text(
                                 text = "Real-time alerts when nearby patients need your blood group",
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = appColors.textSecondary,
-                                lineHeight = 15.sp
+                                lineHeight = 16.sp
                             )
                         }
                         Switch(
@@ -204,15 +193,16 @@ fun SettingsScreen(
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = StatusEligibleGreen
+                                checkedTrackColor = appColors.successGreen,
+                                uncheckedTrackColor = appColors.border,
+                                uncheckedThumbColor = appColors.textMuted
                             )
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-                    HorizontalDivider(color = appColors.divider)
-                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
 
+                    // Switch 2: WHO 90-Day Cooldown
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -220,16 +210,50 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
-                                text = "Donation Reminders & Milestones",
-                                fontSize = 13.sp,
+                                text = "WHO 90-Day Cooldown Alerts",
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "Appointment slot reminders and lifesaver certificate updates",
-                                fontSize = 11.sp,
+                                text = "Notify immediately when 90-day recovery completes and you become eligible again",
+                                fontSize = 12.sp,
                                 color = appColors.textSecondary,
-                                lineHeight = 15.sp
+                                lineHeight = 16.sp
+                            )
+                        }
+                        Switch(
+                            checked = cooldownAlertsEnabled,
+                            onCheckedChange = { cooldownAlertsEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = appColors.successGreen,
+                                uncheckedTrackColor = appColors.border,
+                                uncheckedThumbColor = appColors.textMuted
+                            )
+                        )
+                    }
+
+                    HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
+
+                    // Switch 3: Appointment Reminders
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Text(
+                                text = "Appointment Slot Reminders",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = appColors.textPrimary
+                            )
+                            Text(
+                                text = "Slot reminders 2 hours prior to scheduled blood bank visits",
+                                fontSize = 12.sp,
+                                color = appColors.textSecondary,
+                                lineHeight = 16.sp
                             )
                         }
                         Switch(
@@ -237,7 +261,9 @@ fun SettingsScreen(
                             onCheckedChange = { appointmentAlertsEnabled = it },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = StatusEligibleGreen
+                                checkedTrackColor = appColors.successGreen,
+                                uncheckedTrackColor = appColors.border,
+                                uncheckedThumbColor = appColors.textMuted
                             )
                         )
                     }
@@ -245,34 +271,31 @@ fun SettingsScreen(
             }
 
             // ==========================================
-            // 4. Clinical Safety: 3-Month Interval Enforcement
+            // 3. Clinical Safety: 3-Month Interval Enforcement
             // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .background(BloodRedPrimary.copy(alpha = 0.12f), CircleShape),
+                                .size(40.dp)
+                                .background(appColors.primaryLight, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MedicalServices,
                                 contentDescription = null,
-                                tint = BloodRedPrimary,
-                                modifier = Modifier.size(20.dp)
+                                tint = appColors.primary,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Clinical Donation Interval",
                                 fontSize = 16.sp,
@@ -280,74 +303,82 @@ fun SettingsScreen(
                                 color = appColors.textPrimary
                             )
                             Text(
-                                text = "WHO 90-Day (3 Month) safety standard",
+                                text = "WHO 90-Day (3 Month) Safety Standard",
                                 fontSize = 12.sp,
                                 color = appColors.textSecondary
                             )
                         }
                     }
 
-                    SystemFeatureStatusRow(
-                        title = "WHO 3-Month Interval Lock",
-                        description = "Enforces safe recovery window between whole blood donations to safeguard donor hemoglobin and ferritin levels.",
-                        statusText = if (daysLeft > 0) "$daysLeft Days Left" else "Eligible",
-                        statusColor = if (daysLeft > 0) StatusWarningAmber else StatusEligibleGreen
-                    )
-                }
-            }
-
-            // ==========================================
-            // 5. Data Management (Clear Local Cache)
-            // ==========================================
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                border = BorderStroke(1.dp, appColors.border)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Data Management",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = appColors.textPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Manage local device storage and cached records",
-                        fontSize = 12.sp,
-                        color = appColors.textSecondary
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = { showResetDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        border = BorderStroke(1.dp, StatusUrgentRed)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = null,
-                            tint = StatusUrgentRed,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Clear Local Cache & Reset",
-                            color = StatusUrgentRed,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            text = "Recovery Window Status:",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = appColors.textPrimary
+                        )
+
+                        StatusPillBadge(
+                            text = if (daysLeft > 0) "$daysLeft Days Left" else "Eligible Now",
+                            backgroundColor = if (daysLeft > 0) appColors.yellowLight else appColors.greenLight,
+                            contentColor = if (daysLeft > 0) appColors.warningAmber else appColors.successGreen,
+                            showBeacon = daysLeft == 0
                         )
                     }
+
+                    Text(
+                        text = "Enforces safe recovery window between whole blood donations to safeguard donor hemoglobin and ferritin levels.",
+                        fontSize = 12.sp,
+                        color = appColors.textSecondary,
+                        lineHeight = 16.sp
+                    )
                 }
             }
 
             // ==========================================
-            // 6. About App & Version
+            // 4. Danger Zone: Reset Local Cache & Credentials
+            // ==========================================
+            BloodSyncCard(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = if (appColors.isDark) Color(0xFF261416) else BloodRedLight.copy(alpha = 0.25f),
+                borderColor = appColors.primary.copy(alpha = 0.35f)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Data Management & Cache",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = appColors.primary
+                    )
+                    Text(
+                        text = "Clearing local cache removes offline stores and re-synchronizes real-time snapshots with Firebase Cloud.",
+                        fontSize = 12.sp,
+                        color = appColors.textSecondary,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    BloodSyncOutlinedButton(
+                        text = "Reset Local Cache & Credentials",
+                        onClick = { showResetDialog = true },
+                        icon = Icons.Default.DeleteOutline,
+                        textColor = appColors.primary,
+                        borderColor = appColors.primary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // ==========================================
+            // 5. About & Terms
             // ==========================================
             Column(
                 modifier = Modifier
@@ -362,30 +393,17 @@ fun SettingsScreen(
                 ) {
                     Text(
                         text = "Privacy Policy & Medical Terms",
-                        fontSize = 12.sp,
-                        color = BloodRedPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = 13.sp,
+                        color = appColors.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = BloodRedPrimary,
+                        tint = appColors.primary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "BloodSync Android • Version 2.2.0 (Official)",
-                    fontSize = 11.sp,
-                    color = appColors.textMuted
-                )
-                Text(
-                    text = "Voluntary Blood Donor Network • Real-time Cloud Sync",
-                    fontSize = 11.sp,
-                    color = appColors.textMuted
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -394,74 +412,29 @@ fun SettingsScreen(
 
     // Reset Confirmation Dialog
     if (showResetDialog) {
-        AlertDialog(
-            onDismissRequest = { showResetDialog = false },
-            title = {
-                Text(
-                    text = "Clear Local Cache?",
-                    fontWeight = FontWeight.Bold,
-                    color = appColors.textPrimary
-                )
+        ExitConfirmationDialog(
+            title = "Clear Local Cache & Reset?",
+            message = "This will clear all local cached records on this device and re-fetch real-time snapshot data directly from Firebase Cloud Firestore.",
+            confirmText = "Confirm Reset",
+            dismissText = "Cancel",
+            onConfirm = {
+                repository.clearLocalCache()
+                showResetDialog = false
+                showResetSuccess = true
             },
-            text = {
-                Text(
-                    text = "This will clear all local cached records on this device and refresh from Firebase server.",
-                    color = appColors.textSecondary,
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        repository.clearLocalCache()
-                        showResetDialog = false
-                        showResetSuccess = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(50.dp)
-                ) {
-                    Text("Confirm Clear", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel", color = appColors.textSecondary)
-                }
-            },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = appColors.cardBackground
+            onDismiss = { showResetDialog = false }
         )
     }
 
-    // Reset Success Toast / Dialog
+    // Reset Success Dialog
     if (showResetSuccess) {
-        AlertDialog(
-            onDismissRequest = { showResetSuccess = false },
-            title = {
-                Text(
-                    text = "Cache Cleared",
-                    fontWeight = FontWeight.Bold,
-                    color = appColors.textPrimary
-                )
-            },
-            text = {
-                Text(
-                    text = "Local device cache has been cleared and synchronized with Firebase Cloud.",
-                    color = appColors.textSecondary,
-                    fontSize = 14.sp
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showResetSuccess = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(50.dp)
-                ) {
-                    Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = appColors.cardBackground
+        ExitConfirmationDialog(
+            title = "Cache Cleared Successfully",
+            message = "Local device cache has been cleared and synchronized with Firebase Cloud.",
+            confirmText = "OK",
+            dismissText = "",
+            onConfirm = { showResetSuccess = false },
+            onDismiss = { showResetSuccess = false }
         )
     }
 
@@ -479,166 +452,107 @@ fun SettingsScreen(
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = "1. Voluntary Donation: BloodSync operates strictly as a humanitarian voluntary donor matching platform.",
                         fontSize = 13.sp,
-                        color = appColors.textSecondary
+                        color = appColors.textSecondary,
+                        lineHeight = 18.sp
                     )
                     Text(
                         text = "2. 3-Month Interval: In accordance with global clinical standards, donors must not donate whole blood within 90 days of a previous donation.",
                         fontSize = 13.sp,
-                        color = appColors.textSecondary
+                        color = appColors.textSecondary,
+                        lineHeight = 18.sp
                     )
                     Text(
                         text = "3. Emergency Broadcasts: Emergency requests are reserved strictly for verifiable urgent medical transfusions.",
                         fontSize = 13.sp,
-                        color = appColors.textSecondary
+                        color = appColors.textSecondary,
+                        lineHeight = 18.sp
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { showTermsDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = appColors.primary),
                     shape = RoundedCornerShape(50.dp)
                 ) {
                     Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = appColors.cardBackground
+            shape = RoundedCornerShape(24.dp),
+            containerColor = appColors.surface
         )
     }
 }
 
+/**
+ * Interactive selectable theme tile for Light and Dark mode.
+ */
 @Composable
 private fun ThemeOptionTile(
     title: String,
-    subtitle: String = "",
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) BloodRedPrimary.copy(alpha = if (appColors.isDark) 0.2f else 0.08f) else appColors.surfaceVariant,
-        animationSpec = tween(200),
-        label = "tileBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) BloodRedPrimary else appColors.border,
-        animationSpec = tween(200),
-        label = "tileBorder"
-    )
+    val shape = RoundedCornerShape(16.dp)
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(50.dp))
-            .clickable(onClick = onClick)
-            .border(
-                width = if (isSelected) 1.5.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(50.dp)
-            ),
-        color = backgroundColor
+            .clip(shape)
+            .clickable(onClick = onClick),
+        shape = shape,
+        color = if (isSelected) appColors.primaryLight.copy(alpha = 0.45f) else appColors.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) appColors.primary else appColors.border
+        )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(38.dp)
                     .background(
-                        color = if (isSelected) BloodRedPrimary else appColors.surface,
-                        shape = CircleShape
+                        if (isSelected) appColors.primary else appColors.primaryLight,
+                        CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (isSelected) Color.White else appColors.textSecondary,
+                    tint = if (isSelected) Color.White else appColors.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) BloodRedPrimary else appColors.textPrimary
-                )
-                if (subtitle.isNotBlank()) {
-                    Text(
-                        text = subtitle,
-                        fontSize = 11.sp,
-                        color = appColors.textSecondary
-                    )
-                }
-            }
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                color = appColors.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
 
             RadioButton(
                 selected = isSelected,
                 onClick = onClick,
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = BloodRedPrimary,
+                    selectedColor = appColors.primary,
                     unselectedColor = appColors.textMuted
                 )
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun SystemFeatureStatusRow(
-    title: String,
-    description: String,
-    statusText: String,
-    statusColor: Color
-) {
-    val appColors = BloodSyncTheme.colors
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = appColors.textPrimary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = description,
-                fontSize = 11.sp,
-                color = appColors.textSecondary,
-                lineHeight = 15.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Surface(
-            shape = RoundedCornerShape(50.dp),
-            color = statusColor.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
-        ) {
-            Text(
-                text = statusText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = statusColor,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
     }

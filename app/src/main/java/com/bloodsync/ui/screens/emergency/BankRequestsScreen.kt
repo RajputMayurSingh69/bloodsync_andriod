@@ -3,11 +3,14 @@ package com.bloodsync.ui.screens.emergency
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,7 +20,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,31 +31,32 @@ import com.bloodsync.data.model.EmergencyRequest
 import com.bloodsync.data.model.EmergencyStatus
 import com.bloodsync.data.model.UrgencyLevel
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodSyncTopBar
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 private enum class RequestFilter(val label: String) {
-    ALL("All SOS"),
-    ACTIVE("Active / Broadcasting"),
-    FULFILLED("Fulfilled")
+    TODAY("Today"),
+    DAYS_7("7 Days"),
+    DAYS_30("30 Days"),
+    CUSTOM("Custom")
 }
 
 @Composable
 fun BankRequestsScreen(
     repository: BloodSyncRepository,
+    highlightedRequestId: String? = null,
+    onAcknowledgeRequest: (String) -> Unit = {},
     onNotificationClick: () -> Unit = {}
 ) {
     val requests = repository.emergencyRequests
     val unreadNotifs by repository.unreadNotificationCount
     val appColors = BloodSyncTheme.colors
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var selectedFilter by remember { mutableStateOf(RequestFilter.ALL) }
+    var selectedFilter by remember { mutableStateOf(RequestFilter.TODAY) }
     var isRefreshing by remember { mutableStateOf(false) }
     var lastRefreshedTime by remember { mutableStateOf("Just now") }
 
@@ -70,25 +75,56 @@ fun BankRequestsScreen(
     fun triggerRefresh() {
         if (isRefreshing) return
         isRefreshing = true
-        repository.refreshEmergencyRequests { count ->
+        repository.refreshEmergencyRequests { _ ->
             isRefreshing = false
             val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
             lastRefreshedTime = timeFormat.format(Date())
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar("Synced with Firestore: $count requests active")
-            }
         }
     }
 
     // Filter calculations
-    val activeCount = requests.count { it.status != EmergencyStatus.FULFILLED && it.status != EmergencyStatus.CANCELLED }
-    val fulfilledCount = requests.count { it.status == EmergencyStatus.FULFILLED }
+    val now = remember { System.currentTimeMillis() }
+    fun getDiff(req: EmergencyRequest): Long {
+        return try {
+            val reqTime = req.requestedAt.toLong()
+            val diff = now - reqTime
+            if (diff < 0) 0L else diff
+        } catch (_: Exception) {
+            if (req.requestedAt == "Just now") 0L else Long.MAX_VALUE
+        }
+    }
 
-    val filteredList = remember(requests, selectedFilter) {
-        when (selectedFilter) {
-            RequestFilter.ALL -> requests
-            RequestFilter.ACTIVE -> requests.filter { it.status != EmergencyStatus.FULFILLED && it.status != EmergencyStatus.CANCELLED }
-            RequestFilter.FULFILLED -> requests.filter { it.status == EmergencyStatus.FULFILLED }
+    val activeRequests = remember(requests) {
+        requests.filter { it.status == EmergencyStatus.BROADCASTING }
+    }
+    val todayCount = remember(activeRequests) { activeRequests.count { getDiff(it) <= 86400_000L } }
+    val days7Count = remember(activeRequests) { activeRequests.count { getDiff(it) <= 7 * 86400_000L } }
+    val days30Count = remember(activeRequests) { activeRequests.count { getDiff(it) <= 30L * 86400_000L } }
+    val customCount = remember(activeRequests) { activeRequests.size }
+
+    val filteredList = remember(activeRequests, selectedFilter) {
+        activeRequests.filter { req ->
+            val diff = getDiff(req)
+            when (selectedFilter) {
+                RequestFilter.TODAY -> diff <= 86400_000L
+                RequestFilter.DAYS_7 -> diff <= 7 * 86400_000L
+                RequestFilter.DAYS_30 -> diff <= 30L * 86400_000L
+                RequestFilter.CUSTOM -> true
+            }
+        }
+    }
+
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    // Auto-scroll into view when an emergency request is highlighted
+    LaunchedEffect(highlightedRequestId, filteredList) {
+        if (!highlightedRequestId.isNullOrBlank()) {
+            val targetIdx = filteredList.indexOfFirst { it.id == highlightedRequestId }
+            if (targetIdx >= 0) {
+                listState.animateScrollToItem((targetIdx + 2).coerceAtLeast(0))
+            } else if (activeRequests.any { it.id == highlightedRequestId }) {
+                selectedFilter = RequestFilter.CUSTOM
+            }
         }
     }
 
@@ -100,7 +136,6 @@ fun BankRequestsScreen(
                 unreadCount = unreadNotifs,
                 onNotificationClick = onNotificationClick,
                 actions = {
-                    // Header Refresh Action Button
                     IconButton(
                         onClick = { triggerRefresh() },
                         enabled = !isRefreshing
@@ -111,7 +146,11 @@ fun BankRequestsScreen(
                             tint = if (isRefreshing) BloodRedPrimary else appColors.textPrimary,
                             modifier = Modifier
                                 .size(22.dp)
-                                .then(if (isRefreshing) Modifier.rotate(rotationAngle) else Modifier)
+                                .graphicsLayer {
+                                    if (isRefreshing) {
+                                        rotationZ = rotationAngle
+                                    }
+                                }
                         )
                     }
                 }
@@ -122,6 +161,7 @@ fun BankRequestsScreen(
         containerColor = appColors.background
     ) { padding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -130,43 +170,42 @@ fun BankRequestsScreen(
         ) {
             // 1. Prominent Refresh Header Banner
             item {
-                Surface(
+                BloodSyncCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(50.dp))
                         .clickable { triggerRefresh() },
-                    shape = RoundedCornerShape(50.dp),
-                    color = if (isRefreshing) BloodRedLight else appColors.cardBackground,
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isRefreshing) BloodRedPrimary.copy(alpha = 0.4f) else appColors.border
-                    )
+                    backgroundColor = if (isRefreshing) appColors.primaryLight else appColors.cardBackground,
+                    borderColor = if (isRefreshing) appColors.primary.copy(alpha = 0.4f) else appColors.border
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .background(if (isRefreshing) BloodRedPrimary else StatusEligibleGreenLight),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = null,
-                                    tint = if (isRefreshing) MedicalWhite else StatusEligibleGreen,
+                                    tint = if (isRefreshing) Color.White else appColors.successGreen,
                                     modifier = Modifier
-                                        .size(16.dp)
-                                        .then(if (isRefreshing) Modifier.rotate(rotationAngle) else Modifier)
+                                        .size(18.dp)
+                                        .graphicsLayer {
+                                            if (isRefreshing) {
+                                                rotationZ = rotationAngle
+                                            }
+                                        }
                                 )
                             }
                             Column {
@@ -177,7 +216,7 @@ fun BankRequestsScreen(
                                     color = if (isRefreshing) BloodRedPrimary else appColors.textPrimary
                                 )
                                 Text(
-                                    text = "Last checked: $lastRefreshedTime",
+                                    text = "Last synced: $lastRefreshedTime",
                                     fontSize = 11.sp,
                                     color = appColors.textMuted
                                 )
@@ -186,65 +225,68 @@ fun BankRequestsScreen(
 
                         Surface(
                             shape = RoundedCornerShape(50.dp),
-                            color = if (isRefreshing) BloodRedPrimary else BloodRedLight
+                            color = if (isRefreshing) appColors.primary else appColors.primaryLight
                         ) {
                             Text(
-                                text = if (isRefreshing) "Fetching..." else "Refresh Now",
+                                text = if (isRefreshing) "Syncing..." else "Refresh Now",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isRefreshing) MedicalWhite else BloodRedPrimary,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                color = if (isRefreshing) Color.White else appColors.primary,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
                     }
                 }
             }
 
-            // 2. Filter Pills
+            // 2. Filter Pills Row
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     RequestFilter.entries.forEach { filter ->
                         val isSelected = selectedFilter == filter
-                        val badgeText = when (filter) {
-                            RequestFilter.ALL -> "${requests.size}"
-                            RequestFilter.ACTIVE -> "$activeCount"
-                            RequestFilter.FULFILLED -> "$fulfilledCount"
+                        val badgeCount = when (filter) {
+                            RequestFilter.TODAY -> todayCount
+                            RequestFilter.DAYS_7 -> days7Count
+                            RequestFilter.DAYS_30 -> days30Count
+                            RequestFilter.CUSTOM -> customCount
                         }
                         Surface(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
                                 .clickable { selectedFilter = filter },
                             shape = RoundedCornerShape(50.dp),
-                            color = if (isSelected) BloodRedPrimary else appColors.cardBackground,
-                            border = androidx.compose.foundation.BorderStroke(
+                            color = if (isSelected) appColors.primary else appColors.surface,
+                            border = BorderStroke(
                                 1.dp,
-                                if (isSelected) BloodRedPrimary else appColors.border
+                                if (isSelected) appColors.primary else appColors.border
                             )
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
                                     text = filter.label,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) MedicalWhite else appColors.textSecondary
+                                    color = if (isSelected) Color.White else appColors.textSecondary
                                 )
                                 Surface(
                                     shape = RoundedCornerShape(50.dp),
-                                    color = if (isSelected) MedicalWhite.copy(alpha = 0.25f) else appColors.border
+                                    color = if (isSelected) Color.White.copy(alpha = 0.25f) else appColors.primaryLight
                                 ) {
                                     Text(
-                                        text = badgeText,
+                                        text = "$badgeCount",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = if (isSelected) MedicalWhite else appColors.textPrimary,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        color = if (isSelected) Color.White else appColors.primary,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                     )
                                 }
                             }
@@ -256,194 +298,109 @@ fun BankRequestsScreen(
             // 3. Request Items or Empty State
             if (filteredList.isEmpty()) {
                 item {
-                    Card(
+                    EmptyState(
+                        title = "No Inbound Requests Found",
+                        message = if (selectedFilter == RequestFilter.CUSTOM)
+                            "There are currently zero active emergency requests broadcast in the network."
+                        else
+                            "No emergency requests match the '${selectedFilter.label}' filter criteria.",
+                        icon = Icons.Default.CheckCircle,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
-                                    .background(StatusEligibleGreenLight),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = StatusEligibleGreen,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                            Text(
-                                text = "No Requests Found",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                color = appColors.textPrimary
-                            )
-                            Text(
-                                text = if (selectedFilter == RequestFilter.ALL)
-                                    "There are currently zero active emergency requests broadcast in the network."
-                                else
-                                    "No requests found under the '${selectedFilter.label}' filter tab.",
-                                fontSize = 13.sp,
-                                color = appColors.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                            Button(
-                                onClick = { triggerRefresh() },
-                                shape = RoundedCornerShape(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    tint = MedicalWhite,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Re-check Firestore",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MedicalWhite
-                                )
-                            }
-                        }
-                    }
+                            .padding(vertical = 24.dp)
+                    )
                 }
             } else {
                 items(filteredList, key = { it.id }) { request ->
                     val isFulfilled = request.status == EmergencyStatus.FULFILLED
                     val isImmediate = request.urgencyLevel == UrgencyLevel.IMMEDIATE
+                    val isTargetHighlighted = request.id == highlightedRequestId
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isImmediate && !isFulfilled) BloodRedPrimary.copy(alpha = 0.35f) else appColors.border
-                        )
+                    // Infinite pulsing red glow animation for newly alerted emergency request
+                    val infinitePulse = rememberInfiniteTransition(label = "reqPulse")
+                    val pulseAlpha by infinitePulse.animateFloat(
+                        initialValue = 0.4f,
+                        targetValue = 1.0f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "pulseAlpha"
+                    )
+
+                    BloodSyncCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (isTargetHighlighted) {
+                                    onAcknowledgeRequest(request.id)
+                                }
+                            },
+                        borderColor = when {
+                            isTargetHighlighted -> BloodRedPrimary.copy(alpha = pulseAlpha)
+                            isImmediate && !isFulfilled -> BloodRedPrimary.copy(alpha = 0.5f)
+                            else -> SoftBorderPink
+                        }
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // Top Row: Blood Group + Urgency + Status
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    // Blood Group Pill
-                                    Surface(
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = BloodRedPrimary
-                                    ) {
-                                        Text(
-                                            text = request.bloodGroupNeeded,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MedicalWhite
-                                        )
-                                    }
-
-                                    Column {
-                                        Text(
-                                            text = request.patientName,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = appColors.textPrimary
-                                        )
-                                        Text(
-                                            text = "${request.unitsRequired} Units Required",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = BloodRedPrimary
-                                        )
-                                    }
-                                }
-
-                                // Urgency Badge
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Pulsing Alert Banner for Highlighted Request
+                            if (isTargetHighlighted) {
                                 Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = if (isFulfilled) StatusEligibleGreenLight else if (isImmediate) BloodRedLight else StatusWarningAmberLight,
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isFulfilled) StatusEligibleGreen.copy(alpha = 0.3f) else if (isImmediate) BloodRedPrimary.copy(alpha = 0.3f) else StatusWarningAmber.copy(alpha = 0.3f)
-                                    )
-                                ) {
-                                    Text(
-                                        text = if (isFulfilled) "FULFILLED" else request.urgencyLevel.name,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = if (isFulfilled) StatusEligibleGreen else if (isImmediate) BloodRedPrimary else StatusWarningAmber
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider(
-                                color = appColors.border,
-                                thickness = 1.dp
-                            )
-
-                            // Hospital & Location Info
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Box(
+                                    color = BloodRedPrimary.copy(alpha = 0.95f),
                                     modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(appColors.border.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .clickable { onAcknowledgeRequest(request.id) }
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = BloodRedPrimary
-                                    )
-                                }
-                                Column {
-                                    Text(
-                                        text = request.hospitalName,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = appColors.textPrimary
-                                    )
-                                    if (request.hospitalAddress.isNotBlank()) {
-                                        Text(
-                                            text = request.hospitalAddress,
-                                            fontSize = 11.sp,
-                                            color = appColors.textSecondary
-                                        )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Warning,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "🚨 NEW INBOUND EMERGENCY • ACTIVE ALERT",
+                                                color = Color.White,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(50.dp),
+                                            color = Color.White,
+                                            modifier = Modifier.clickable { onAcknowledgeRequest(request.id) }
+                                        ) {
+                                            Text(
+                                                text = "Acknowledge",
+                                                color = BloodRedPrimary,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
 
-                            // Contact Phone Row with Direct Call Action
-                            if (request.contactPhone.isNotBlank()) {
+                            // Header Area
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        when {
+                                            isTargetHighlighted -> BloodRedLight.copy(alpha = 0.5f)
+                                            isImmediate && !isFulfilled -> BloodRedLight.copy(alpha = 0.3f)
+                                            else -> WarmLightSurface
+                                        }
+                                    )
+                                    .padding(16.dp)
+                            ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -451,59 +408,233 @@ fun BankRequestsScreen(
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(StatusEligibleGreenLight),
-                                            contentAlignment = Alignment.Center
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = BloodRedPrimary
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Phone,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(15.dp),
-                                                tint = StatusEligibleGreen
+                                            Box(
+                                                modifier = Modifier.size(54.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = request.bloodGroupNeeded,
+                                                    fontSize = 19.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MedicalWhite
+                                                )
+                                            }
+                                        }
+
+                                        Column {
+                                            Text(
+                                                text = request.patientName,
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = appColors.textPrimary
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.WaterDrop,
+                                                    contentDescription = null,
+                                                    tint = BloodRedPrimary,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "${request.unitsRequired} Units Required",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = BloodRedPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    StatusPillBadge(
+                                        text = if (isFulfilled) "FULFILLED" else request.urgencyLevel.name,
+                                        backgroundColor = if (isFulfilled) StatusEligibleGreenLight else if (isImmediate) BloodRedLight else StatusWarningAmberLight,
+                                        contentColor = if (isFulfilled) StatusEligibleGreen else if (isImmediate) BloodRedPrimary else StatusWarningAmber,
+                                        showBeacon = isImmediate && !isFulfilled
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = SoftBorderPink, thickness = 0.5.dp)
+
+                            // Hospital & Contact Details
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(BloodRedLight),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.LocalHospital,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = BloodRedPrimary
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = request.hospitalName,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = appColors.textPrimary
+                                        )
+                                        if (request.hospitalAddress.isNotBlank()) {
+                                            Text(
+                                                text = request.hospitalAddress,
+                                                fontSize = 12.sp,
+                                                color = appColors.textSecondary
                                             )
                                         }
+                                    }
+                                }
+
+                                if (request.contactPhone.isNotBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = WarmLightSurface,
+                                        border = BorderStroke(1.dp, SoftBorderPink),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = null,
+                                                    tint = StatusEligibleGreen,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = request.contactPhone,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = appColors.textPrimary
+                                                )
+                                            }
+                                            Surface(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(50.dp))
+                                                    .clickable {
+                                                        try {
+                                                            val callIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                                data = Uri.parse("tel:${request.contactPhone}")
+                                                            }
+                                                            context.startActivity(callIntent)
+                                                        } catch (_: Exception) {}
+                                                    },
+                                                shape = RoundedCornerShape(50.dp),
+                                                color = StatusEligibleGreen
+                                            ) {
+                                                Text(
+                                                    text = "CALL ATTENDANT",
+                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MedicalWhite
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (request.additionalNotes.isNotBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = StatusWarningAmberLight.copy(alpha = 0.5f),
+                                        border = BorderStroke(1.dp, StatusWarningAmber.copy(alpha = 0.25f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Info,
+                                                contentDescription = null,
+                                                tint = StatusWarningAmber,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = request.additionalNotes,
+                                                fontSize = 12.sp,
+                                                color = appColors.textPrimary,
+                                                lineHeight = 16.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Footer Area with timestamp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(WarmLightSurface)
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Schedule,
+                                            contentDescription = null,
+                                            tint = appColors.textMuted,
+                                            modifier = Modifier.size(13.dp)
+                                        )
                                         Text(
-                                            text = request.contactPhone,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = appColors.textPrimary
+                                            text = formatRelativeTime(request.requestedAt),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = appColors.textMuted
                                         )
                                     }
 
-                                    Surface(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(50.dp))
-                                            .clickable {
-                                                try {
-                                                    val callIntent = Intent(Intent.ACTION_DIAL).apply {
-                                                        data = Uri.parse("tel:${request.contactPhone}")
-                                                    }
-                                                    context.startActivity(callIntent)
-                                                } catch (_: Exception) {}
-                                            },
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = StatusEligibleGreenLight,
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f))
-                                    ) {
+                                    if (isFulfilled) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Call,
+                                                imageVector = Icons.Default.CheckCircle,
                                                 contentDescription = null,
                                                 tint = StatusEligibleGreen,
-                                                modifier = Modifier.size(12.dp)
+                                                modifier = Modifier.size(14.dp)
                                             )
                                             Text(
-                                                text = "Call Contact",
-                                                fontSize = 10.sp,
+                                                text = "Fulfilled",
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = StatusEligibleGreen
                                             )
@@ -512,87 +643,18 @@ fun BankRequestsScreen(
                                 }
                             }
 
-                            // Additional Notes (if present)
-                            if (request.additionalNotes.isNotBlank()) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = appColors.background,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-                                ) {
-                                    Text(
-                                        text = "Note: ${request.additionalNotes}",
-                                        fontSize = 11.sp,
-                                        color = appColors.textSecondary,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    )
-                                }
-                            }
-
-                            // Footer: Time & Action Buttons
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Requested: ${request.requestedAt}",
-                                    fontSize = 11.sp,
-                                    color = appColors.textMuted
-                                )
-
-                                if (isFulfilled) {
-                                    Surface(
-                                        shape = RoundedCornerShape(50.dp),
-                                        color = StatusEligibleGreenLight
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = StatusEligibleGreen,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Text(
-                                                text = "Fulfilled by Bank",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = StatusEligibleGreen
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Mark as Fulfilled Action Button (Pill-shaped, Medical Green)
+                            // 1-Tap Approve / Allocate & Dispatch Button
                             if (!isFulfilled && request.status != EmergencyStatus.CANCELLED) {
-                                Button(
-                                    onClick = {
-                                        repository.fulfillEmergencyRequest(request.id)
-                                        coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("Marked request for ${request.patientName} as Fulfilled!")
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(50.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = StatusEligibleGreen,
-                                        contentColor = MedicalWhite
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
+                                Box(modifier = Modifier.padding(16.dp)) {
+                                    BloodSyncButton(
                                         text = "Fulfill & Dispatch Units",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
+                                        onClick = {
+                                            onAcknowledgeRequest(request.id)
+                                            repository.fulfillEmergencyRequest(request.id)
+                                        },
+                                        leadingIcon = Icons.Default.VolunteerActivism,
+                                        gradient = BrushGradients.SuccessPill,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -601,5 +663,21 @@ fun BankRequestsScreen(
                 }
             }
         }
+    }
+}
+
+private fun formatRelativeTime(timestampStr: String): String {
+    try {
+        val timestamp = timestampStr.toLong()
+        val diff = System.currentTimeMillis() - timestamp
+        if (diff < 0) return "Just now"
+        return when {
+            diff < 60_000 -> "Just now"
+            diff < 3600_000 -> "${diff / 60_000} mins ago"
+            diff < 86400_000 -> "${diff / 3600_000} hours ago"
+            else -> "${diff / 86400_000} days ago"
+        }
+    } catch (_: Exception) {
+        return timestampStr
     }
 }

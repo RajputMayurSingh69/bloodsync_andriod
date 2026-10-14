@@ -2,7 +2,11 @@ package com.bloodsync.data.notification
 
 import android.content.Context
 import android.util.Log
+import com.bloodsync.data.emergency.EmergencyAlertManager
+import com.bloodsync.data.model.EmergencyRequest
+import com.bloodsync.data.model.EmergencyStatus
 import com.bloodsync.data.model.NotificationType
+import com.bloodsync.data.model.UrgencyLevel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -72,8 +76,39 @@ class BloodSyncFirebaseMessagingService : FirebaseMessagingService() {
         // Each unique emergency gets its own system notification slot via requestId hash
         val notificationId = if (requestId.isNotBlank()) requestId.hashCode() else System.currentTimeMillis().toInt()
 
-        // Dispatch heads-up notification; pass the full FCM data map as extras so the
-        // tap PendingIntent deep-links to the correct EmergencyLiveTrackingScreen
+        // If this is an emergency request, trigger EmergencyAlertManager for background siren & state
+        if (notificationType == NotificationType.EMERGENCY || requestId.isNotBlank()) {
+            val emergencyReq = EmergencyRequest(
+                id = requestId.ifBlank { "emg_" + System.currentTimeMillis() },
+                patientName = data["patient"] ?: data["patientName"] ?: "Emergency Patient",
+                bloodGroupNeeded = data["bloodGroup"] ?: data["bloodGroupNeeded"] ?: "O+",
+                unitsRequired = (data["units"] ?: data["unitsRequired"] ?: "1").toIntOrNull() ?: 1,
+                hospitalName = data["hospital"] ?: data["hospitalName"] ?: "Medical Center",
+                hospitalAddress = data["hospitalAddress"] ?: "",
+                contactPhone = data["contactPhone"] ?: "",
+                urgencyLevel = try {
+                    UrgencyLevel.valueOf(data["urgency"] ?: data["urgencyLevel"] ?: "IMMEDIATE")
+                } catch (_: Exception) {
+                    UrgencyLevel.IMMEDIATE
+                },
+                status = EmergencyStatus.BROADCASTING,
+                additionalNotes = data["notes"] ?: data["additionalNotes"] ?: "",
+                requestedAt = data["requestedAt"] ?: "Just now",
+                donorsNotifiedCount = 1,
+                responders = emptyList(),
+                latitude = data["emergencyLat"]?.toDoubleOrNull(),
+                longitude = data["emergencyLon"]?.toDoubleOrNull(),
+                requesterId = data["userId"] ?: data["requesterId"] ?: ""
+            )
+
+            EmergencyAlertManager.onNewEmergencyArrived(
+                context = applicationContext,
+                request = emergencyReq,
+                isAppInForeground = false
+            )
+        }
+
+        // Dispatch heads-up notification with full-screen intent & action buttons
         NotificationHelper.sendSystemNotification(
             context = applicationContext,
             notificationId = notificationId,

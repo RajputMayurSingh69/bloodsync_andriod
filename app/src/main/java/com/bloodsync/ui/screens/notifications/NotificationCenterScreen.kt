@@ -5,12 +5,14 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,16 +23,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.data.model.AppNotification
 import com.bloodsync.data.model.NotificationType
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodSyncTopBar
-import com.bloodsync.ui.components.EmptyStateView
-import com.bloodsync.ui.components.StatusBadge
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
 
 @Composable
@@ -39,7 +38,6 @@ fun NotificationCenterScreen(
     onBackClick: () -> Unit,
     onNavigateToTarget: (targetScreen: String, targetId: String?) -> Unit
 ) {
-    val context = LocalContext.current
     val appColors = BloodSyncTheme.colors
     val notifications = repository.notifications
     val unreadCount by repository.unreadNotificationCount
@@ -69,7 +67,7 @@ fun NotificationCenterScreen(
         topBar = {
             BloodSyncTopBar(
                 title = "Notifications",
-                subtitle = if (unreadCount > 0) "$unreadCount unread" else "All caught up",
+                subtitle = if (unreadCount > 0) "$unreadCount unread alerts" else "All caught up",
                 showBackButton = true,
                 onBackClick = onBackClick,
                 actions = {
@@ -86,7 +84,7 @@ fun NotificationCenterScreen(
                 }
             )
         },
-        contentWindowInsets = WindowInsets.systemBars,
+        contentWindowInsets = WindowInsets.statusBars,
         containerColor = appColors.background
     ) { innerPadding ->
         Column(
@@ -94,15 +92,16 @@ fun NotificationCenterScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Notification Permission Banner for Android 13+
+            // 1. Android 13+ Notification Permission Banner
             AnimatedVisibility(visible = showPermissionBanner) {
                 Surface(
-                    color = appColors.redLight,
+                    color = BloodRedLight,
+                    border = BorderStroke(0.5.dp, BloodRedPrimary.copy(alpha = 0.25f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
-                            .padding(14.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -111,13 +110,20 @@ fun NotificationCenterScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = null,
-                                tint = BloodRedPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(BloodRedPrimary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MedicalWhite,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = "Enable Real-time Push Alerts",
@@ -126,9 +132,9 @@ fun NotificationCenterScreen(
                                     color = BloodRedPrimary
                                 )
                                 Text(
-                                    text = "Get alerted when emergency blood is needed nearby",
+                                    text = "Receive instant alarms when urgent blood is needed nearby",
                                     fontSize = 11.sp,
-                                    color = appColors.textSecondary
+                                    color = TextPrimaryDark
                                 )
                             }
                         }
@@ -143,121 +149,106 @@ fun NotificationCenterScreen(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                             shape = RoundedCornerShape(50.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                         ) {
-                            Text("Allow", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Allow", fontSize = 12.sp, color = MedicalWhite, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Category Filter Pills
-            LazyRow(
+            // 2. Category Filter Pills Row
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item {
-                    FilterChip(
-                        selected = selectedFilter == null,
-                        onClick = { selectedFilter = null },
-                        label = { Text("All (${notifications.size})") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BloodRedPrimary,
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-                items(NotificationType.entries.filter { it != NotificationType.SYSTEM }) { type ->
-                    val count = notifications.count { it.type == type }
-                    FilterChip(
-                        selected = selectedFilter == type,
-                        onClick = { selectedFilter = type },
-                        label = {
-                            Text(
-                                when (type) {
-                                    NotificationType.EMERGENCY -> "Emergency ($count)"
-                                    NotificationType.APPOINTMENT -> "Appointments ($count)"
-                                    NotificationType.ELIGIBILITY -> "Eligibility ($count)"
-                                    NotificationType.CERTIFICATE -> "Certificates ($count)"
-                                    else -> "System"
-                                }
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = BloodRedPrimary,
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-            }
-
-            // Quick trigger button to simulate realistic push alerts (Emergency / Appointment / Certificate)
-            Surface(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .fillMaxWidth(),
-                color = appColors.surfaceVariant,
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Row(
+                val isAllSelected = selectedFilter == null
+                Surface(
                     modifier = Modifier
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .clip(RoundedCornerShape(50.dp))
+                        .clickable { selectedFilter = null },
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (isAllSelected) appColors.primary else appColors.surface,
+                    border = BorderStroke(1.dp, if (isAllSelected) appColors.primary else appColors.border)
                 ) {
                     Text(
-                        text = "Simulate Real-Time Notification:",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = appColors.textSecondary
+                        text = "All (${notifications.size})",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        fontSize = 12.sp,
+                        fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isAllSelected) Color.White else appColors.textSecondary
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilledTonalButton(
-                            onClick = {
-                                repository.postNotification(
-                                    title = "🚨 URGENT: O- Blood Needed (Children's Ward)",
-                                    message = "St. Jude Hospital has 2 patients in urgent need. You match this request!",
-                                    type = NotificationType.EMERGENCY,
-                                    targetScreen = "emergency"
-                                )
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(50.dp)
+                }
+
+                NotificationType.entries.filter { it != NotificationType.SYSTEM }.forEach { type ->
+                    val isSelected = selectedFilter == type
+                    val count = notifications.count { it.type == type }
+                    val label = when (type) {
+                        NotificationType.EMERGENCY -> "Emergency SOS"
+                        NotificationType.APPOINTMENT -> "Appointments"
+                        NotificationType.ELIGIBILITY -> "Eligibility"
+                        NotificationType.CERTIFICATE -> "Certificates"
+                        else -> "System"
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50.dp))
+                            .clickable { selectedFilter = type },
+                        shape = RoundedCornerShape(50.dp),
+                        color = if (isSelected) appColors.primary else appColors.surface,
+                        border = BorderStroke(1.dp, if (isSelected) appColors.primary else appColors.border)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("Emergency", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        FilledTonalButton(
-                            onClick = {
-                                repository.postNotification(
-                                    title = "🎖️ New Certificate Available",
-                                    message = "Your certificate for verified donation has been generated!",
-                                    type = NotificationType.CERTIFICATE,
-                                    targetScreen = "certificate"
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else appColors.textSecondary
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (isSelected) Color.White.copy(alpha = 0.25f) else appColors.primaryLight
+                            ) {
+                                Text(
+                                    text = "$count",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isSelected) Color.White else appColors.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(50.dp)
-                        ) {
-                            Text("Certificate", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
             }
 
+            // 3. Notification Items or Empty State
             if (filteredList.isEmpty()) {
-                EmptyStateView(
-                    title = "No Notifications",
-                    message = "You have no notifications in this category at the moment.",
-                    icon = Icons.Default.NotificationsNone
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        title = "No Notifications",
+                        message = "You have no notifications in this category at the moment. All live alerts will appear here in real-time.",
+                        icon = Icons.Default.NotificationsNone
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredList, key = { it.id }) { notif ->
                         NotificationItemCard(
@@ -277,44 +268,35 @@ fun NotificationCenterScreen(
 }
 
 @Composable
-fun NotificationItemCard(
+private fun NotificationItemCard(
     notification: AppNotification,
     onItemClick: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    Card(
+    BloodSyncCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) appColors.redLight else appColors.cardBackground
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (!notification.isRead) BloodRedPrimary.copy(alpha = 0.5f) else appColors.border
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (!notification.isRead) 2.dp else 0.5.dp)
+        backgroundColor = if (!notification.isRead) appColors.primaryLight.copy(alpha = 0.45f) else appColors.cardBackground,
+        borderColor = if (!notification.isRead) appColors.primary.copy(alpha = 0.45f) else appColors.border
     ) {
         Row(
-            modifier = Modifier
-                .padding(14.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top
         ) {
             // Category Icon Badge
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(42.dp)
                     .background(
                         when (notification.type) {
-                            NotificationType.EMERGENCY -> appColors.redLight
-                            NotificationType.APPOINTMENT -> appColors.yellowLight
-                            NotificationType.ELIGIBILITY -> appColors.greenLight
-                            NotificationType.CERTIFICATE -> appColors.yellowLight
-                            NotificationType.SYSTEM -> appColors.surfaceVariant
+                            NotificationType.EMERGENCY -> BloodRedLight
+                            NotificationType.APPOINTMENT -> StatusWarningAmberLight
+                            NotificationType.ELIGIBILITY -> StatusEligibleGreenLight
+                            NotificationType.CERTIFICATE -> StatusWarningAmberLight
+                            NotificationType.SYSTEM -> WarmLightSurface
                         },
-                        CircleShape
+                        RoundedCornerShape(12.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -328,17 +310,17 @@ fun NotificationItemCard(
                     },
                     contentDescription = null,
                     tint = when (notification.type) {
-                        NotificationType.EMERGENCY -> StatusUrgentRed
+                        NotificationType.EMERGENCY -> BloodRedPrimary
                         NotificationType.APPOINTMENT -> StatusWarningAmber
                         NotificationType.ELIGIBILITY -> StatusEligibleGreen
                         NotificationType.CERTIFICATE -> CertificateGold
-                        NotificationType.SYSTEM -> appColors.textSecondary
+                        NotificationType.SYSTEM -> TextSecondaryGrey
                     },
                     modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -348,7 +330,7 @@ fun NotificationItemCard(
                 ) {
                     Text(
                         text = notification.title,
-                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (!notification.isRead) FontWeight.ExtraBold else FontWeight.Bold,
                         fontSize = 14.sp,
                         color = appColors.textPrimary,
                         modifier = Modifier.weight(1f)

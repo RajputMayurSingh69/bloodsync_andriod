@@ -7,7 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.widget.Toast
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,18 +19,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -40,11 +36,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.data.model.Certificate
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodDropIcon
-import com.bloodsync.ui.components.BloodSyncTopBar
-import com.bloodsync.ui.components.EmptyStateView
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
 
+/**
+ * Redesigned Certificate Screen.
+ * Soft Medical aesthetic, elegant gold ornamental frame (#F57F17 -> #E65100 gradient),
+ * gold starburst seal, milestone recognition, verification hash, and native share.
+ */
 @Composable
 fun CertificateScreen(
     repository: BloodSyncRepository,
@@ -84,25 +83,23 @@ fun CertificateScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (certificates.isEmpty()) {
-                EmptyStateView(
+                EmptyState(
                     title = "No Certificates Yet",
-                    message = "Certificates are automatically generated after your blood donations are verified.",
-                    icon = Icons.Default.CardGiftcard
+                    message = "Official milestone certificates are automatically generated after your blood donations are verified by healthcare staff.",
+                    icon = Icons.Rounded.WorkspacePremium
                 )
             } else {
                 // Multi-certificate selector chips
                 if (certificates.size > 1) {
-                    Text(
-                        text = "Your Certificates (${certificates.size})",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = appColors.textSecondary,
-                        modifier = Modifier.align(Alignment.Start)
+                    SectionHeader(
+                        title = "Your Certificates (${certificates.size})",
+                        subtitle = "Select milestone to view"
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -110,36 +107,12 @@ fun CertificateScreen(
                     ) {
                         items(certificates) { cert ->
                             val isSelected = cert.id == currentCertificate?.id
-                            Surface(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .clickable { selectedCertId = cert.id }
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) CertificateGold else appColors.border,
-                                        shape = RoundedCornerShape(50.dp)
-                                    ),
-                                color = if (isSelected) appColors.yellowLight else appColors.cardBackground
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Verified,
-                                        contentDescription = null,
-                                        tint = if (isSelected) CertificateGoldDark else appColors.textMuted,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "${cert.donationMilestone} (${cert.donationDate})",
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) CertificateGoldDark else appColors.textPrimary
-                                    )
-                                }
-                            }
+                            BloodSyncChip(
+                                text = "${cert.donationMilestone} (${cert.donationDate})",
+                                selected = isSelected,
+                                onClick = { selectedCertId = cert.id },
+                                leadingIcon = Icons.Rounded.WorkspacePremium
+                            )
                         }
                     }
 
@@ -147,71 +120,59 @@ fun CertificateScreen(
                 }
 
                 currentCertificate?.let { cert ->
-                    // Certificate Canvas / View
-                    CertificateCard(certificate = cert)
+                    // Certificate Ornamental Card
+                    OrnamentalCertificateCard(certificate = cert)
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Action Buttons (Download & Share)
+                    // Action Buttons (Share & Download)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                shareCertificateText(context, cert)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                            shape = RoundedCornerShape(50.dp)
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share Certificate", fontWeight = FontWeight.Bold, color = Color.White)
-                        }
+                        BloodSyncButton(
+                            text = "Share Certificate",
+                            onClick = { shareCertificateText(context, cert) },
+                            icon = Icons.Rounded.Share,
+                            height = 52.dp,
+                            modifier = Modifier.weight(1.2f)
+                        )
 
-                        OutlinedButton(
-                            onClick = {
-                                downloadCertificateBitmap(context, cert)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(50.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, tint = BloodRedPrimary, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Save Image", color = BloodRedPrimary, fontWeight = FontWeight.Bold)
-                        }
+                        BloodSyncOutlinedButton(
+                            text = "Save Image",
+                            onClick = { downloadCertificateBitmap(context, cert) },
+                            icon = Icons.Rounded.Download,
+                            height = 52.dp,
+                            textColor = CertificateGoldDark,
+                            borderColor = CertificateGold,
+                            modifier = Modifier.weight(0.8f)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     // Authenticity & Verification note
-                    Surface(
-                        color = appColors.surfaceVariant,
-                        shape = RoundedCornerShape(20.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-                        modifier = Modifier.fillMaxWidth()
+                    BloodSyncCard(
+                        backgroundColor = Color(0xFFFFFDF5),
+                        borderColor = CertificateGold.copy(alpha = 0.35f),
+                        elevation = 1.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = Icons.Rounded.VerifiedUser,
                                 contentDescription = null,
                                 tint = StatusEligibleGreen,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = "Cryptographically signed by BloodSync. Verified ID: ${cert.certificateCode}",
                                 fontSize = 11.sp,
-                                color = appColors.textSecondary
+                                color = appColors.textSecondary,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -221,23 +182,29 @@ fun CertificateScreen(
     }
 }
 
+/**
+ * Elegant Gold Ornamental Certificate Card with gradient borders and starburst seal.
+ */
 @Composable
-fun CertificateCard(
+fun OrnamentalCertificateCard(
     certificate: Certificate,
     modifier: Modifier = Modifier
 ) {
     val appColors = BloodSyncTheme.colors
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(6.dp, RoundedCornerShape(26.dp)),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-        border = androidx.compose.foundation.BorderStroke(2.dp, StatusWarningAmber)
+    val goldGradient = Brush.linearGradient(
+        listOf(Color(0xFFF57F17), Color(0xFFE65100))
+    )
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFFFFFFC),
+        border = BorderStroke(2.dp, goldGradient),
+        shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(14.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -245,8 +212,8 @@ fun CertificateCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, AlertYellow.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-                    .padding(14.dp)
+                    .border(1.dp, CertificateGold.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+                    .padding(16.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -257,13 +224,13 @@ fun CertificateCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        BloodDropIcon(size = 22.dp)
+                        BloodDropIcon(size = 20.dp, tint = BloodRedPrimary)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "BLOODSYNC HEALTH NETWORK",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp,
+                            letterSpacing = 1.5.sp,
                             color = BloodRedPrimary
                         )
                     }
@@ -272,16 +239,16 @@ fun CertificateCard(
 
                     Text(
                         text = "CERTIFICATE OF APPRECIATION",
-                        fontSize = 17.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BloodRedPrimary,
-                        letterSpacing = 1.sp,
+                        color = Color(0xFFB71C1C),
+                        letterSpacing = 0.8.sp,
                         textAlign = TextAlign.Center
                     )
 
                     Text(
                         text = "PROUDLY PRESENTED TO",
-                        fontSize = 9.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 2.sp,
                         color = appColors.textMuted,
@@ -291,7 +258,7 @@ fun CertificateCard(
                     // Recipient Name
                     Text(
                         text = certificate.donorName,
-                        fontSize = 24.sp,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Serif,
                         color = BloodRedPrimary,
@@ -299,55 +266,56 @@ fun CertificateCard(
                         textAlign = TextAlign.Center
                     )
 
-                    HorizontalDivider(
-                        color = StatusWarningAmber.copy(alpha = 0.5f),
-                        thickness = 1.dp,
-                        modifier = Modifier.width(180.dp)
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(1.5.dp)
+                            .background(Brush.horizontalGradient(listOf(Color.Transparent, CertificateGold, Color.Transparent)))
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "In grateful recognition of your humanitarian spirit and generous blood donation. Your selfless act helps preserve human life and brings hope to patients in critical medical care.",
+                        text = "In grateful recognition of your humanitarian spirit and generous blood donation. Your selfless contribution helps preserve human life and brings hope to critical patients.",
                         fontSize = 12.sp,
                         fontStyle = FontStyle.Italic,
                         color = appColors.textSecondary,
                         textAlign = TextAlign.Center,
                         lineHeight = 17.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp)
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Milestone & Details Grid
                     Surface(
-                        color = appColors.yellowLight,
+                        color = Color(0xFFFFF9E6),
                         shape = RoundedCornerShape(16.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AlertYellow),
+                        border = BorderStroke(1.dp, CertificateGold.copy(alpha = 0.4f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(10.dp)
+                                .padding(12.dp)
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            CertificateField("Donation Milestone", certificate.donationMilestone)
+                            CertificateField("Milestone", certificate.donationMilestone)
                             CertificateField("Blood Group", certificate.bloodGroup)
-                            CertificateField("Donation Date", certificate.donationDate)
+                            CertificateField("Donated On", certificate.donationDate)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    // Signatures & Seal Section
+                    // Signatures & Gold Starburst Seal Section
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
                         // Left: Medical Center & Doctor
-                        Column(modifier = Modifier.weight(0.45f)) {
+                        Column(modifier = Modifier.weight(0.42f)) {
                             Text(
                                 text = certificate.verifiedBy,
                                 fontSize = 11.sp,
@@ -371,13 +339,13 @@ fun CertificateCard(
                             )
                         }
 
-                        // Center: Golden Seal representation
-                        GoldenCertificateSeal(size = 52)
+                        // Center: Gold Starburst Seal
+                        GoldenCertificateSeal(size = 54)
 
                         // Right: Certificate ID & Verification
                         Column(
                             horizontalAlignment = Alignment.End,
-                            modifier = Modifier.weight(0.45f)
+                            modifier = Modifier.weight(0.42f)
                         ) {
                             Text(
                                 text = certificate.certificateCode,
@@ -396,7 +364,7 @@ fun CertificateCard(
                                 modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
                             )
                             Text(
-                                text = "Official Verification ID",
+                                text = "Verification Code",
                                 fontSize = 9.sp,
                                 color = appColors.textMuted
                             )
@@ -414,20 +382,20 @@ fun GoldenCertificateSeal(size: Int) {
         modifier = Modifier
             .size(size.dp)
             .background(
-                brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                    colors = listOf(AlertYellow, StatusWarningAmber, StatusWarningAmber)
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFFFD54F), Color(0xFFF57F17), Color(0xFFE65100))
                 ),
                 shape = CircleShape
             )
-            .border(2.dp, AlertYellowLight, CircleShape),
+            .border(2.dp, Color(0xFFFFECB3), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.Star,
+                imageVector = Icons.Rounded.Star,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(18.dp)
             )
             Text(
                 text = "SEAL",
@@ -448,6 +416,7 @@ fun CertificateField(title: String, value: String) {
             fontSize = 10.sp,
             color = appColors.textMuted
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
             fontSize = 12.sp,
@@ -489,7 +458,6 @@ private fun downloadCertificateBitmap(context: Context, cert: Certificate) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Background
         canvas.drawColor(android.graphics.Color.WHITE)
 
         val borderPaint = Paint().apply {

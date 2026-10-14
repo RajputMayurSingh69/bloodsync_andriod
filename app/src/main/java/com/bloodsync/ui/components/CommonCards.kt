@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -25,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.ui.theme.*
 
+// =======================================================================
+// STATUS BADGE — Clean pill badge with solid background
+// =======================================================================
 @Composable
 fun StatusBadge(
     text: String,
@@ -42,11 +46,15 @@ fun StatusBadge(
             color = textColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            letterSpacing = 0.2.sp,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
         )
     }
 }
 
+// =======================================================================
+// STAT METRIC CARD — Premium stat card with icon accent
+// =======================================================================
 @Composable
 fun StatMetricCard(
     title: String,
@@ -58,15 +66,21 @@ fun StatMetricCard(
 ) {
     val appColors = BloodSyncTheme.colors
     Card(
-        modifier = modifier,
+        modifier = modifier
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = Color.Black.copy(0.02f),
+                spotColor = BloodRedPrimary.copy(alpha = 0.08f)
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
         border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(14.dp)
+                .padding(18.dp)
                 .fillMaxWidth()
         ) {
             Row(
@@ -76,14 +90,14 @@ fun StatMetricCard(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = appColors.textSecondary
+                    style = MaterialTheme.typography.labelMedium,
+                    color = appColors.textMuted
                 )
                 if (icon != null) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
-                            .background(tintColor.copy(alpha = 0.12f), CircleShape),
+                            .size(32.dp)
+                            .background(appColors.primaryLight, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -96,13 +110,13 @@ fun StatMetricCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
+                    fontWeight = FontWeight.Black,
+                    fontSize = 24.sp
                 ),
                 color = appColors.textPrimary
             )
@@ -111,19 +125,22 @@ fun StatMetricCard(
 
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                color = appColors.textMuted
+                style = MaterialTheme.typography.labelSmall,
+                color = appColors.textSecondary
             )
         }
     }
 }
 
+// =======================================================================
+// BLOOD GROUP SELECTOR
+// =======================================================================
 @Composable
 fun BloodGroupSelector(
     selectedGroup: String,
     onGroupSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    title: String = "Blood Group Need"
+    title: String = "Blood Group"
 ) {
     val appColors = BloodSyncTheme.colors
     val groups = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
@@ -131,12 +148,12 @@ fun BloodGroupSelector(
     Column(modifier = modifier) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
             color = appColors.textPrimary
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 2 rows of 4
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -167,6 +184,9 @@ fun BloodGroupSelector(
     }
 }
 
+// =======================================================================
+// BLOOD GROUP CHIP
+// =======================================================================
 @Composable
 fun BloodGroupChip(
     group: String,
@@ -175,29 +195,43 @@ fun BloodGroupChip(
     modifier: Modifier = Modifier
 ) {
     val appColors = BloodSyncTheme.colors
-    Surface(
+
+    Box(
         modifier = modifier
-            .height(48.dp)
+            .height(44.dp)
             .clip(RoundedCornerShape(50.dp))
-            .clickable(onClick = onClick)
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) BloodRedPrimary else appColors.border,
-                shape = RoundedCornerShape(50.dp)
-            ),
-        color = if (isSelected) appColors.redLight else appColors.cardBackground
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = group,
-                color = if (isSelected) BloodRedPrimary else appColors.textPrimary,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 15.sp
+            .then(
+                if (isSelected) {
+                    Modifier.background(
+                        brush = Brush.verticalGradient(
+                            listOf(BloodRedSecondary, BloodRedDark)
+                        )
+                    )
+                } else {
+                    Modifier
+                        .background(appColors.cardBackground)
+                        .border(
+                            width = 1.dp,
+                            color = appColors.border,
+                            shape = RoundedCornerShape(50.dp)
+                        )
+                }
             )
-        }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = group,
+            color = if (isSelected) Color.White else appColors.textPrimary,
+            fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
+            fontSize = 14.sp
+        )
     }
 }
 
+// =======================================================================
+// EMPTY STATE VIEW
+// =======================================================================
 @Composable
 fun EmptyStateView(
     title: String,
@@ -211,29 +245,30 @@ fun EmptyStateView(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
-                .background(appColors.surfaceVariant, CircleShape),
+                .size(76.dp)
+                .background(appColors.primaryLight, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = appColors.textMuted,
+                tint = BloodRedPrimary,
                 modifier = Modifier.size(36.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = appColors.textPrimary,
             textAlign = TextAlign.Center
         )
@@ -248,48 +283,94 @@ fun EmptyStateView(
         )
 
         if (!actionText.isNullOrEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = onActionClick,
                 colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(50.dp)
+                shape = RoundedCornerShape(50.dp),
+                modifier = Modifier.height(46.dp)
             ) {
-                Text(text = actionText, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    text = actionText,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
             }
         }
     }
 }
 
+// =======================================================================
+// SHIMMER SKELETON — Premium loading placeholder
+// =======================================================================
 @Composable
 fun ShimmerSkeleton(
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp)
 ) {
+    val appColors = BloodSyncTheme.colors
     val transition = rememberInfiniteTransition(label = "shimmer")
     val translateAnim by transition.animateFloat(
         initialValue = 0f,
-        targetValue = 1000f,
+        targetValue = 1200f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmerTranslate"
     )
 
     val shimmerColors = listOf(
-        MedicalBorder,
-        MedicalSurfaceVariant,
-        MedicalBorder
+        appColors.shimmerBase,
+        appColors.shimmerHighlight,
+        appColors.shimmerBase
     )
 
     val brush = Brush.linearGradient(
         colors = shimmerColors,
-        start = Offset.Zero,
-        end = Offset(x = translateAnim, y = translateAnim)
+        start = Offset(x = translateAnim - 400f, y = 0f),
+        end = Offset(x = translateAnim, y = 0f)
     )
 
     Spacer(
-        modifier = modifier
-            .background(brush = brush, shape = shape)
+        modifier = modifier.background(brush = brush, shape = shape)
     )
+}
+
+// =======================================================================
+// SECTION HEADER — Clean labelled section with optional action
+// =======================================================================
+@Composable
+fun SectionHeader(
+    title: String,
+    actionText: String? = null,
+    onActionClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val appColors = BloodSyncTheme.colors
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = appColors.textPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        if (!actionText.isNullOrEmpty()) {
+            Text(
+                text = actionText,
+                style = MaterialTheme.typography.labelMedium,
+                color = BloodRedPrimary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onActionClick)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
 }

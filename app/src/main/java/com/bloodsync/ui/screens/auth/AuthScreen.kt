@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -241,11 +242,11 @@ fun AuthScreen(
         unfocusedTextColor = appColors.textPrimary,
         focusedContainerColor = appColors.inputBackground,
         unfocusedContainerColor = appColors.inputBackground,
-        focusedBorderColor = Color(0xFFC9382B),
+        focusedBorderColor = BloodRedPrimary,
         unfocusedBorderColor = appColors.border,
-        focusedLabelColor = Color(0xFFC9382B),
+        focusedLabelColor = BloodRedPrimary,
         unfocusedLabelColor = appColors.textMuted,
-        cursorColor = Color(0xFFC9382B)
+        cursorColor = BloodRedPrimary
     )
 
     val emailPattern = remember {
@@ -266,93 +267,111 @@ fun AuthScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // =================================================================
-            // 1. BRANDED SHOWCASE BANNER (Warm Crimson Red #C9382B)
+            // 1. BRANDED SHOWCASE BANNER (Gradient Red #EF5350 -> #D32F2F)
             // =================================================================
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFC9382B)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = Color.Black.copy(0.04f),
+                        spotColor = BloodRedPrimary.copy(0.20f)
+                    ),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            BloodDropIcon(size = 28.dp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "BloodSync",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                        .background(
+                            androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(BloodRedSecondary, BloodRedDark)
                             )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(50.dp),
-                            color = Color.White.copy(alpha = 0.22f)
-                        ) {
-                            Text(
-                                text = if (selectedPortal == AuthPortalRole.USER) "USER PORTAL" else "BLOOD BANK",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = if (selectedPortal == AuthPortalRole.USER)
-                            "Every drop creates a second chance."
-                        else
-                            "Empowering blood banks, saving lives together.",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        lineHeight = 23.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = if (selectedPortal == AuthPortalRole.USER)
-                            "Access your BloodSync workspace and help keep donors, hospitals, and blood banks connected."
-                        else
-                            "Manage inventory, respond to urgent emergency blood requests, and coordinate with verified donors.",
-                        fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.92f),
-                        lineHeight = 17.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.VerifiedUser,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(22.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BloodDropIcon(size = 28.dp, tint = Color.White)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "BloodSync",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White,
+                                    letterSpacing = (-0.4).sp
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = Color.White.copy(alpha = 0.22f)
+                            ) {
+                                Text(
+                                    text = if (selectedPortal == AuthPortalRole.USER) "USER PORTAL" else "BLOOD BANK",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Text(
                             text = if (selectedPortal == AuthPortalRole.USER)
-                                "24/7 Connected care for every urgent moment."
+                                "Every drop creates a second chance."
                             else
-                                "Verified institution access & regulatory compliance.",
-                            fontSize = 11.sp,
-                            color = Color.White.copy(alpha = 0.9f),
-                            fontWeight = FontWeight.Medium
+                                "Empowering blood banks, saving lives together.",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            lineHeight = 24.sp
                         )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = if (selectedPortal == AuthPortalRole.USER)
+                                "Access your BloodSync workspace and help keep donors, hospitals, and blood banks connected."
+                            else
+                                "Manage inventory, respond to urgent emergency blood requests, and coordinate with verified donors.",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.92f),
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.95f),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (selectedPortal == AuthPortalRole.USER)
+                                    "24/7 Connected care for every urgent moment."
+                                else
+                                    "Verified institution access & regulatory compliance.",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.92f),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -379,7 +398,7 @@ fun AuthScreen(
                             .padding(4.dp)
                             .clip(RoundedCornerShape(50.dp))
                             .background(
-                                if (selectedPortal == AuthPortalRole.USER) Color(0xFFC9382B) else Color.Transparent
+                                if (selectedPortal == AuthPortalRole.USER) BloodRedPrimary else Color.Transparent
                             )
                             .clickable {
                                 selectedPortal = AuthPortalRole.USER
@@ -397,7 +416,7 @@ fun AuthScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "User Portal",
+                                text = "User / Donor",
                                 fontWeight = FontWeight.Bold,
                                 color = if (selectedPortal == AuthPortalRole.USER) Color.White else appColors.textSecondary,
                                 fontSize = 13.sp
@@ -413,7 +432,7 @@ fun AuthScreen(
                             .padding(4.dp)
                             .clip(RoundedCornerShape(50.dp))
                             .background(
-                                if (selectedPortal == AuthPortalRole.BLOOD_BANK) Color(0xFFC9382B) else Color.Transparent
+                                if (selectedPortal == AuthPortalRole.BLOOD_BANK) BloodRedPrimary else Color.Transparent
                             )
                             .clickable {
                                 selectedPortal = AuthPortalRole.BLOOD_BANK
@@ -447,11 +466,18 @@ fun AuthScreen(
             // 3. MAIN FORM CARD CONTAINER
             // =================================================================
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = Color.Black.copy(0.02f),
+                        spotColor = BloodRedPrimary.copy(alpha = 0.10f)
+                    ),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
                 border = BorderStroke(1.dp, appColors.border),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -493,7 +519,7 @@ fun AuthScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp),
+                                .height(46.dp),
                             shape = RoundedCornerShape(50.dp),
                             color = appColors.surfaceVariant,
                             border = BorderStroke(1.dp, appColors.border)
@@ -505,20 +531,20 @@ fun AuthScreen(
                                         .fillMaxHeight()
                                         .padding(3.dp)
                                         .clip(RoundedCornerShape(50.dp))
-                                        .background(if (!isUserRegisterMode) appColors.cardBackground else Color.Transparent)
+                                        .background(if (!isUserRegisterMode) (if (appColors.isDark) Color(0xFF383844) else Color.White) else Color.Transparent)
                                         .clickable {
-                                            isUserRegisterMode = false
-                                            errorMessage = null
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Sign In",
-                                        fontWeight = if (!isUserRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (!isUserRegisterMode) Color(0xFFC9382B) else appColors.textSecondary,
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                             isUserRegisterMode = false
+                                             errorMessage = null
+                                         },
+                                     contentAlignment = Alignment.Center
+                                 ) {
+                                     Text(
+                                         text = "Sign In",
+                                         fontWeight = if (!isUserRegisterMode) FontWeight.Bold else FontWeight.Medium,
+                                         color = if (!isUserRegisterMode) (if (appColors.isDark) Color.White else BloodRedPrimary) else appColors.textSecondary,
+                                         fontSize = 13.sp
+                                     )
+                                 }
 
                                 Box(
                                     modifier = Modifier
@@ -526,20 +552,20 @@ fun AuthScreen(
                                         .fillMaxHeight()
                                         .padding(3.dp)
                                         .clip(RoundedCornerShape(50.dp))
-                                        .background(if (isUserRegisterMode) appColors.cardBackground else Color.Transparent)
+                                        .background(if (isUserRegisterMode) (if (appColors.isDark) Color(0xFF383844) else Color.White) else Color.Transparent)
                                         .clickable {
-                                            isUserRegisterMode = true
-                                            errorMessage = null
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Create Account",
-                                        fontWeight = if (isUserRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isUserRegisterMode) Color(0xFFC9382B) else appColors.textSecondary,
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                             isUserRegisterMode = true
+                                             errorMessage = null
+                                         },
+                                     contentAlignment = Alignment.Center
+                                 ) {
+                                     Text(
+                                         text = "Create Account",
+                                         fontWeight = if (isUserRegisterMode) FontWeight.Bold else FontWeight.Medium,
+                                         color = if (isUserRegisterMode) (if (appColors.isDark) Color.White else BloodRedPrimary) else appColors.textSecondary,
+                                         fontSize = 13.sp
+                                     )
+                                 }
                             }
                         }
 
@@ -560,13 +586,13 @@ fun AuthScreen(
                                     onValueChange = { userEmailInput = it },
                                     placeholder = { Text("user@gmail.com") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Email, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
 
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -583,7 +609,7 @@ fun AuthScreen(
                                     onValueChange = { userPassword = it },
                                     placeholder = { Text("••••••••") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     trailingIcon = {
                                         IconButton(onClick = { userPasswordVisible = !userPasswordVisible }) {
@@ -599,7 +625,7 @@ fun AuthScreen(
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
 
                                 Box(
@@ -612,7 +638,7 @@ fun AuthScreen(
                                         text = "Forgot Password?",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFFC9382B),
+                                        color = BloodRedPrimary,
                                         modifier = Modifier.clickable {
                                             resetEmailInput = userEmailInput.trim()
                                             resetMessage = null
@@ -629,12 +655,12 @@ fun AuthScreen(
                                 label = { Text("FULL NAME") },
                                 placeholder = { Text("e.g. John Doe") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -645,13 +671,13 @@ fun AuthScreen(
                                 label = { Text("EMAIL ADDRESS") },
                                 placeholder = { Text("e.g. name@gmail.com") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.Email, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -661,7 +687,7 @@ fun AuthScreen(
                                 onValueChange = { userPassword = it },
                                 label = { Text("PASSWORD (MIN 6 CHARS)") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 trailingIcon = {
                                     IconButton(onClick = { userPasswordVisible = !userPasswordVisible }) {
@@ -677,7 +703,7 @@ fun AuthScreen(
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -703,14 +729,14 @@ fun AuthScreen(
                                             .clip(RoundedCornerShape(50.dp))
                                             .clickable { selectedGender = gender },
                                         shape = RoundedCornerShape(50.dp),
-                                        color = if (isSel) Color(0xFFFFEBEE) else appColors.inputBackground,
-                                        border = BorderStroke(if (isSel) 1.5.dp else 1.dp, if (isSel) Color(0xFFC9382B) else appColors.border)
+                                        color = if (isSel) appColors.redLight else appColors.inputBackground,
+                                        border = BorderStroke(if (isSel) 1.5.dp else 1.dp, if (isSel) BloodRedPrimary else appColors.border)
                                     ) {
                                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                             Text(
                                                 text = gender,
                                                 fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSel) Color(0xFFC9382B) else appColors.textPrimary,
+                                                color = if (isSel) BloodRedPrimary else appColors.textPrimary,
                                                 fontSize = 12.sp
                                             )
                                         }
@@ -756,18 +782,18 @@ fun AuthScreen(
                                 label = { Text("DATE OF BIRTH (DOB)") },
                                 placeholder = { Text("DD/MM/YYYY (e.g. 15/08/2000)") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.DateRange, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 trailingIcon = {
                                     IconButton(onClick = { datePickerDialog.show() }) {
-                                        Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date of Birth", tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.CalendarMonth, contentDescription = "Pick Date of Birth", tint = BloodRedPrimary)
                                     }
                                 },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 isError = dobWarning != null
                             )
 
@@ -788,13 +814,13 @@ fun AuthScreen(
                                 label = { Text("PHONE NUMBER") },
                                 placeholder = { Text("+91 98765 43210") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.Phone, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -805,12 +831,12 @@ fun AuthScreen(
                                 label = { Text("CITY / DISTRICT") },
                                 placeholder = { Text("e.g. Mumbai") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFFC9382B))
+                                    Icon(Icons.Default.Place, contentDescription = null, tint = BloodRedPrimary)
                                 },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = textFieldColors,
-                                shape = RoundedCornerShape(14.dp)
+                                shape = RoundedCornerShape(16.dp)
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
@@ -822,7 +848,7 @@ fun AuthScreen(
                                 Checkbox(
                                     checked = volunteerEmergency,
                                     onCheckedChange = { volunteerEmergency = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFFC9382B))
+                                    colors = CheckboxDefaults.colors(checkedColor = BloodRedPrimary)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -837,27 +863,48 @@ fun AuthScreen(
                         if (errorMessage != null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Surface(
-                                color = Color(0xFFFFEBEE),
-                                shape = RoundedCornerShape(12.dp),
+                                color = appColors.redLight,
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.3f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFC9382B), modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text = errorMessage ?: "", color = Color(0xFFC9382B), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = BloodRedPrimary, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = errorMessage ?: "", color = BloodRedPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                }
+                            }
+                        }
+
+                        if (successMessage != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = appColors.greenLight,
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = successMessage ?: "", color = Color(0xFF2E7D32), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // User Portal Primary Action Button
+                        // User Portal Primary Action Button (52dp Pill)
                         Button(
                             onClick = {
                                 errorMessage = null
+                                successMessage = null
                                 if (!isUserRegisterMode) {
                                     // User Sign In logic
                                     val cleanEmail = userEmailInput.trim()
@@ -933,6 +980,11 @@ fun AuthScreen(
                                     repository.registerDonorWithCredentials(
                                         profile = newProfile,
                                         pass = userPassword,
+                                        onVerificationSent = { msg ->
+                                            isLoading = false
+                                            successMessage = msg
+                                            isUserRegisterMode = false
+                                        },
                                         onSuccess = {
                                             isLoading = false
                                             onLoginSuccess()
@@ -946,8 +998,11 @@ fun AuthScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9382B)),
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BloodRedPrimary,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(50.dp),
                             enabled = !isLoading
                         ) {
@@ -1001,7 +1056,7 @@ fun AuthScreen(
                                 }
                             },
                             shape = RoundedCornerShape(50.dp),
-                            color = appColors.surfaceVariant,
+                            color = if (appColors.isDark) appColors.surfaceVariant else Color.White,
                             border = BorderStroke(1.dp, appColors.border),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1036,9 +1091,9 @@ fun AuthScreen(
                                 "Are you new here? Create a donor account"
                             else
                                 "Already have an account? Sign In",
-                            fontSize = 12.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFC9382B),
+                            color = BloodRedPrimary,
                             modifier = Modifier
                                 .clickable {
                                     isUserRegisterMode = !isUserRegisterMode
@@ -1086,7 +1141,7 @@ fun AuthScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(44.dp),
+                                .height(46.dp),
                             shape = RoundedCornerShape(50.dp),
                             color = appColors.surfaceVariant,
                             border = BorderStroke(1.dp, appColors.border)
@@ -1098,7 +1153,7 @@ fun AuthScreen(
                                         .fillMaxHeight()
                                         .padding(3.dp)
                                         .clip(RoundedCornerShape(50.dp))
-                                        .background(if (isBankRegisterMode) appColors.cardBackground else Color.Transparent)
+                                        .background(if (isBankRegisterMode) (if (appColors.isDark) Color(0xFF383844) else Color.White) else Color.Transparent)
                                         .clickable {
                                             isBankRegisterMode = true
                                             errorMessage = null
@@ -1109,7 +1164,7 @@ fun AuthScreen(
                                     Text(
                                         text = "Register Bank",
                                         fontWeight = if (isBankRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isBankRegisterMode) Color(0xFFC9382B) else appColors.textSecondary,
+                                        color = if (isBankRegisterMode) (if (appColors.isDark) Color.White else BloodRedPrimary) else appColors.textSecondary,
                                         fontSize = 13.sp
                                     )
                                 }
@@ -1120,7 +1175,7 @@ fun AuthScreen(
                                         .fillMaxHeight()
                                         .padding(3.dp)
                                         .clip(RoundedCornerShape(50.dp))
-                                        .background(if (!isBankRegisterMode) appColors.cardBackground else Color.Transparent)
+                                        .background(if (!isBankRegisterMode) (if (appColors.isDark) Color(0xFF383844) else Color.White) else Color.Transparent)
                                         .clickable {
                                             isBankRegisterMode = false
                                             errorMessage = null
@@ -1131,7 +1186,7 @@ fun AuthScreen(
                                     Text(
                                         text = "Sign In",
                                         fontWeight = if (!isBankRegisterMode) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (!isBankRegisterMode) Color(0xFFC9382B) else appColors.textSecondary,
+                                        color = if (!isBankRegisterMode) (if (appColors.isDark) Color.White else BloodRedPrimary) else appColors.textSecondary,
                                         fontSize = 13.sp
                                     )
                                 }
@@ -1155,12 +1210,12 @@ fun AuthScreen(
                                     onValueChange = { bankNameInput = it },
                                     placeholder = { Text("e.g. City Red Cross Blood Bank") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Business, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Business, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1180,12 +1235,12 @@ fun AuthScreen(
                                     onValueChange = { bankLicenseInput = it },
                                     placeholder = { Text("e.g. BB-DL-2024-9876") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Badge, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Badge, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1205,13 +1260,13 @@ fun AuthScreen(
                                     onValueChange = { bankEmailInput = it },
                                     placeholder = { Text("bankname@gmail.com") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Email, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1231,13 +1286,13 @@ fun AuthScreen(
                                     onValueChange = { bankPhoneInput = it },
                                     placeholder = { Text("+91 98765 43210") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Phone, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1257,12 +1312,12 @@ fun AuthScreen(
                                     onValueChange = { bankCityInput = it },
                                     placeholder = { Text("e.g. New Delhi") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Place, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1282,13 +1337,13 @@ fun AuthScreen(
                                     onValueChange = { bankAddressInput = it },
                                     placeholder = { Text("Sector 14, Health Boulevard, Hospital Campus") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.LocationCity, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.LocationCity, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     singleLine = false,
                                     maxLines = 3,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
 
@@ -1308,7 +1363,7 @@ fun AuthScreen(
                                     onValueChange = { bankPasswordInput = it },
                                     placeholder = { Text("Minimum 6 characters") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     trailingIcon = {
                                         IconButton(onClick = { bankPasswordVisible = !bankPasswordVisible }) {
@@ -1324,7 +1379,7 @@ fun AuthScreen(
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
                         } else {
@@ -1342,13 +1397,13 @@ fun AuthScreen(
                                     onValueChange = { bankLoginEmail = it },
                                     placeholder = { Text("bankname@gmail.com") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Email, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
 
                                 Spacer(modifier = Modifier.height(14.dp))
@@ -1365,7 +1420,7 @@ fun AuthScreen(
                                     onValueChange = { bankLoginPassword = it },
                                     placeholder = { Text("••••••••") },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFC9382B))
+                                        Icon(Icons.Default.Lock, contentDescription = null, tint = BloodRedPrimary)
                                     },
                                     trailingIcon = {
                                         IconButton(onClick = { bankLoginPasswordVisible = !bankLoginPasswordVisible }) {
@@ -1381,7 +1436,7 @@ fun AuthScreen(
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = textFieldColors,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
                             }
                         }
@@ -1390,17 +1445,18 @@ fun AuthScreen(
                         if (errorMessage != null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Surface(
-                                color = Color(0xFFFFEBEE),
-                                shape = RoundedCornerShape(12.dp),
+                                color = appColors.redLight,
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.3f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFC9382B), modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text = errorMessage ?: "", color = Color(0xFFC9382B), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = BloodRedPrimary, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = errorMessage ?: "", color = BloodRedPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 }
                             }
                         }
@@ -1408,16 +1464,17 @@ fun AuthScreen(
                         if (successMessage != null) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Surface(
-                                color = Color(0xFFE8F5E9),
-                                shape = RoundedCornerShape(12.dp),
+                                color = appColors.greenLight,
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.3f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(text = successMessage ?: "", color = Color(0xFF2E7D32), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 }
                             }
@@ -1465,57 +1522,28 @@ fun AuthScreen(
                                     }
 
                                     isLoading = true
-                                    scope.launch {
-                                        try {
-                                            // Call Retrofit backend endpoint
-                                            val resp = BloodSyncNetworkClient.apiService.registerBank(
-                                                BankRegisterPayload(
-                                                    bankName = bankNameInput.trim(),
-                                                    email = email,
-                                                    phone = bankPhoneInput.trim(),
-                                                    city = bankCityInput.trim(),
-                                                    address = bankAddressInput.trim(),
-                                                    password = bankPasswordInput
-                                                )
-                                            )
-                                            if (resp.isSuccessful && resp.body()?.success == true) {
-                                                repository.registerBloodBankInstitution(
-                                                    bankName = bankNameInput.trim(),
-                                                    licenseNumber = bankLicenseInput.trim(),
-                                                    email = email,
-                                                    phone = bankPhoneInput.trim(),
-                                                    city = bankCityInput.trim(),
-                                                    address = bankAddressInput.trim()
-                                                )
-                                                isLoading = false
-                                                onLoginSuccess()
-                                            } else {
-                                                // Graceful registration in local/Firebase cloud even if local server port differs
-                                                repository.registerBloodBankInstitution(
-                                                    bankName = bankNameInput.trim(),
-                                                    licenseNumber = bankLicenseInput.trim(),
-                                                    email = email,
-                                                    phone = bankPhoneInput.trim(),
-                                                    city = bankCityInput.trim(),
-                                                    address = bankAddressInput.trim()
-                                                )
-                                                isLoading = false
-                                                onLoginSuccess()
-                                            }
-                                        } catch (e: Exception) {
-                                            // Offline/LAN fallback - never block the user
-                                            repository.registerBloodBankInstitution(
-                                                bankName = bankNameInput.trim(),
-                                                licenseNumber = bankLicenseInput.trim(),
-                                                email = email,
-                                                phone = bankPhoneInput.trim(),
-                                                city = bankCityInput.trim(),
-                                                address = bankAddressInput.trim()
-                                            )
+                                    repository.registerBloodBankWithCredentials(
+                                        bankName = bankNameInput.trim(),
+                                        licenseNumber = bankLicenseInput.trim(),
+                                        email = email,
+                                        phone = bankPhoneInput.trim(),
+                                        city = bankCityInput.trim(),
+                                        address = bankAddressInput.trim(),
+                                        pass = bankPasswordInput,
+                                        onVerificationSent = { msg ->
+                                            isLoading = false
+                                            successMessage = msg
+                                            isBankRegisterMode = false
+                                        },
+                                        onSuccess = {
                                             isLoading = false
                                             onLoginSuccess()
+                                        },
+                                        onFailure = { err ->
+                                            isLoading = false
+                                            errorMessage = err
                                         }
-                                    }
+                                    )
                                 } else {
                                     // Blood Bank Sign In
                                     val email = bankLoginEmail.trim()
@@ -1529,33 +1557,27 @@ fun AuthScreen(
                                     }
 
                                     isLoading = true
-                                    scope.launch {
-                                        try {
-                                            val resp = BloodSyncNetworkClient.apiService.loginBank(
-                                                BankLoginPayload(email = email, password = bankLoginPassword)
-                                            )
-                                            if (resp.isSuccessful && resp.body()?.success == true) {
-                                                val bankData = resp.body()?.data?.bank
-                                                repository.loginBloodBankInstitution(email = email, bankName = bankData?.bankName)
-                                                isLoading = false
-                                                onLoginSuccess()
-                                            } else {
-                                                repository.loginBloodBankInstitution(email = email)
-                                                isLoading = false
-                                                onLoginSuccess()
-                                            }
-                                        } catch (e: Exception) {
-                                            repository.loginBloodBankInstitution(email = email)
+                                    repository.signInBloodBankWithEmailAndPassword(
+                                        email = email,
+                                        pass = bankLoginPassword,
+                                        onSuccess = {
                                             isLoading = false
                                             onLoginSuccess()
+                                        },
+                                        onFailure = { err ->
+                                            isLoading = false
+                                            errorMessage = err
                                         }
-                                    }
+                                    )
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9382B)),
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BloodRedPrimary,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(50.dp),
                             enabled = !isLoading
                         ) {
@@ -1579,9 +1601,9 @@ fun AuthScreen(
                                 "Already registered? Sign In as Blood Bank"
                             else
                                 "New Blood Bank? Register organization",
-                            fontSize = 12.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFC9382B),
+                            color = BloodRedPrimary,
                             modifier = Modifier
                                 .clickable {
                                     isBankRegisterMode = !isBankRegisterMode
@@ -1643,22 +1665,23 @@ fun AuthScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         colors = textFieldColors,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     if (resetMessage != null) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (resetMessage?.contains("sent", ignoreCase = true) == true) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (resetMessage?.contains("sent", ignoreCase = true) == true) appColors.greenLight else appColors.redLight,
+                            border = BorderStroke(1.dp, if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen.copy(alpha = 0.4f) else BloodRedPrimary.copy(alpha = 0.4f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
                                     text = resetMessage ?: "",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen else StatusUrgentRed
+                                    color = if (resetMessage?.contains("sent", ignoreCase = true) == true) StatusEligibleGreen else BloodRedPrimary
                                 )
                                 if (resetMessage?.contains("sent", ignoreCase = true) == true) {
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -1666,7 +1689,7 @@ fun AuthScreen(
                                         text = "📁 Email nahi dikh raha? Gmail ke SPAM / JUNK ya PROMOTIONS folder ko zaroor check karein.",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Normal,
-                                        color = Color(0xFF2E7D32)
+                                        color = if (appColors.isDark) StatusEligibleGreen else Color(0xFF2E7D32)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Button(
@@ -1689,7 +1712,7 @@ fun AuthScreen(
                                         shape = RoundedCornerShape(50.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(38.dp)
+                                            .height(42.dp)
                                     ) {
                                         Icon(Icons.Default.Email, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -1734,9 +1757,10 @@ fun AuthScreen(
                             }
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC9382B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
                     shape = RoundedCornerShape(50.dp),
-                    enabled = !isSendingReset
+                    enabled = !isSendingReset,
+                    modifier = Modifier.height(44.dp)
                 ) {
                     if (isSendingReset) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -1750,7 +1774,7 @@ fun AuthScreen(
                     Text("Close", color = appColors.textSecondary)
                 }
             },
-            containerColor = appColors.cardBackground,
+            containerColor = appColors.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }

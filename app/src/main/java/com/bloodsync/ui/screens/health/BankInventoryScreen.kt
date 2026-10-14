@@ -1,13 +1,13 @@
 package com.bloodsync.ui.screens.health
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodSyncTopBar
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
 
 private enum class InventoryFilter(val label: String) {
@@ -51,43 +50,48 @@ fun BankInventoryScreen(
     var selectedFilter by remember { mutableStateOf(InventoryFilter.ALL) }
     var searchQuery by remember { mutableStateOf("") }
     var editTargetGroup by remember { mutableStateOf<String?>(null) }
-    val focusManager = LocalFocusManager.current
 
     // Fixed order of all 8 blood groups
     val allGroups = remember { listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-") }
 
     // Summary calculations
-    val totalUnits = bloodStock.values.sum()
-    val criticalGroups = allGroups.filter { grp ->
-        val units = bloodStock[grp] ?: 0
-        val maxCap = capacities[grp] ?: 100
-        val pct = (units.toFloat() / maxCap.toFloat()) * 100f
-        pct <= 35f
+    val totalUnits = remember(bloodStock) { bloodStock.values.sum() }
+    val criticalGroups = remember(bloodStock, capacities) {
+        allGroups.filter { grp ->
+            val units = bloodStock[grp] ?: 0
+            val maxCap = capacities[grp] ?: 100
+            val pct = (units.toFloat() / maxCap.toFloat()) * 100f
+            pct <= 35f
+        }
     }
-    val optimalGroupsCount = allGroups.count { grp ->
-        val units = bloodStock[grp] ?: 0
-        val maxCap = capacities[grp] ?: 100
-        val pct = (units.toFloat() / maxCap.toFloat()) * 100f
-        pct > 65f
+    val optimalGroupsCount = remember(bloodStock, capacities) {
+        allGroups.count { grp ->
+            val units = bloodStock[grp] ?: 0
+            val maxCap = capacities[grp] ?: 100
+            val pct = (units.toFloat() / maxCap.toFloat()) * 100f
+            pct > 65f
+        }
     }
 
     // Filtered groups
-    val filteredGroups = allGroups.filter { grp ->
-        val units = bloodStock[grp] ?: 0
-        val maxCap = capacities[grp] ?: 100
-        val pct = (units.toFloat() / maxCap.toFloat()) * 100f
+    val filteredGroups = remember(bloodStock, capacities, selectedFilter, searchQuery) {
+        allGroups.filter { grp ->
+            val units = bloodStock[grp] ?: 0
+            val maxCap = capacities[grp] ?: 100
+            val pct = (units.toFloat() / maxCap.toFloat()) * 100f
 
-        val matchesFilter = when (selectedFilter) {
-            InventoryFilter.ALL -> true
-            InventoryFilter.CRITICAL -> pct <= 35f
-            InventoryFilter.ADEQUATE -> pct in 35.001f..65f
-            InventoryFilter.OPTIMAL -> pct > 65f
+            val matchesFilter = when (selectedFilter) {
+                InventoryFilter.ALL -> true
+                InventoryFilter.CRITICAL -> pct <= 35f
+                InventoryFilter.ADEQUATE -> pct in 35.001f..65f
+                InventoryFilter.OPTIMAL -> pct > 65f
+            }
+
+            val cleanQuery = searchQuery.trim().uppercase()
+            val matchesSearch = cleanQuery.isEmpty() || grp.uppercase().contains(cleanQuery)
+
+            matchesFilter && matchesSearch
         }
-
-        val cleanQuery = searchQuery.trim().uppercase()
-        val matchesSearch = cleanQuery.isEmpty() || grp.uppercase().contains(cleanQuery)
-
-        matchesFilter && matchesSearch
     }
 
     Scaffold(
@@ -109,19 +113,14 @@ fun BankInventoryScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. KPI Metrics Header (Unified 4-color palette & pill styling)
+            // 1. KPI Metrics Header with AnimatedCounters
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Total Stock
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-                    ) {
+                    BloodSyncCard(modifier = Modifier.weight(1f)) {
                         Column(
                             modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -140,7 +139,7 @@ fun BankInventoryScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .clip(CircleShape)
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(StatusEligibleGreenLight),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -152,8 +151,8 @@ fun BankInventoryScreen(
                                     )
                                 }
                             }
-                            Text(
-                                text = "$totalUnits",
+                            AnimatedCounter(
+                                targetValue = totalUnits,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = appColors.textPrimary
@@ -167,11 +166,10 @@ fun BankInventoryScreen(
                     }
 
                     // Critical Shortages
-                    Card(
+                    BloodSyncCard(
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = if (criticalGroups.isNotEmpty()) BloodRedLight else appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (criticalGroups.isNotEmpty()) BloodRedPrimary.copy(alpha = 0.3f) else appColors.border)
+                        backgroundColor = if (criticalGroups.isNotEmpty()) appColors.primaryLight else appColors.cardBackground,
+                        borderColor = if (criticalGroups.isNotEmpty()) appColors.primary.copy(alpha = 0.4f) else appColors.border
                     ) {
                         Column(
                             modifier = Modifier.padding(14.dp),
@@ -191,20 +189,20 @@ fun BankInventoryScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .clip(CircleShape)
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(if (criticalGroups.isNotEmpty()) BloodRedPrimary else StatusWarningAmberLight),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Warning,
                                         contentDescription = null,
-                                        tint = if (criticalGroups.isNotEmpty()) MedicalWhite else StatusWarningAmber,
+                                        tint = if (criticalGroups.isNotEmpty()) Color.White else appColors.warningAmber,
                                         modifier = Modifier.size(13.dp)
                                     )
                                 }
                             }
-                            Text(
-                                text = "${criticalGroups.size}",
+                            AnimatedCounter(
+                                targetValue = criticalGroups.size,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (criticalGroups.isNotEmpty()) BloodRedPrimary else appColors.textPrimary
@@ -218,12 +216,7 @@ fun BankInventoryScreen(
                     }
 
                     // Optimal Groups
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-                    ) {
+                    BloodSyncCard(modifier = Modifier.weight(1f)) {
                         Column(
                             modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -242,7 +235,7 @@ fun BankInventoryScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .clip(CircleShape)
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(StatusEligibleGreenLight),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -254,8 +247,8 @@ fun BankInventoryScreen(
                                     )
                                 }
                             }
-                            Text(
-                                text = "$optimalGroupsCount",
+                            AnimatedCounter(
+                                targetValue = optimalGroupsCount,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = StatusEligibleGreen
@@ -273,23 +266,22 @@ fun BankInventoryScreen(
             // 2. Urgent Supply Warning Banner (if shortages exist)
             if (criticalGroups.isNotEmpty()) {
                 item {
-                    Surface(
+                    BloodSyncCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        color = BloodRedLight,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.25f))
+                        backgroundColor = BloodRedLight,
+                        borderColor = BloodRedPrimary.copy(alpha = 0.35f)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(BloodRedPrimary),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -297,20 +289,21 @@ fun BankInventoryScreen(
                                     imageVector = Icons.Default.Warning,
                                     contentDescription = null,
                                     tint = MedicalWhite,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Critical Stock Shortage",
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     fontSize = 14.sp,
                                     color = BloodRedPrimary
                                 )
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "Reserves under 35% for ${criticalGroups.joinToString(", ")}. Restock immediately to maintain emergency readiness.",
                                     fontSize = 12.sp,
-                                    color = MedicalTextPrimary.copy(alpha = 0.85f),
+                                    color = TextPrimaryDark,
                                     lineHeight = 16.sp
                                 )
                             }
@@ -321,45 +314,25 @@ fun BankInventoryScreen(
 
             // 3. Search Bar
             item {
-                OutlinedTextField(
+                BloodSyncTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = {
-                        Text(
-                            text = "Filter blood groups (e.g., O-, A+, B)...",
-                            fontSize = 13.sp,
-                            color = appColors.textMuted
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = appColors.textMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
+                    label = "Search Blood Group",
+                    placeholder = "Filter blood groups (e.g. O-, A+, B)...",
+                    leadingIcon = Icons.Default.Search,
+                    trailingIcon = if (searchQuery.isNotEmpty()) {
+                        {
                             IconButton(onClick = { searchQuery = "" }) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Clear",
-                                    tint = appColors.textMuted,
+                                    tint = MedicalTextMuted,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
-                    },
+                    } else null,
                     singleLine = true,
-                    shape = RoundedCornerShape(50.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = appColors.cardBackground,
-                        unfocusedContainerColor = appColors.cardBackground,
-                        focusedBorderColor = BloodRedPrimary,
-                        unfocusedBorderColor = appColors.border,
-                        cursorColor = BloodRedPrimary
-                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -367,7 +340,9 @@ fun BankInventoryScreen(
             // 4. Filter Chips (Pill-shaped)
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     InventoryFilter.entries.forEach { filter ->
@@ -377,18 +352,18 @@ fun BankInventoryScreen(
                                 .clip(RoundedCornerShape(50.dp))
                                 .clickable { selectedFilter = filter },
                             shape = RoundedCornerShape(50.dp),
-                            color = if (isSelected) BloodRedPrimary else appColors.cardBackground,
-                            border = androidx.compose.foundation.BorderStroke(
+                            color = if (isSelected) appColors.primary else appColors.surface,
+                            border = BorderStroke(
                                 1.dp,
-                                if (isSelected) BloodRedPrimary else appColors.border
+                                if (isSelected) appColors.primary else appColors.border
                             )
                         ) {
                             Text(
                                 text = filter.label,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MedicalWhite else appColors.textSecondary
+                                color = if (isSelected) Color.White else appColors.textSecondary
                             )
                         }
                     }
@@ -398,64 +373,19 @@ fun BankInventoryScreen(
             // 5. Blood Group Inventory Cards or Empty Search State
             if (filteredGroups.isEmpty()) {
                 item {
-                    Card(
+                    EmptyState(
+                        title = "No Blood Groups Found",
+                        message = "No blood groups found matching '$searchQuery' under '${selectedFilter.label}'.",
+                        icon = Icons.Default.Info,
+                        actionText = "Reset Filters",
+                        onActionClick = {
+                            searchQuery = ""
+                            selectedFilter = InventoryFilter.ALL
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(StatusWarningAmberLight),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = StatusWarningAmber,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                            Text(
-                                text = "No Blood Groups Match Filter",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = appColors.textPrimary
-                            )
-                            Text(
-                                text = "No blood groups found matching '$searchQuery' under '${selectedFilter.label}'.",
-                                fontSize = 13.sp,
-                                color = appColors.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                            Button(
-                                onClick = {
-                                    searchQuery = ""
-                                    selectedFilter = InventoryFilter.ALL
-                                },
-                                shape = RoundedCornerShape(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary)
-                            ) {
-                                Text(
-                                    text = "Reset Filters",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MedicalWhite
-                                )
-                            }
-                        }
-                    }
+                            .padding(vertical = 24.dp)
+                    )
                 }
             } else {
                 items(filteredGroups, key = { it }) { group ->
@@ -482,22 +412,16 @@ fun BankInventoryScreen(
                         else -> StatusWarningAmberLight
                     }
 
-                    Card(
+                    BloodSyncCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isLow) BloodRedLight.copy(alpha = 0.35f) else appColors.cardBackground
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isLow) BloodRedPrimary.copy(alpha = 0.25f) else appColors.border
-                        )
+                        backgroundColor = if (isLow) appColors.primaryLight.copy(alpha = 0.4f) else appColors.cardBackground,
+                        borderColor = if (isLow) appColors.primary.copy(alpha = 0.35f) else appColors.border
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             // Top Row: Group Badge + Status Badge
                             Row(
@@ -507,17 +431,16 @@ fun BankInventoryScreen(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    // Blood Group Pill
                                     Surface(
-                                        shape = RoundedCornerShape(50.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         color = BloodRedPrimary
                                     ) {
                                         Text(
                                             text = group,
-                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                            fontSize = 14.sp,
+                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = MedicalWhite
                                         )
@@ -526,7 +449,7 @@ fun BankInventoryScreen(
                                     Column {
                                         Text(
                                             text = "Blood Group $group",
-                                            fontSize = 14.sp,
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = appColors.textPrimary
                                         )
@@ -538,20 +461,12 @@ fun BankInventoryScreen(
                                     }
                                 }
 
-                                // Status Pill
-                                Surface(
-                                    shape = RoundedCornerShape(50.dp),
-                                    color = statusBg,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.25f))
-                                ) {
-                                    Text(
-                                        text = statusLabel,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = statusColor
-                                    )
-                                }
+                                StatusPillBadge(
+                                    text = statusLabel,
+                                    backgroundColor = statusBg,
+                                    contentColor = statusColor,
+                                    showBeacon = isLow
+                                )
                             }
 
                             // Middle: Units in Reserve + Percentage
@@ -562,17 +477,17 @@ fun BankInventoryScreen(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.Bottom,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
                                         text = "$units",
-                                        fontSize = 28.sp,
+                                        fontSize = 30.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = appColors.textPrimary
                                     )
                                     Text(
                                         text = "Units Available",
-                                        fontSize = 12.sp,
+                                        fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = appColors.textSecondary,
                                         modifier = Modifier.padding(bottom = 4.dp)
@@ -581,39 +496,39 @@ fun BankInventoryScreen(
 
                                 Text(
                                     text = "${pct.toInt()}% full",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = statusColor,
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 )
                             }
 
-                            // Visual Reserve Progress Bar
+                            // Capacity Progress Bar
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .background(appColors.border)
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(WarmLightSurface)
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth(fraction = (pct / 100f).coerceIn(0.02f, 1f))
                                         .fillMaxHeight()
-                                        .clip(RoundedCornerShape(50.dp))
+                                        .clip(RoundedCornerShape(5.dp))
                                         .background(statusColor)
                                 )
                             }
 
                             HorizontalDivider(
-                                color = appColors.border,
-                                thickness = 1.dp
+                                color = SoftBorderPink,
+                                thickness = 0.5.dp
                             )
 
                             // Bottom Actions: Quick Adjustments & Exact Edit
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // -1 Issue Button
@@ -624,19 +539,19 @@ fun BankInventoryScreen(
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         contentColor = BloodRedPrimary
                                     ),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.5f)),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    border = BorderStroke(1.dp, BloodRedPrimary.copy(alpha = 0.5f)),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Remove,
                                         contentDescription = "Issue unit",
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "−1 Issue",
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -650,18 +565,18 @@ fun BankInventoryScreen(
                                         containerColor = StatusEligibleGreen,
                                         contentColor = MedicalWhite
                                     ),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = "Restock unit",
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "+1 Receive",
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -669,19 +584,19 @@ fun BankInventoryScreen(
                                 // Custom Edit / Audit Button
                                 Surface(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(50.dp))
                                         .clickable { editTargetGroup = group },
-                                    shape = CircleShape,
-                                    color = appColors.cardBackground,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border)
+                                    shape = RoundedCornerShape(50.dp),
+                                    color = WarmLightSurface,
+                                    border = BorderStroke(1.dp, SoftBorderPink)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "Edit units",
-                                            tint = appColors.textSecondary,
-                                            modifier = Modifier.size(16.dp)
+                                            tint = TextSecondaryGrey,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
@@ -701,15 +616,15 @@ fun BankInventoryScreen(
 
         Dialog(onDismissRequest = { editTargetGroup = null }) {
             Surface(
-                shape = RoundedCornerShape(26.dp),
-                color = appColors.cardBackground,
-                border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
+                shape = RoundedCornerShape(24.dp),
+                color = MedicalWhite,
+                border = BorderStroke(1.dp, SoftBorderPink),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
@@ -719,23 +634,23 @@ fun BankInventoryScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(50.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 color = BloodRedPrimary
                             ) {
                                 Text(
                                     text = group,
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MedicalWhite,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
                             Text(
-                                text = "Adjust Reserve Stock",
-                                fontSize = 16.sp,
+                                text = "Adjust Reserve",
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = appColors.textPrimary
                             )
@@ -751,10 +666,10 @@ fun BankInventoryScreen(
                     }
 
                     Text(
-                        text = "Specify exact total units on hand for blood group $group. Maximum storage capacity is $maxCap units.",
-                        fontSize = 12.sp,
+                        text = "Specify exact total units on hand for blood group $group. Storage capacity limit is $maxCap units.",
+                        fontSize = 13.sp,
                         color = appColors.textSecondary,
-                        lineHeight = 16.sp
+                        lineHeight = 18.sp
                     )
 
                     OutlinedTextField(
@@ -773,12 +688,13 @@ fun BankInventoryScreen(
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = BloodRedPrimary,
+                            unfocusedBorderColor = SoftBorderPink,
                             cursorColor = BloodRedPrimary
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Quick increments
+                    // Quick increment pills
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -795,13 +711,13 @@ fun BankInventoryScreen(
                                     },
                                 shape = RoundedCornerShape(50.dp),
                                 color = StatusEligibleGreenLight,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.2f))
+                                border = BorderStroke(1.dp, StatusEligibleGreen.copy(alpha = 0.25f))
                             ) {
                                 Text(
                                     text = deltaStr,
-                                    modifier = Modifier.padding(vertical = 6.dp),
+                                    modifier = Modifier.padding(vertical = 8.dp),
                                     textAlign = TextAlign.Center,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = StatusEligibleGreen
                                 )
@@ -816,9 +732,10 @@ fun BankInventoryScreen(
                         OutlinedButton(
                             onClick = { editTargetGroup = null },
                             shape = RoundedCornerShape(50.dp),
+                            border = BorderStroke(1.dp, SoftBorderPink),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Cancel", color = appColors.textSecondary)
+                            Text("Cancel", color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
                         }
 
                         Button(

@@ -18,5 +18,11 @@ data class UserProfile(
     val isEmergencyVolunteer: Boolean = true,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val role: String = "user"
+    val role: String = "user",
+    
+    // Blood Bank Specific Fields
+    val licenseNumber: String = "",
+    val contactPerson: String = "",
+    val operatingHours: String = "24/7",
+    val website: String = ""
 )

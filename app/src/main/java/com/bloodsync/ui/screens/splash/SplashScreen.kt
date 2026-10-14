@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,68 +23,78 @@ import com.bloodsync.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Premium BloodSync Splash Screen
+ * Blood drop physics animation with liquid fill effect.
+ * Seamless edge-to-edge on dark & light modes.
+ */
 @Composable
 fun SplashScreen(
     onSplashComplete: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(appColors.background),
         contentAlignment = Alignment.Center
     ) {
-        val dropOffsetY = remember { Animatable(-180f) }
-        val dropScaleY = remember { Animatable(1.2f) }
-        val dropScaleX = remember { Animatable(0.85f) }
-        val fillProgress = remember { Animatable(0f) }
+        // Animation state
+        val dropOffsetY = remember { Animatable(-200f) }
+        val dropScaleY  = remember { Animatable(1.2f) }
+        val dropScaleX  = remember { Animatable(0.85f) }
+        val fillProgress= remember { Animatable(0f) }
         val rippleScale = remember { Animatable(0.6f) }
         val rippleAlpha = remember { Animatable(0f) }
-        val contentAlpha = remember { Animatable(0f) }
+        val contentAlpha= remember { Animatable(0f) }
+        val logoTranslateY = remember { Animatable(16f) }
 
         LaunchedEffect(Unit) {
-            // Step 1: Drop falls smoothly and bounces slightly
+            // Step 1: Drop falls with elastic bounce
             launch {
                 dropOffsetY.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(650, easing = FastOutSlowInEasing)
+                    animationSpec = tween(680, easing = FastOutSlowInEasing)
                 )
                 // Impact squash & stretch
                 launch {
-                    dropScaleY.animateTo(0.82f, tween(100))
-                    dropScaleY.animateTo(1.06f, tween(120))
+                    dropScaleY.animateTo(0.78f, tween(90))
+                    dropScaleY.animateTo(1.10f, tween(110))
                     dropScaleY.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
                 }
                 launch {
-                    dropScaleX.animateTo(1.22f, tween(100))
-                    dropScaleX.animateTo(0.95f, tween(120))
+                    dropScaleX.animateTo(1.28f, tween(90))
+                    dropScaleX.animateTo(0.92f, tween(110))
                     dropScaleX.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
                 }
-
-                // Ripple triggers upon landing
+                // Landing ripple
                 launch {
-                    rippleAlpha.snapTo(0.6f)
-                    rippleAlpha.animateTo(0f, tween(700))
+                    rippleAlpha.snapTo(0.55f)
+                    rippleAlpha.animateTo(0f, tween(750, easing = LinearOutSlowInEasing))
                 }
                 launch {
-                    rippleScale.animateTo(1.7f, tween(700, easing = LinearOutSlowInEasing))
+                    rippleScale.animateTo(1.8f, tween(750, easing = LinearOutSlowInEasing))
                 }
             }
 
-            // Step 2: Liquid fill & pulse
-            delay(350)
+            // Step 2: Liquid fill rises
+            delay(320)
             launch {
-                fillProgress.animateTo(1f, tween(750, easing = FastOutSlowInEasing))
+                fillProgress.animateTo(1f, tween(820, easing = FastOutSlowInEasing))
             }
 
-            // Step 3: Text fade & rise
-            delay(500)
+            // Step 3: Title & tagline appear with upward slide
+            delay(480)
             launch {
-                contentAlpha.animateTo(1f, tween(600, easing = EaseOutCubic))
+                contentAlpha.animateTo(1f, tween(680, easing = EaseOutCubic))
+            }
+            launch {
+                logoTranslateY.animateTo(0f, tween(680, easing = EaseOutCubic))
             }
 
-            // Total splash duration: ~2.2 seconds, then auto-navigate
-            delay(2200)
+            // Auto-navigate after 2.4 seconds
+            delay(2400)
             onSplashComplete()
         }
 
@@ -91,177 +102,179 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Blood Drop Animation Container
+            // ── Soft Red Glow & Blood Drop Animation ────────────────────
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(140.dp)
+                modifier = Modifier.size(160.dp)
             ) {
-                // Expanding landing ripple
+                // Soft ambient radial glow
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(BloodRedLight.copy(alpha = 0.8f), Color.Transparent),
+                                radius = 180f
+                            ),
+                            shape = CircleShape
+                        )
+                )
+
+                // Landing ripple ring
                 if (rippleAlpha.value > 0f) {
                     Box(
                         modifier = Modifier
-                            .size(110.dp)
+                            .size(120.dp)
                             .scale(rippleScale.value)
                             .background(
-                                color = BloodRedPrimary.copy(alpha = rippleAlpha.value),
+                                color = BloodRedPrimary.copy(alpha = rippleAlpha.value * 0.4f),
                                 shape = CircleShape
                             )
                     )
                 }
 
-                // Animated Blood Drop
+                // The drop itself
                 Canvas(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(86.dp)
                         .offset(y = dropOffsetY.value.dp)
                         .scale(scaleX = dropScaleX.value, scaleY = dropScaleY.value)
                 ) {
                     val w = size.width
                     val h = size.height
 
-                    // Construct teardrop path
                     val dropPath = Path().apply {
                         moveTo(w / 2f, 0f)
-                        cubicTo(
-                            w * 0.45f, h * 0.28f,
-                            0f, h * 0.55f,
-                            0f, h * 0.72f
-                        )
-                        cubicTo(
-                            0f, h * 0.96f,
-                            w * 0.22f, h,
-                            w / 2f, h
-                        )
-                        cubicTo(
-                            w * 0.78f, h,
-                            w, h * 0.96f,
-                            w, h * 0.72f
-                        )
-                        cubicTo(
-                            w, h * 0.55f,
-                            w * 0.55f, h * 0.28f,
-                            w / 2f, 0f
-                        )
+                        cubicTo(w * 0.45f, h * 0.27f, 0f, h * 0.54f, 0f, h * 0.72f)
+                        cubicTo(0f, h * 0.96f, w * 0.22f, h, w / 2f, h)
+                        cubicTo(w * 0.78f, h, w, h * 0.96f, w, h * 0.72f)
+                        cubicTo(w, h * 0.54f, w * 0.55f, h * 0.27f, w / 2f, 0f)
                         close()
                     }
 
-                    // Clip to the drop path
                     drawContext.canvas.save()
                     drawContext.canvas.clipPath(dropPath)
 
-                    // Background unfilled droplet (soft tint)
+                    // Background shell (soft tint)
                     drawRect(color = BloodRedLight)
 
-                    // Rising liquid fill level
-                    val fillHeight = h * fillProgress.value
-                    val fillTopY = h - fillHeight
-
-                    val gradientBrush = Brush.verticalGradient(
-                        colors = listOf(BloodRedPrimary, BloodRedDark),
+                    // Liquid fill rising from bottom
+                    val fillH = h * fillProgress.value
+                    val fillTopY = h - fillH
+                    val gradient = Brush.verticalGradient(
+                        colors = listOf(BloodRedSecondary, BloodRedDark),
                         startY = fillTopY,
                         endY = h
                     )
-
-                    drawRect(
-                        brush = gradientBrush,
-                        topLeft = Offset(0f, fillTopY),
-                        size = androidx.compose.ui.geometry.Size(w, fillHeight)
-                    )
-
-                    // Glossy shine highlight on upper-left
-                    val shinePath = Path().apply {
-                        moveTo(w * 0.30f, h * 0.32f)
-                        cubicTo(
-                            w * 0.18f, h * 0.48f,
-                            w * 0.16f, h * 0.65f,
-                            w * 0.22f, h * 0.72f
+                    if (fillH > 0f) {
+                        drawRect(
+                            brush = gradient,
+                            topLeft = Offset(0f, fillTopY),
+                            size = androidx.compose.ui.geometry.Size(w, fillH)
                         )
+                    }
+
+                    // Glossy highlight stroke
+                    val shinePath = Path().apply {
+                        moveTo(w * 0.30f, h * 0.30f)
+                        cubicTo(w * 0.17f, h * 0.47f, w * 0.15f, h * 0.65f, w * 0.21f, h * 0.74f)
                     }
                     drawPath(
                         path = shinePath,
-                        color = Color.White.copy(alpha = 0.5f),
-                        style = Stroke(width = w * 0.08f, cap = StrokeCap.Round)
+                        color = Color.White.copy(alpha = if (fillProgress.value > 0.3f) 0.55f else 0.25f),
+                        style = Stroke(width = w * 0.09f, cap = StrokeCap.Round)
                     )
 
                     drawContext.canvas.restore()
 
-                    // Crisp droplet outline
+                    // Drop outline
                     drawPath(
                         path = dropPath,
-                        color = BloodRedDark.copy(alpha = 0.25f),
+                        color = BloodRedDark.copy(alpha = 0.20f),
                         style = Stroke(width = 1.5.dp.toPx())
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // App Name & Tagline
+            // ── App Name & Tagline ───────────────────────────────────────
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.alpha(contentAlpha.value)
+                modifier = Modifier
+                    .alpha(contentAlpha.value)
+                    .offset(y = logoTranslateY.value.dp)
             ) {
+                // Logo text
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Blood",
-                        fontSize = 32.sp,
+                        fontSize = 34.sp,
                         fontWeight = FontWeight.Black,
                         color = BloodRedPrimary,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.8).sp
                     )
                     Text(
                         text = "Sync",
-                        fontSize = 32.sp,
+                        fontSize = 34.sp,
                         fontWeight = FontWeight.Bold,
                         color = appColors.textPrimary,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.8).sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Connecting Life Savers in Real Time",
-                    fontSize = 13.sp,
+                    text = "Every drop creates a second chance.",
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = appColors.textSecondary,
-                    letterSpacing = 0.2.sp
+                    letterSpacing = 0.1.sp
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(36.dp))
 
-                // Clinical grade subtle loader dots
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val dotAlpha by rememberInfiniteTransition(label = "dots").animateFloat(
-                        initialValue = 0.3f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(800, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "dotAlpha"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(BloodRedPrimary.copy(alpha = dotAlpha), CircleShape)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(BloodRedPrimary.copy(alpha = 1f - dotAlpha + 0.3f), CircleShape)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(BloodRedPrimary.copy(alpha = dotAlpha), CircleShape)
-                    )
-                }
+                // Animated loading dots (staggered)
+                AnimatedLoadingDots()
             }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedLoadingDots() {
+    val infiniteTransition = rememberInfiniteTransition(label = "loadDots")
+
+    @Composable
+    fun dot(delayMs: Int): Float {
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(600, delayMillis = delayMs, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dotAlpha$delayMs"
+        )
+        return alpha
+    }
+
+    val a1 = dot(0)
+    val a2 = dot(200)
+    val a3 = dot(400)
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        listOf(a1, a2, a3).forEach { alpha ->
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .graphicsLayer { this.alpha = alpha }
+                    .background(BloodRedPrimary, CircleShape)
+            )
         }
     }
 }

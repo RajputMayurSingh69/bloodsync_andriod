@@ -1,6 +1,8 @@
 package com.bloodsync.ui.screens.history
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,24 +10,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bloodsync.data.model.DonationRecord
 import com.bloodsync.data.model.DonationStatus
 import com.bloodsync.data.repository.BloodSyncRepository
-import com.bloodsync.ui.components.BloodSyncTopBar
-import com.bloodsync.ui.components.EmptyStateView
-import com.bloodsync.ui.components.StatusBadge
+import com.bloodsync.ui.components.*
 import com.bloodsync.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
+/**
+ * Redesigned Donation History Screen.
+ * Soft Medical Red & White theme with 24dp cards, animated impact counters,
+ * vertical timeline history cards, and log donation dialog.
+ */
 @Composable
 fun DonationHistoryScreen(
     repository: BloodSyncRepository,
@@ -54,7 +64,7 @@ fun DonationHistoryScreen(
                 actions = {
                     IconButton(onClick = { showLogDonationDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = Icons.Rounded.Add,
                             contentDescription = "Log Donation",
                             tint = BloodRedPrimary
                         )
@@ -62,117 +72,106 @@ fun DonationHistoryScreen(
                 }
             )
         },
-        contentWindowInsets = WindowInsets.statusBars,
+        contentWindowInsets = WindowInsets.systemBars,
         containerColor = appColors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 90.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Lifetime Impact Summary Banner
+            // ── Lifetime Impact Summary Card ─────────────────────────────────
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Donor Lifetime Impact",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = appColors.textPrimary
-                                )
-                                Text(
-                                    text = "Blood Group: ${profile.bloodGroup}",
-                                    fontSize = 12.sp,
-                                    color = BloodRedPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-
-                            Button(
-                                onClick = { showLogDonationDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                                shape = RoundedCornerShape(50.dp),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Log Donation", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            DonationMetricStat(
-                                value = "${profile.totalDonations}",
-                                label = "Total Donations"
+                BloodSyncCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Donor Lifetime Impact",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = appColors.textPrimary
                             )
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(36.dp)
-                                    .background(appColors.divider)
-                            )
-                            DonationMetricStat(
-                                value = "${profile.totalDonations * 450} ml",
-                                label = "Blood Donated"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(36.dp)
-                                    .background(appColors.divider)
-                            )
-                            DonationMetricStat(
-                                value = "${profile.livesSaved}",
-                                label = "Lives Saved"
+                            Text(
+                                text = "Blood Group: ${profile.bloodGroup}",
+                                fontSize = 12.sp,
+                                color = BloodRedPrimary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
+
+                        BloodSyncButton(
+                            text = "+ Log Donation",
+                            onClick = { showLogDonationDialog = true },
+                            height = 40.dp,
+                            modifier = Modifier.widthIn(max = 150.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = appColors.border, thickness = 0.75.dp)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        DonationMetricStat(
+                            count = profile.totalDonations,
+                            suffix = "",
+                            label = "Donations"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(38.dp)
+                                .background(appColors.border)
+                        )
+                        DonationMetricStat(
+                            count = profile.totalDonations * 450,
+                            suffix = " ml",
+                            label = "Blood Donated"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(38.dp)
+                                .background(appColors.border)
+                        )
+                        DonationMetricStat(
+                            count = profile.livesSaved,
+                            suffix = "",
+                            label = "Lives Saved"
+                        )
                     }
                 }
             }
 
             item {
-                Text(
-                    text = "Complete Records",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = appColors.textPrimary
+                SectionHeader(
+                    title = "Verified Records Timeline",
+                    subtitle = "Complete chronological log"
                 )
             }
 
             if (donationHistory.isEmpty()) {
                 item {
-                    EmptyStateView(
+                    EmptyState(
                         title = "No Donation Records",
-                        message = "You have not logged any blood donations yet.",
-                        icon = Icons.Default.DateRange,
+                        message = "You have not logged any blood donations yet. Track your journey and earn milestone certificates.",
+                        icon = Icons.Rounded.EventNote,
                         actionText = "Log First Donation",
                         onActionClick = { showLogDonationDialog = true }
                     )
                 }
             } else {
                 items(donationHistory, key = { it.id }) { record ->
-                    DonationHistoryCard(
+                    ModernDonationHistoryCard(
                         record = record,
                         onClick = { selectedDonationForDetails = record },
                         onCertificateClick = {
@@ -208,115 +207,124 @@ fun DonationHistoryScreen(
 }
 
 @Composable
-fun DonationHistoryCard(
+fun ModernDonationHistoryCard(
     record: DonationRecord,
     onClick: () -> Unit,
     onCertificateClick: () -> Unit
 ) {
     val appColors = BloodSyncTheme.colors
-    Card(
+
+    BloodSyncCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = appColors.cardBackground),
-        border = androidx.compose.foundation.BorderStroke(1.dp, appColors.border),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .clickable(onClick = onClick)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .background(appColors.redLight, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = record.bloodGroup,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 14.sp,
-                            color = BloodRedPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = record.hospitalName,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = appColors.textPrimary
-                        )
-                        Text(
-                            text = "${record.date} • ${record.unitsDonated} Unit (450ml)",
-                            fontSize = 12.sp,
-                            color = appColors.textSecondary
-                        )
-                    }
-                }
-
-                StatusBadge(
-                    text = when (record.status) {
-                        DonationStatus.VERIFIED -> "Verified"
-                        DonationStatus.COMPLETED -> "Completed"
-                        DonationStatus.IN_REVIEW -> "In Review"
-                    },
-                    textColor = when (record.status) {
-                        DonationStatus.VERIFIED -> StatusEligibleGreen
-                        DonationStatus.COMPLETED -> StatusEligibleGreen
-                        DonationStatus.IN_REVIEW -> StatusWarningAmber
-                    },
-                    backgroundColor = when (record.status) {
-                        DonationStatus.VERIFIED -> appColors.greenLight
-                        DonationStatus.COMPLETED -> appColors.greenLight
-                        DonationStatus.IN_REVIEW -> appColors.yellowLight
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = appColors.textMuted,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(appColors.redLight, CircleShape)
+                        .border(1.5.dp, BloodRedPrimary, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = record.location,
-                        fontSize = 11.sp,
+                        text = record.bloodGroup,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp,
+                        color = BloodRedPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = record.hospitalName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = appColors.textPrimary
+                    )
+                    Text(
+                        text = "${record.date} • ${record.unitsDonated} Unit (450ml)",
+                        fontSize = 12.sp,
                         color = appColors.textSecondary
                     )
                 }
+            }
 
-                if (record.certificateId != null) {
-                    TextButton(
-                        onClick = onCertificateClick,
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+            StatusPillBadge(
+                text = when (record.status) {
+                    DonationStatus.VERIFIED -> "Verified"
+                    DonationStatus.COMPLETED -> "Completed"
+                    DonationStatus.IN_REVIEW -> "In Review"
+                },
+                backgroundColor = when (record.status) {
+                    DonationStatus.VERIFIED -> appColors.greenLight
+                    DonationStatus.COMPLETED -> appColors.greenLight
+                    DonationStatus.IN_REVIEW -> StatusWarningAmberLight
+                },
+                contentColor = when (record.status) {
+                    DonationStatus.VERIFIED -> StatusEligibleGreen
+                    DonationStatus.COMPLETED -> StatusEligibleGreen
+                    DonationStatus.IN_REVIEW -> StatusWarningAmber
+                },
+                showBeacon = false
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+        HorizontalDivider(color = appColors.border, thickness = 0.75.dp)
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.LocationOn,
+                    contentDescription = null,
+                    tint = appColors.textMuted,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = record.location,
+                    fontSize = 12.sp,
+                    color = appColors.textSecondary
+                )
+            }
+
+            if (record.certificateId != null) {
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = Color(0xFFFFF8E1),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CertificateGold.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50.dp))
+                        .clickable(onClick = onCertificateClick)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Verified,
+                            imageVector = Icons.Rounded.WorkspacePremium,
                             contentDescription = null,
-                            tint = CertificateGold,
-                            modifier = Modifier.size(16.dp)
+                            tint = CertificateGoldDark,
+                            modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "View Certificate",
-                            fontSize = 12.sp,
+                            text = "Certificate",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = CertificateGoldDark
                         )
@@ -339,12 +347,13 @@ fun DonationDetailDialog(
         title = {
             Column {
                 Text(
-                    text = "Donation Record Details",
+                    text = "Donation Details",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    color = appColors.textPrimary
                 )
                 Text(
-                    text = "Ref: ${record.id}",
+                    text = "Reference: ${record.id}",
                     fontSize = 11.sp,
                     color = appColors.textMuted
                 )
@@ -353,9 +362,9 @@ fun DonationDetailDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                DetailRow("Hospital / Blood Bank", record.hospitalName)
+                DetailRow("Hospital", record.hospitalName)
                 DetailRow("Location", record.location)
                 DetailRow("Date", record.date)
                 DetailRow("Blood Group", record.bloodGroup)
@@ -364,29 +373,30 @@ fun DonationDetailDialog(
                 DetailRow("Recorded Hemoglobin", "${record.hemoglobinRecorded} g/dL")
                 DetailRow("Blood Pressure", record.bloodPressure)
                 DetailRow("Pulse Rate", "${record.pulseRate} bpm")
-                DetailRow("Attending Medical Staff", record.doctorOrPhlebotomist)
-                DetailRow("Medical Notes", record.notes)
+                DetailRow("Medical Staff", record.doctorOrPhlebotomist)
+                DetailRow("Clinical Notes", record.notes)
             }
         },
         confirmButton = {
             if (record.certificateId != null) {
-                Button(
+                BloodSyncButton(
+                    text = "View Certificate",
                     onClick = { onViewCertificate(record.certificateId) },
-                    colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                    shape = RoundedCornerShape(50.dp)
-                ) {
-                    Icon(Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Certificate", fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                    icon = Icons.Rounded.WorkspacePremium,
+                    height = 44.dp,
+                    gradient = Brush.horizontalGradient(
+                        listOf(Color(0xFFF57F17), Color(0xFFE65100))
+                    ),
+                    modifier = Modifier.widthIn(max = 170.dp)
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = appColors.textSecondary)
+                Text("Close", color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
             }
         },
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
         containerColor = appColors.cardBackground
     )
 }
@@ -396,6 +406,7 @@ fun LogDonationDialog(
     repository: BloodSyncRepository,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val appColors = BloodSyncTheme.colors
     var hospitalName by remember { mutableStateOf("Central City Blood Bank") }
     var location by remember { mutableStateOf("Donor Station 3") }
@@ -404,94 +415,89 @@ fun LogDonationDialog(
     var doctorName by remember { mutableStateOf("Dr. Sarah Vance, MD") }
     var notes by remember { mutableStateOf("Routine voluntary donation. No adverse effects.") }
 
-    val textFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedTextColor = appColors.textPrimary,
-        unfocusedTextColor = appColors.textPrimary,
-        focusedContainerColor = appColors.inputBackground,
-        unfocusedContainerColor = appColors.inputBackground,
-        focusedBorderColor = BloodRedPrimary,
-        unfocusedBorderColor = appColors.border,
-        focusedLabelColor = BloodRedPrimary,
-        unfocusedLabelColor = appColors.textMuted,
-        cursorColor = BloodRedPrimary
-    )
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Log Blood Donation",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = appColors.textPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(appColors.redLight, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = null,
+                        tint = BloodRedPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Log Blood Donation",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = appColors.textPrimary
+                )
+            }
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(
+                BloodSyncTextField(
                     value = hospitalName,
                     onValueChange = { hospitalName = it },
-                    label = { Text("Hospital / Blood Center") },
-                    singleLine = true,
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Hospital / Blood Center",
+                    leadingIcon = Icons.Rounded.LocalHospital
                 )
 
-                OutlinedTextField(
+                BloodSyncTextField(
                     value = location,
                     onValueChange = { location = it },
-                    label = { Text("Ward / Station Location") },
-                    singleLine = true,
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Ward / Station Location",
+                    leadingIcon = Icons.Rounded.LocationOn
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
+                    BloodSyncTextField(
                         value = hemoglobinText,
                         onValueChange = { hemoglobinText = it },
-                        label = { Text("Hemoglobin (g/dL)") },
-                        singleLine = true,
-                        colors = textFieldColors,
+                        label = "Hemoglobin (g/dL)",
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
+                    BloodSyncTextField(
                         value = "$selectedUnits Unit",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Units") },
-                        colors = textFieldColors,
+                        label = "Units",
                         modifier = Modifier.weight(1f)
                     )
                 }
 
-                OutlinedTextField(
+                BloodSyncTextField(
                     value = doctorName,
                     onValueChange = { doctorName = it },
-                    label = { Text("Staff / Doctor Name") },
-                    singleLine = true,
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Staff / Doctor Name",
+                    leadingIcon = Icons.Rounded.Person
                 )
 
-                OutlinedTextField(
+                BloodSyncTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Clinical Notes") },
-                    maxLines = 2,
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth()
+                    label = "Clinical Notes",
+                    singleLine = false,
+                    leadingIcon = Icons.Rounded.Notes
                 )
             }
         },
         confirmButton = {
-            Button(
+            BloodSyncButton(
+                text = "Save & Verify",
                 onClick = {
                     val hb = hemoglobinText.toDoubleOrNull() ?: 14.0
                     repository.addDonationRecord(
@@ -506,18 +512,16 @@ fun LogDonationDialog(
                     )
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = BloodRedPrimary),
-                shape = RoundedCornerShape(50.dp)
-            ) {
-                Text("Log & Generate Certificate", fontWeight = FontWeight.Bold, color = Color.White)
-            }
+                height = 46.dp,
+                modifier = Modifier.widthIn(max = 150.dp)
+            )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = appColors.textSecondary)
+                Text("Cancel", color = appColors.textSecondary, fontWeight = FontWeight.SemiBold)
             }
         },
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
         containerColor = appColors.cardBackground
     )
 }
@@ -548,17 +552,20 @@ fun DetailRow(label: String, value: String) {
 
 @Composable
 fun DonationMetricStat(
-    value: String,
+    count: Int,
+    suffix: String,
     label: String
 ) {
     val appColors = BloodSyncTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = appColors.textPrimary
+        AnimatedCounter(
+            targetValue = count,
+            suffix = suffix,
+            fontSize = 18.sp,
+            color = BloodRedPrimary,
+            fontWeight = FontWeight.Black
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             fontSize = 11.sp,

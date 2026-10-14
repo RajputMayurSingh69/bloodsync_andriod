@@ -75,6 +75,38 @@ class FirebaseSyncService(private val context: Context) {
 
     fun getFirebaseAuth(): FirebaseAuth? = auth
 
+    fun wipeFirestoreCollections(onComplete: () -> Unit) {
+        val db = firestore ?: return
+        val collections = listOf("users", "donors", "emergency_requests", "blood_banks", "appointments", "donor_registrations")
+        var pending = collections.size
+        if (pending == 0) {
+            onComplete()
+            return
+        }
+        collections.forEach { collectionName ->
+            db.collection(collectionName).get().addOnSuccessListener { snapshot ->
+                var docsPending = snapshot.documents.size
+                if (docsPending == 0) {
+                    pending--
+                    if (pending == 0) onComplete()
+                } else {
+                    snapshot.documents.forEach { doc ->
+                        doc.reference.delete().addOnCompleteListener {
+                            docsPending--
+                            if (docsPending == 0) {
+                                pending--
+                                if (pending == 0) onComplete()
+                            }
+                        }
+                    }
+                }
+            }.addOnFailureListener {
+                pending--
+                if (pending == 0) onComplete()
+            }
+        }
+    }
+
     /**
      * Publish Emergency Blood Request to Firebase Firestore in real-time.
      */
@@ -93,7 +125,8 @@ class FirebaseSyncService(private val context: Context) {
 
         val data = hashMapOf<String, Any>(
             "id" to request.id,
-            "userId" to currentUserId,
+            "userId" to request.requesterId,
+            "requesterId" to request.requesterId,
             "patientName" to request.patientName,
             "bloodGroupNeeded" to request.bloodGroupNeeded,
             "unitsRequired" to request.unitsRequired,
@@ -155,16 +188,6 @@ class FirebaseSyncService(private val context: Context) {
                                 val hospital = doc.getString("hospitalName") ?: ""
                                 val id = doc.getString("id") ?: doc.id
 
-                                // If this is a legacy dummy/seed test document, purge it from Firestore permanently
-                                if (patient.contains("Jane Doe", ignoreCase = true) ||
-                                    hospital.contains("Metro General", ignoreCase = true) ||
-                                    patient.equals("any one", ignoreCase = true) ||
-                                    hospital.equals("no one", ignoreCase = true) ||
-                                    id.startsWith("emg_dummy")
-                                ) {
-                                    doc.reference.delete()
-                                    return@mapNotNull null
-                                }
 
                                 EmergencyRequest(
                                     id = id,
@@ -222,15 +245,6 @@ class FirebaseSyncService(private val context: Context) {
                         val hospital = doc.getString("hospitalName") ?: ""
                         val id = doc.getString("id") ?: doc.id
 
-                        if (patient.contains("Jane Doe", ignoreCase = true) ||
-                            hospital.contains("Metro General", ignoreCase = true) ||
-                            patient.equals("any one", ignoreCase = true) ||
-                            hospital.equals("no one", ignoreCase = true) ||
-                            id.startsWith("emg_dummy")
-                        ) {
-                            doc.reference.delete()
-                            return@mapNotNull null
-                        }
 
                         EmergencyRequest(
                             id = id,
@@ -401,6 +415,7 @@ class FirebaseSyncService(private val context: Context) {
             "livesSaved" to profile.livesSaved,
             "isAvailableDonor" to profile.isAvailableDonor,
             "role" to profile.role,
+            "licenseNumber" to profile.licenseNumber,
             "lastUpdated" to FieldValue.serverTimestamp()
         )
         if (profile.latitude != null) privateData["latitude"] = profile.latitude
@@ -633,7 +648,8 @@ class FirebaseSyncService(private val context: Context) {
                             isAvailableDonor = doc.getBoolean("isAvailableDonor") ?: true,
                             latitude = doc.getDouble("latitude"),
                             longitude = doc.getDouble("longitude"),
-                            role = doc.getString("role") ?: "user"
+                            role = doc.getString("role") ?: "user",
+                            licenseNumber = doc.getString("licenseNumber") ?: ""
                         )
                         onResult(profile)
                     } catch (_: Exception) {

@@ -166,28 +166,13 @@ class BloodSyncRepository(private val context: Context) {
             saveNotificationsToPrefs()
         }
 
-        // Certified Indian Blood Banks fallback for offline emergencies
-        if (_bloodBanks.isEmpty()) {
-            _bloodBanks.addAll(
-                listOf(
-                    BloodBank("bb_1", "Red Cross Central Blood Bank", "Connaught Place, Central Wing", 2.4, "24/7 Open", "+919876543210", "Available (All Groups)"),
-                    BloodBank("bb_2", "Apex City Trauma & Blood Center", "Ring Road, Medical Enclave", 4.1, "8:00 AM - 10:00 PM", "+919811122233", "Critical Need (O-, B-)"),
-                    BloodBank("bb_3", "National LifeLine Blood Bank", "Sector 14, Health Boulevard", 6.8, "24/7 Open", "+919999988888", "Available (A+, B+, O+)")
-                )
-            )
-        }
     }
 
     private fun setupFirebaseSync() {
         // Listen to live Emergency SOS broadcasts from Firebase
         firebaseService.listenToEmergencyRequests { realList ->
-            val cleanList = realList.filterNot {
-                it.patientName.contains("Jane Doe", ignoreCase = true) ||
-                it.hospitalName.contains("Metro General", ignoreCase = true) ||
-                it.patientName.equals("any one", ignoreCase = true) ||
-                it.hospitalName.equals("no one", ignoreCase = true) ||
-                it.id.startsWith("emg_dummy")
-            }
+            val cleanList = realList
+
 
             // Check if any of MY requests just got fulfilled
             cleanList.forEach { incomingReq ->
@@ -207,6 +192,15 @@ class BloodSyncRepository(private val context: Context) {
             _emergencyRequests.clear()
             _emergencyRequests.addAll(cleanList)
             saveEmergencyToPrefs()
+
+            // If logged in as Blood Bank, dispatch to EmergencyAlertManager for real-time alert & siren
+            if (_userProfile.value.role == "blood_bank") {
+                com.bloodsync.data.emergency.EmergencyAlertManager.onEmergencyRequestsBatchArrived(
+                    context = context,
+                    requests = cleanList,
+                    isAppInForeground = true
+                )
+            }
         }
 
         // Listen to real Blood Banks from server
@@ -395,10 +389,11 @@ class BloodSyncRepository(private val context: Context) {
         )
         _donationHistory.add(0, record)
 
-        _userProfile.value = _userProfile.value.copy(
+        val updatedProfile = _userProfile.value.copy(
             totalDonations = currentCount,
             livesSaved = currentCount * 3
         )
+        updateUserProfile(updatedProfile)
 
         val isoDateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         _healthRecord.value = _healthRecord.value.copy(
@@ -467,7 +462,7 @@ class BloodSyncRepository(private val context: Context) {
         longitude: Double? = null
     ): EmergencyRequest {
         val emgId = "emg_" + UUID.randomUUID().toString().take(8)
-        val timeStr = "Just now"
+        val timeStr = System.currentTimeMillis().toString()
 
         val request = EmergencyRequest(
             id = emgId,
@@ -514,8 +509,8 @@ class BloodSyncRepository(private val context: Context) {
             firebaseService.publishEmergencyRequest(updated)
 
             postNotification(
-                title = "✅ Emergency Request Fulfilled",
-                message = "The blood requirement for ${updated.patientName} was fulfilled successfully.",
+                title = "✅ Thank You!",
+                message = "The blood requirement for ${updated.patientName} was fulfilled successfully. Thank you for dispatching units!",
                 type = NotificationType.SYSTEM
             )
         }
@@ -754,7 +749,13 @@ class BloodSyncRepository(private val context: Context) {
                 }
                 auth.signInWithEmailAndPassword(cleanEmail, cleanPass)
                     .addOnSuccessListener { authResult ->
-                        val uid = authResult.user?.uid ?: ""
+                        val user = authResult.user
+                        if (user != null && !user.isEmailVerified) {
+                            auth.signOut()
+                            onFailure("Please verify your email before logging in. A verification link was sent to your email.")
+                            return@addOnSuccessListener
+                        }
+                        val uid = user?.uid ?: ""
                         _isUserLoggedIn.value = true
                         prefs.edit().putBoolean("is_logged_in", true).apply()
                         fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
@@ -800,6 +801,7 @@ class BloodSyncRepository(private val context: Context) {
     fun registerDonorWithCredentials(
         profile: UserProfile,
         pass: String,
+        onVerificationSent: (String) -> Unit,
         onSuccess: () -> Unit,
         onFailure: (String) -> Unit
     ) {
@@ -818,34 +820,20 @@ class BloodSyncRepository(private val context: Context) {
                 }
                 auth.createUserWithEmailAndPassword(cleanEmail, cleanPass)
                     .addOnSuccessListener { result ->
-                        val uid = result.user?.uid ?: profile.id
+                        val user = result.user
+                        user?.sendEmailVerification()
+                        
+                        val uid = user?.uid ?: profile.id
                         val updatedProfile = profile.copy(id = uid)
-                        registerDonor(updatedProfile)
-                        _isUserLoggedIn.value = true
-                        prefs.edit().putBoolean("is_logged_in", true).apply()
-                        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
-                        attachCloudListeners()
-                        onSuccess()
+                        registerDonor(updatedProfile) // Save locally and to cloud
+                        
+                        auth.signOut() // Force user to log in again after verifying
+                        onVerificationSent("Registration successful! A verification link has been sent to your email. Please verify before signing in.")
                     }
                     .addOnFailureListener { e ->
                         Log.w("BloodSyncAuth", "User registration notice: ${e.message}")
                         if (e.message?.contains("email-already-in-use", ignoreCase = true) == true) {
-                            try {
-                                auth.signInWithEmailAndPassword(cleanEmail, cleanPass)
-                                    .addOnSuccessListener {
-                                        registerDonor(profile)
-                                        _isUserLoggedIn.value = true
-                                        prefs.edit().putBoolean("is_logged_in", true).apply()
-                                        fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
-                                        attachCloudListeners()
-                                        onSuccess()
-                                    }
-                                    .addOnFailureListener {
-                                        onFailure("This email is already registered. Please sign in with your password.")
-                                    }
-                            } catch (signInErr: Throwable) {
-                                onFailure("This email is already registered. Please sign in with your password.")
-                            }
+                            onFailure("This email is already registered. Please sign in with your password.")
                         } else {
                             onFailure(e.localizedMessage ?: "Failed to create donor account.")
                         }
@@ -932,14 +920,21 @@ class BloodSyncRepository(private val context: Context) {
             phone = phone,
             bloodGroup = "All Types (Blood Bank)",
             city = city.ifBlank { "National Network" },
+            address = address,
             isAvailableDonor = false,
-            role = "blood_bank"
+            role = "blood_bank",
+            licenseNumber = licenseNumber.trim()
         )
         _userProfile.value = profile
         _isUserLoggedIn.value = true
         prefs.edit().putBoolean("is_logged_in", true).apply()
         fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
+        if (licenseNumber.isNotBlank()) {
+            prefs.edit().putString("saved_license_number", licenseNumber.trim()).apply()
+            fallbackPrefs.edit().putString("saved_license_number", licenseNumber.trim()).apply()
+        }
         saveProfileToPrefs()
+        firebaseService.saveUserProfile(profile)
         attachCloudListeners()
     }
 
@@ -949,16 +944,19 @@ class BloodSyncRepository(private val context: Context) {
     ) {
         val existing = _bloodBanks.firstOrNull { it.phone.contains(email, ignoreCase = true) }
             ?: _bloodBanks.firstOrNull()
-        val name = bankName ?: existing?.name ?: "Blood Bank Workspace"
-        val profile = UserProfile(
-            id = existing?.id ?: ("bb_" + UUID.randomUUID().toString().take(8)),
+        val name = bankName ?: existing?.name ?: _userProfile.value.name.takeIf { it.isNotBlank() } ?: "Blood Bank Workspace"
+        val existingLic = _userProfile.value.licenseNumber.takeIf { it.isNotBlank() }
+            ?: getEffectiveLicenseNumber()
+        val profile = _userProfile.value.copy(
+            id = existing?.id ?: _userProfile.value.id.takeIf { it.isNotBlank() } ?: ("bb_" + UUID.randomUUID().toString().take(8)),
             name = name,
             email = email,
-            phone = existing?.phone ?: "",
+            phone = existing?.phone ?: _userProfile.value.phone,
             bloodGroup = "All Types (Blood Bank)",
-            city = "Registered Institution",
+            city = _userProfile.value.city.takeIf { it.isNotBlank() && it != "National Network" } ?: "Registered Institution",
             isAvailableDonor = false,
-            role = "blood_bank"
+            role = "blood_bank",
+            licenseNumber = existingLic
         )
         _userProfile.value = profile
         _isUserLoggedIn.value = true
@@ -966,6 +964,158 @@ class BloodSyncRepository(private val context: Context) {
         fallbackPrefs.edit().putBoolean("is_logged_in", true).apply()
         saveProfileToPrefs()
         attachCloudListeners()
+    }
+
+    /**
+     * Authenticates Blood Bank with Firebase Auth using email and password, preventing unverified password bypass.
+     */
+    fun signInBloodBankWithEmailAndPassword(
+        email: String,
+        pass: String,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val auth = firebaseService.getFirebaseAuth()
+        if (auth != null) {
+            try {
+                val cleanEmail = email.trim()
+                val cleanPass = pass.trim()
+                if (cleanEmail.isBlank() || !ValidationHelper.isValidGmail(cleanEmail)) {
+                    onFailure("Invalid email format! Only @gmail.com is allowed (e.g. name@gmail.com).")
+                    return
+                }
+                if (cleanPass.length < 6) {
+                    onFailure("Password must be at least 6 characters.")
+                    return
+                }
+                auth.signInWithEmailAndPassword(cleanEmail, cleanPass)
+                    .addOnSuccessListener { authResult ->
+                        val user = authResult.user
+                        if (user != null && !user.isEmailVerified) {
+                            auth.signOut()
+                            onFailure("Please verify your email before logging in. A verification link was sent to your email.")
+                            return@addOnSuccessListener
+                        }
+                        val uid = user?.uid ?: ""
+                        // Fetch or set blood bank profile locally
+                        loginBloodBankInstitution(email = cleanEmail, bankName = null)
+                        firebaseService.fetchUserProfile(uid) { cloudProfile ->
+                            if (cloudProfile != null) {
+                                val mergedLic = cloudProfile.licenseNumber.ifBlank { getEffectiveLicenseNumber() }
+                                _userProfile.value = cloudProfile.copy(
+                                    role = "blood_bank",
+                                    licenseNumber = mergedLic
+                                )
+                                saveProfileToPrefs()
+                            }
+                        }
+                        onSuccess()
+                    }
+                    .addOnFailureListener { e ->
+                        val userFriendlyError = when (e) {
+                            is com.google.firebase.auth.FirebaseAuthInvalidUserException -> "Account not found or deleted. Please register."
+                            is com.google.firebase.auth.FirebaseAuthInvalidCredentialsException -> "Incorrect password."
+                            is com.google.firebase.FirebaseNetworkException -> "Network error. Please check your internet connection."
+                            else -> e.localizedMessage ?: "Authentication failed. Please check credentials."
+                        }
+                        onFailure(userFriendlyError)
+                    }
+            } catch (e: Throwable) {
+                Log.e("BloodSyncAuth", "Unexpected error in signInBloodBankWithEmailAndPassword", e)
+                onFailure(e.localizedMessage ?: "Failed to sign in. Please check your email and password.")
+            }
+        } else {
+            onFailure("Firebase Authentication service is initializing. Please try again.")
+        }
+    }
+
+    /**
+     * Registers a new Blood Bank account with Firebase Auth credentials.
+     */
+    fun registerBloodBankWithCredentials(
+        bankName: String,
+        licenseNumber: String,
+        email: String,
+        phone: String,
+        city: String,
+        address: String,
+        pass: String,
+        onVerificationSent: (String) -> Unit,
+        onSuccess: () -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val auth = firebaseService.getFirebaseAuth()
+        if (auth != null && email.isNotBlank()) {
+            try {
+                auth.createUserWithEmailAndPassword(email, pass)
+                    .addOnSuccessListener { authResult ->
+                        val user = authResult.user
+                        val uid = user?.uid ?: ""
+                        
+                        // Set displayName
+                        val profileUpdates = com.google.firebase.auth.userProfileChangeRequest {
+                            displayName = bankName
+                        }
+                        user?.updateProfile(profileUpdates)
+
+                        user?.sendEmailVerification()?.addOnCompleteListener { verificationTask ->
+                            if (verificationTask.isSuccessful) {
+                                // Save profile locally
+                                val bankId = uid.ifBlank { "bb_" + UUID.randomUUID().toString().take(8) }
+                                val bloodBank = BloodBank(
+                                    id = bankId,
+                                    name = bankName.ifBlank { "Blood Bank" },
+                                    address = if (address.isNotBlank()) "$address, $city (Lic: $licenseNumber)" else "$city (Lic: $licenseNumber)",
+                                    distanceKm = 0.0,
+                                    phone = phone.ifBlank { "+91 98765 43210" },
+                                    bloodStockStatus = "Institution Verified",
+                                    openHours = "24/7 Operations"
+                                )
+                                addBloodBank(bloodBank)
+
+                                val profile = UserProfile(
+                                    id = bankId,
+                                    name = bankName,
+                                    email = email,
+                                    phone = phone,
+                                    bloodGroup = "All Types (Blood Bank)",
+                                    city = city,
+                                    address = address,
+                                    isAvailableDonor = false,
+                                    role = "blood_bank",
+                                    licenseNumber = licenseNumber.trim()
+                                )
+                                _userProfile.value = profile
+                                if (licenseNumber.isNotBlank()) {
+                                    prefs.edit().putString("saved_license_number", licenseNumber.trim()).apply()
+                                    fallbackPrefs.edit().putString("saved_license_number", licenseNumber.trim()).apply()
+                                }
+                                saveProfileToPrefs()
+                                firebaseService.saveUserProfile(profile)
+
+                                auth.signOut()
+                                onVerificationSent("Registration successful! A verification email has been sent to $email. Please verify your email before signing in.")
+                            } else {
+                                onFailure("Failed to send verification email: " + (verificationTask.exception?.localizedMessage ?: ""))
+                            }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        val userFriendlyError = when (e) {
+                            is com.google.firebase.auth.FirebaseAuthUserCollisionException -> "This email is already registered. Try signing in instead."
+                            is com.google.firebase.auth.FirebaseAuthWeakPasswordException -> "Password is too weak. Please use at least 6 characters."
+                            is com.google.firebase.FirebaseNetworkException -> "Network error. Please check your internet connection."
+                            else -> e.localizedMessage ?: "Registration failed."
+                        }
+                        onFailure(userFriendlyError)
+                    }
+            } catch (e: Throwable) {
+                Log.e("BloodSyncAuth", "Unexpected error in registerBloodBankWithCredentials", e)
+                onFailure(e.localizedMessage ?: "Failed to register. Please check your details.")
+            }
+        } else {
+            onFailure("Firebase Auth not initialized or invalid email.")
+        }
     }
 
     fun setLoggedIn(loggedIn: Boolean) {
@@ -1080,11 +1230,16 @@ class BloodSyncRepository(private val context: Context) {
             put("isNotificationEnabled", p.isNotificationEnabled)
             put("isEmergencyVolunteer", p.isEmergencyVolunteer)
             put("role", p.role)
+            put("licenseNumber", p.licenseNumber)
             if (p.latitude != null) put("latitude", p.latitude)
             if (p.longitude != null) put("longitude", p.longitude)
         }
         prefs.edit().putString("user_profile_json", obj.toString()).apply()
         fallbackPrefs.edit().putString("user_profile_json", obj.toString()).apply()
+        if (p.licenseNumber.isNotBlank()) {
+            prefs.edit().putString("saved_license_number", p.licenseNumber).apply()
+            fallbackPrefs.edit().putString("saved_license_number", p.licenseNumber).apply()
+        }
     }
 
     private fun saveHealthToPrefs() {
@@ -1231,6 +1386,13 @@ class BloodSyncRepository(private val context: Context) {
             val profileJsonStr = prefs.getString("user_profile_json", null) ?: fallbackPrefs.getString("user_profile_json", null)
             profileJsonStr?.let {
                 val obj = JSONObject(it)
+                val rawLic = obj.optString("licenseNumber", "")
+                val fallbackLic = rawLic.ifBlank {
+                    extractLicenseFromAddress(obj.optString("address", ""))
+                        ?: prefs.getString("saved_license_number", "")
+                        ?: fallbackPrefs.getString("saved_license_number", "")
+                        ?: ""
+                }
                 _userProfile.value = UserProfile(
                     id = obj.optString("id", firebaseUser?.uid ?: ""),
                     name = obj.optString("name", firebaseUser?.displayName ?: ""),
@@ -1248,6 +1410,7 @@ class BloodSyncRepository(private val context: Context) {
                     isNotificationEnabled = obj.optBoolean("isNotificationEnabled", true),
                     isEmergencyVolunteer = obj.optBoolean("isEmergencyVolunteer", true),
                     role = obj.optString("role", "user"),
+                    licenseNumber = fallbackLic,
                     latitude = if (obj.has("latitude") && !obj.isNull("latitude")) obj.getDouble("latitude") else null,
                     longitude = if (obj.has("longitude") && !obj.isNull("longitude")) obj.getDouble("longitude") else null
                 )
@@ -1532,6 +1695,53 @@ class BloodSyncRepository(private val context: Context) {
             n % 10 == 2 -> "${n}nd"
             n % 10 == 3 -> "${n}rd"
             else -> "${n}th"
+        }
+    }
+
+    fun extractLicenseFromAddress(addr: String): String? {
+        if (addr.isBlank()) return null
+        val match = Regex("""\(Lic:\s*([^)]+)\)""").find(addr)
+        return match?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    fun getEffectiveLicenseNumber(): String {
+        val current = _userProfile.value.licenseNumber.trim()
+        if (current.isNotBlank()) return current
+
+        val fromAddr = extractLicenseFromAddress(_userProfile.value.address)
+        if (!fromAddr.isNullOrBlank()) {
+            _userProfile.value = _userProfile.value.copy(licenseNumber = fromAddr)
+            saveProfileToPrefs()
+            return fromAddr
+        }
+
+        val fromBanks = _bloodBanks.firstNotNullOfOrNull { extractLicenseFromAddress(it.address) }
+        if (!fromBanks.isNullOrBlank()) {
+            _userProfile.value = _userProfile.value.copy(licenseNumber = fromBanks)
+            saveProfileToPrefs()
+            return fromBanks
+        }
+
+        val fromPrefs = prefs.getString("saved_license_number", "")?.trim()
+            ?: fallbackPrefs.getString("saved_license_number", "")?.trim()
+            ?: ""
+        if (fromPrefs.isNotBlank()) {
+            _userProfile.value = _userProfile.value.copy(licenseNumber = fromPrefs)
+            saveProfileToPrefs()
+            return fromPrefs
+        }
+
+        return ""
+    }
+
+    fun updateBloodBankLicense(license: String) {
+        val trimmed = license.trim()
+        if (trimmed.isNotBlank()) {
+            _userProfile.value = _userProfile.value.copy(licenseNumber = trimmed)
+            prefs.edit().putString("saved_license_number", trimmed).apply()
+            fallbackPrefs.edit().putString("saved_license_number", trimmed).apply()
+            saveProfileToPrefs()
+            firebaseService.saveUserProfile(_userProfile.value)
         }
     }
 }
